@@ -9,9 +9,10 @@ export const tokenStorage = {
 };
 
 
-const BASE = import.meta.env.VITE_API_URL ?? "/api";
-
-export const http = axios.create({ baseURL: BASE });
+export const http = axios.create({
+    baseURL: import.meta.env.VITE_API_URL || "/api",
+    withCredentials: true,
+});
 
 http.interceptors.request.use((config) => {
     const token = tokenStorage.get();

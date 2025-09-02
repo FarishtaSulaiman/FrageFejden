@@ -1,17 +1,40 @@
 import { useEffect, useMemo, useState } from "react";
 import { http } from "../../lib/http";
 import { SystemApi } from "../../Api/system";
+
 type Status = "checking" | "ok" | "fail";
 
 export default function ApiHealth() {
     const [status, setStatus] = useState<Status>("checking");
     const [msg, setMsg] = useState("");
 
-    const endpoint = useMemo(() => {
-        const base = http.defaults.baseURL ?? "";
-        // SystemApi.ping() should hit /System/ping on your backend
-        return `${base}/System/ping`;
-    }, []);
+    const { VITE_API_BASE, DEV } = import.meta.env;
+
+    const debug = useMemo(() => {
+        const base = (http.defaults.baseURL ?? "").replace(/\/+$/, "");
+        const path = "/System/ping";
+
+        // Absolute baseURL (no proxy)
+        if (/^https?:\/\//i.test(base)) {
+            return {
+                requestUrl: `${base}${path}`,
+                viaProxy: false as const,
+                proxyTargetUrl: undefined as string | undefined,
+            };
+        }
+
+
+        const requestUrl = new URL(`${base}${path}`, window.location.origin).href;
+        const proxyTargetUrl = VITE_API_BASE
+            ? `${VITE_API_BASE.replace(/\/+$/, "")}${path}`
+            : undefined;
+
+        return {
+            requestUrl,
+            viaProxy: true as const,
+            proxyTargetUrl,
+        };
+    }, [VITE_API_BASE]);
 
     async function check() {
         setStatus("checking");
@@ -22,7 +45,12 @@ export default function ApiHealth() {
             setMsg(res.time ? new Date(res.time).toLocaleString() : "");
         } catch (e: any) {
             setStatus("fail");
-            setMsg(e?.message ?? "Request failed");
+            // show a compact error hint
+            const reason =
+                e?.response?.status
+                    ? `${e.response.status} ${e.response.statusText ?? ""}`.trim()
+                    : e?.message ?? "Request failed";
+            setMsg(reason);
         }
     }
 
@@ -38,10 +66,23 @@ export default function ApiHealth() {
                     <StatusPill status={status} />
                 </div>
 
-                <p className="mt-2 text-sm text-gray-500">
-                    Kontrollerar:{" "}
-                    <code className="bg-gray-100 text-gray-800 px-2 py-1 rounded">{endpoint}</code>
-                </p>
+                <div className="mt-2 text-sm text-gray-500 space-y-1">
+                    <p>
+                        Kontrollerar:&nbsp;
+                        <code className="bg-gray-100 text-gray-800 px-2 py-1 rounded">
+                            {debug.requestUrl}
+                        </code>
+                    </p>
+
+                    {DEV && debug.viaProxy && (
+                        <p>
+                            Vite proxy target:&nbsp;
+                            <code className="bg-gray-100 text-gray-800 px-2 py-1 rounded">
+                                {debug.proxyTargetUrl ?? "okänd – kolla vite.config.ts"}
+                            </code>
+                        </p>
+                    )}
+                </div>
 
                 <div className="mt-6">
                     {status === "checking" && (
@@ -101,7 +142,5 @@ function StatusPill({ status }: { status: Status }) {
                 ? "bg-red-100 text-red-800"
                 : "bg-amber-100 text-amber-800";
     const label = status === "ok" ? "Ansluten" : status === "fail" ? "Fel" : "Kontrollerar";
-    return (
-        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${style}`}>{label}</span>
-    );
+    return <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${style}`}>{label}</span>;
 }
