@@ -1,13 +1,12 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
-import { api } from "../lib/api";
+import React, { createContext, useContext, useMemo, useState, useEffect } from "react";
 import { tokenStorage } from "../lib/http";
+import { AuthApi } from "../Api";
 import { jwtDecode } from "jwt-decode";
 
 type Role = string;
 type JwtPayload = { sub?: string; email?: string; role?: Role | Role[]; exp?: number;[k: string]: unknown };
 type Me = { id: string; email?: string; roles: Role[]; exp?: number };
 
-// looks like a JWT if it has 3 parts
 const isLikelyJwt = (s: unknown): s is string =>
     typeof s === "string" && s.split(".").length === 3;
 
@@ -21,7 +20,7 @@ type AuthState = {
     user: Me | null;
     login: (id: string, pw: string) => Promise<void>;
     register: (email: string, userName: string, pw: string, fullName?: string) => Promise<void>;
-    logout: () => void;
+    logout: () => Promise<void>;
     hasRole: (...roles: Role[]) => boolean;
 };
 
@@ -30,38 +29,45 @@ const Ctx = createContext<AuthState | null>(null);
 export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
     const [user, setUser] = useState<Me | null>(() => {
         const t = tokenStorage.get();
-        if (!isLikelyJwt(t)) {
-            tokenStorage.clear();
-            return null;
-        }
+        if (!isLikelyJwt(t)) { tokenStorage.clear(); return null; }
         try {
-            return toUser(t);
+            const u = toUser(t);
+            if (u.exp && u.exp * 1000 <= Date.now()) { tokenStorage.clear(); return null; }
+            return u;
         } catch {
             tokenStorage.clear();
             return null;
         }
     });
 
+
+    useEffect(() => {
+        if (!user?.exp) return;
+        const ms = user.exp * 1000 - Date.now();
+        if (ms <= 0) { void logout(); return; }
+        const id = setTimeout(() => void logout(), ms);
+        return () => clearTimeout(id);
+    }, [user?.exp]);
+
     const login = async (id: string, pw: string) => {
-        const token = await api.login({ emailOrUserName: id, password: pw });
+        const token = await AuthApi.login({ emailOrUserName: id, password: pw });
         if (!isLikelyJwt(token)) throw new Error("Server returned an invalid token");
         tokenStorage.set(token);
         setUser(toUser(token));
     };
 
     const register = async (email: string, userName: string, password: string, fullName?: string) => {
-        const token = await api.register({
-            email: email.trim(),
-            userName: userName.trim(),
-            password,
-            fullname: fullName?.trim(),
-        });
+        const token = await AuthApi.register({ email: email.trim(), userName: userName.trim(), password, fullName });
         if (!isLikelyJwt(token)) throw new Error("Server returned an invalid token");
         tokenStorage.set(token);
         setUser(toUser(token));
     };
 
-    const logout = () => { tokenStorage.clear(); setUser(null); };
+    const logout = async () => {
+        try { await AuthApi.logout(); } catch { }
+        tokenStorage.clear();
+        setUser(null);
+    };
 
     const hasRole = (...roles: Role[]) => !!user && roles.some(r => user.roles.includes(r));
 
