@@ -1,13 +1,14 @@
 // src/App.tsx
 import { useState } from "react";
 import { Routes, Route, Outlet, Navigate } from "react-router-dom";
-import { Protected } from "./auth/Protected";
+import { ProtectedOutlet } from "./auth/Protected";
 import { useAuth } from "./auth/AuthContext";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import HomePage from "./pages/HomePage/HomePage";
 import QuizNivåVy from "./pages/QuizNivåVy/QuizNivåVy";
 import QuizPage from "./pages/QuizPage/QuizPage";
+import CurrentUser from "./pages/apiHealth/CurrentUser";
 
 function Home() {
   const [count, setCount] = useState(0);
@@ -60,15 +61,13 @@ export default function App() {
         <Route index element={<HomePage />} />
         <Route path="quizniva" element={<QuizNivåVy />} />
         <Route path="kurs/geografi" element={<QuizNivåVy />} />
-        <Route path="quiz" element={<QuizPage />} />
-        <Route
-          path="app"
-          element={
-            <Protected>
-              <Home />
-            </Protected>
-          }
-        />
+
+
+        <Route element={<ProtectedOutlet />}>
+          <Route path="app" element={<Home />} />
+          <Route path="app/current-user" element={<CurrentUser />} />
+        </Route>
+
         <Route path="*" element={<Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

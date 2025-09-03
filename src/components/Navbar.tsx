@@ -1,4 +1,4 @@
-// src/components/Navbar.tsx
+
 import React from "react";
 import { Link, NavLink } from "react-router-dom";
 import logo from "../assets/images/logo/fragefejden-brain-logo.png";
@@ -13,13 +13,11 @@ const NAV_ITEMS: readonly NavItem[] = [
   { to: "/register", label: "Registrera" },
 ] as const;
 
-export default function Navbar(): JSX.Element {
+export default function Navbar() {
   const [open, setOpen] = React.useState(false);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 w-full">
-      {/* (topp-linjen borttagen för att slippa rosa kant) */}
-
       <div
         className={[
           "h-11 w-full",
@@ -29,7 +27,6 @@ export default function Navbar(): JSX.Element {
         ].join(" ")}
       >
         <nav aria-label="Huvudmeny" className="flex h-full w-full items-center">
-          {/* Vänsterkant */}
           <Link to="/" className="flex items-center gap-2 pl-2">
             <img
               src={logo}
@@ -41,7 +38,6 @@ export default function Navbar(): JSX.Element {
             </span>
           </Link>
 
-          {/* Höger */}
           <div className="ml-auto flex items-center pr-3 md:pr-4">
             <ul className="hidden items-center gap-6 md:flex">
               {NAV_ITEMS.map((item) => (
@@ -51,7 +47,9 @@ export default function Navbar(): JSX.Element {
                     className={({ isActive }) =>
                       [
                         "text-[13px] leading-none transition-colors",
-                        isActive ? "text-white font-medium" : "text-white/90 hover:text-white",
+                        isActive
+                          ? "text-white font-medium"
+                          : "text-white/90 hover:text-white",
                       ].join(" ")
                     }
                   >
@@ -75,7 +73,6 @@ export default function Navbar(): JSX.Element {
         </nav>
       </div>
 
-      {/* Mobilmeny */}
       <div
         id="mobile-nav"
         className={[
@@ -95,7 +92,9 @@ export default function Navbar(): JSX.Element {
                 className={({ isActive }) =>
                   [
                     "block py-3 text-[13px] transition-colors",
-                    isActive ? "text-white font-medium" : "text-white/90 hover:text-white",
+                    isActive
+                      ? "text-white font-medium"
+                      : "text-white/90 hover:text-white",
                   ].join(" ")
                 }
               >
