@@ -1,4 +1,4 @@
-// src/App.tsx
+
 import { useState } from "react";
 import { Routes, Route, Outlet, Navigate } from "react-router-dom";
 import { Protected } from "./auth/Protected";
