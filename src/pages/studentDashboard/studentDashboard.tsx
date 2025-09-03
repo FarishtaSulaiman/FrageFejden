@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { AuthApi } from "../../Api/auth";
+import { AuthApi } from "../../Api/AuthApi/auth";
 import avatar from "../../assets/images/avatar/avatar2.png";
 import frageTitle from "../../assets/images/titles/frageFejden-title-pic.png";
 import trophy from "../../assets/images/icons/trophy-icon.png";
@@ -8,8 +8,10 @@ import rank from "../../assets/images/icons/ranking-icon.png";
 import points from "../../assets/images/icons/score-icon.png";
 import questionmark from "../../assets/images/pictures/questionmark-pic.png";
 import topplistPoints from "../../assets/images/icons/score-icon.png";
+import { useNavigate } from "react-router-dom";
 
 export default function StudentDashboardPage() {
+    const navigate = useNavigate();
 
   // definiera typer för användaren
     type User = {
@@ -73,13 +75,24 @@ export default function StudentDashboardPage() {
 
             {/* Knappar */}
             <div className="mt-2 space-y-3">
-              <button className="w-full rounded-2xl bg-[#3BCC52] px-5 py-4 text-left text-lg font-bold text-white">
+              <button
+                onClick={() => navigate("/quizniva")} // Vilken sida ska jag navigera till? 
+                className="w-full rounded-2xl bg-[#3BCC52] px-5 py-4 text-left text-lg font-bold text-white"
+              >
                 Starta Quiz
               </button>
-              <button className="w-full rounded-2xl bg-[#5827C6] px-5 py-4 text-left text-lg font-bold">
+
+              <button
+                onClick={() => navigate("/min-klass")} // sida ej skapad
+                className="w-full rounded-2xl bg-[#5827C6] px-5 py-4 text-left text-lg font-bold text-white"
+              >
                 Min klass
               </button>
-              <button className="flex w-full items-center gap-3 rounded-2xl bg-[#DA6410] px-5 py-4 text-lg font-bold text-white">
+
+              <button
+                onClick={() => navigate("/prestationer")} // sida ej skapad
+                className="flex w-full items-center gap-3 rounded-2xl bg-[#DA6410] px-5 py-4 text-lg font-bold text-white"
+              >
                 <img src={trophy} alt="Trophy" className="h-8 w-6" />
                 Prestationer
               </button>
