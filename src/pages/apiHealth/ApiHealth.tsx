@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { http } from "../../lib/http";
-import { SystemApi } from "../../Api/system";
+import { SystemApi } from "../../Api/SystemApi/system";
 
 type Status = "checking" | "ok" | "fail";
 

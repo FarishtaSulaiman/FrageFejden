@@ -1,4 +1,5 @@
-import { http } from "../lib/http";
+import { http } from "../../lib/http";
+import { tokenStorage } from "../../lib/http";
 
 export type LoginReq = { emailOrUserName: string; password: string };
 export type RegisterReq = { email: string; userName: string; password: string; fullName?: string };
@@ -22,9 +23,20 @@ export const AuthApi = {
     },
 
     async logout(): Promise<void> {
-        await http.post("/Auth/logout");
+        await tokenStorage.clear();
     },
+
+    //Loggar ut över alla enheter
+    async logoutAll(): Promise<void> {
+        await http.post("/Auth/logoutAll");
+    }
+
+
+
+
 };
+
+
 
 function extractToken(data: unknown): string {
     if (typeof data === "string") return data;
