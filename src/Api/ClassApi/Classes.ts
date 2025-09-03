@@ -39,5 +39,11 @@ export const Classes = {
     //Tar bort en klass
     async DeleteClass(classId: string): Promise<void> {
         await http.delete(`/Class/${classId}`);
+    },
+
+    //mina klasser som jag är medlem i (ej lärare)
+    async MyMemberClasses(): Promise<any[]> {
+        const res = await http.get(`/Class/me`)
+        return res.data;
     }
 }

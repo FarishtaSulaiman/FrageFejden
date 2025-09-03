@@ -10,7 +10,7 @@ export const AuthApi = {
         const res = await http.post("/Auth/login", data);
         return extractToken(res.data);
     },
-
+    
     async register(data: RegisterReq): Promise<string> {
         const payload = {
             email: data.email,
@@ -29,11 +29,13 @@ export const AuthApi = {
     //Loggar ut över alla enheter
     async logoutAll(): Promise<void> {
         await http.post("/Auth/logoutAll");
+    },
+
+    //hämtar information om den inloggade användaren
+    async getMe(): Promise<any> {
+        const res = await http.get("/Auth/me");
+        return res.data;
     }
-
-
-
-
 };
 
 
