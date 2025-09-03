@@ -54,6 +54,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         if (!isLikelyJwt(token)) throw new Error("Server returned an invalid token");
         tokenStorage.set(token);
         setUser(toUser(token));
+        console.log("Auth user:", user);
     };
 
     const register = async (email: string, userName: string, password: string, fullName?: string) => {

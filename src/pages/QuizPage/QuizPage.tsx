@@ -1,4 +1,4 @@
-// src/pages/QuizPlay/QuizPage.tsx
+
 import React from "react";
 import globe from "../../assets/images/icons/geografy-icon.png";
 

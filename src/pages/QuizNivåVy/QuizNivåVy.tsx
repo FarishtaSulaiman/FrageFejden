@@ -1,4 +1,4 @@
-// src/pages/QuizNivåVy/QuizNivåVy.tsx
+
 import React from "react";
 import frageTitle from "../../assets/images/titles/frageFejden-title-pic.png";
 import avatar from "../../assets/images/avatar/avatar3.png";

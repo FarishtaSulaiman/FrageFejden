@@ -1,4 +1,3 @@
-// vite.config.ts
 import { defineConfig, loadEnv, type UserConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
