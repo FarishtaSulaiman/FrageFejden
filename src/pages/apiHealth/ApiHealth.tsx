@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { http } from "../../lib/http";
-import { SystemApi } from "../../Api/system";
+import { SystemApi } from "../../Api/SystemApi/system";
+
 
 type Status = "checking" | "ok" | "fail";
 
@@ -9,6 +10,8 @@ export default function ApiHealth() {
     const [msg, setMsg] = useState("");
 
     const { VITE_API_BASE, DEV } = import.meta.env;
+
+
 
     const debug = useMemo(() => {
         const base = (http.defaults.baseURL ?? "").replace(/\/+$/, "");

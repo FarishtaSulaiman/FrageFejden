@@ -1,4 +1,4 @@
-import { http } from "../lib/http";
+import { http } from "../../lib/http";
 
 export type PingRes = { ok: boolean; name?: string; version?: string; time: string };
 
