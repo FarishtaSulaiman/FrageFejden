@@ -8,6 +8,7 @@ import Footer from "./components/Footer";
 import HomePage from "./pages/HomePage/HomePage";
 import QuizNivåVy from "./pages/QuizNivåVy/QuizNivåVy";
 import QuizPage from "./pages/QuizPage/QuizPage";
+import QuizVyStudent from "./pages/QuizVyStudent/QuizVyStudent";
 
 function Home() {
   const [count, setCount] = useState(0);
@@ -61,6 +62,7 @@ export default function App() {
         <Route path="quizniva" element={<QuizNivåVy />} />
         <Route path="kurs/geografi" element={<QuizNivåVy />} />
         <Route path="quiz" element={<QuizPage />} />
+        <Route path="QuizVyStudent" element={<QuizVyStudent />} />
         <Route
           path="app"
           element={
@@ -69,7 +71,6 @@ export default function App() {
             </Protected>
           }
         />
-        <Route path="*" element={<Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
