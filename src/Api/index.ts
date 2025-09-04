@@ -4,6 +4,6 @@ export { SystemApi } from "./SystemApi/system";
 export { Classes } from "./ClassApi/Classes";
 export { ClassMemberShips } from "./ClassApi/ClassMemberships";
 export { ClassAccess } from "./ClassApi/ClassAccess";
-
+export { QuizzesApi } from "./QuizApi/Quizzes";
 
 
