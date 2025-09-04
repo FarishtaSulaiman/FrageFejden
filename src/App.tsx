@@ -68,7 +68,6 @@ export default function App() {
         <Route path="kurs/geografi" element={<QuizNivåVy />} />
         <Route path="quiz" element={<QuizPage />} />
         <Route path="QuizVyStudent" element={<QuizVyStudent />} />
-
         <Route path="studentDashboard" element={<StudentDashboardPage />} />
 
         <Route element={<ProtectedOutlet />}>
