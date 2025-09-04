@@ -39,5 +39,10 @@ export const Classes = {
     //Tar bort en klass
     async DeleteClass(classId: string): Promise<void> {
         await http.delete(`/Class/${classId}`);
+    },
+
+    async GetUsersClasses(): Promise<any> {
+        const data = await http.get("/Class/me");
+        return data;
     }
 }

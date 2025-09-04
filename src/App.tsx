@@ -66,7 +66,7 @@ export default function App() {
         <Route index element={<HomePage />} />
         <Route path="quizniva" element={<QuizNivåVy />} />
         <Route path="kurs/geografi" element={<QuizNivåVy />} />
-         <Route path="quiz" element={<QuizPage />} />
+        <Route path="quiz" element={<QuizPage />} />
         <Route path="QuizVyStudent" element={<QuizVyStudent />} />
 
         <Route path="studentDashboard" element={<StudentDashboardPage />} />
