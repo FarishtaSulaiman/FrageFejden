@@ -4,7 +4,16 @@ import { tokenStorage } from "../../lib/http";
 export type LoginReq = { emailOrUserName: string; password: string };
 export type RegisterReq = { email: string; userName: string; password: string; fullName?: string };
 
-// Auth API
+
+export type MeResp = {
+    id: string;
+    email?: string;
+    userName?: string;
+    roles: string[];
+    exp?: number;
+    expiresAtUtc?: string;
+};
+
 export const AuthApi = {
     async login(data: LoginReq): Promise<string> {
         const res = await http.post("/Auth/login", data);
@@ -23,20 +32,26 @@ export const AuthApi = {
     },
 
     async logout(): Promise<void> {
-        await tokenStorage.clear();
+        
+        try {
+            await http.post("/Auth/logout");
+        } catch {
+            
+        }
     },
 
-    //Loggar ut över alla enheter
+    
     async logoutAll(): Promise<void> {
         await http.post("/Auth/logoutAll");
+       
+    },
+
+    
+    async getMe(): Promise<MeResp> {
+        const res = await http.get("/Auth/me");
+        return res.data as MeResp;
     }
-
-
-
-
 };
-
-
 
 function extractToken(data: unknown): string {
     if (typeof data === "string") return data;

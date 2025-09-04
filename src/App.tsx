@@ -1,4 +1,3 @@
-// src/App.tsx
 import { useState } from "react";
 import { Routes, Route, Outlet, Navigate } from "react-router-dom";
 import { ProtectedOutlet } from "./auth/Protected";
@@ -13,11 +12,12 @@ import CurrentUser from "./pages/apiHealth/CurrentUser";
 function Home() {
   const [count, setCount] = useState(0);
   const { user, logout } = useAuth();
+
   return (
     <>
       <h1 className="text-2xl font-bold text-white">Vite + React</h1>
       <p className="text-white/90">
-        Logged in as: <b>{user?.email ?? user?.id}</b>
+        Logged in as: <b>{user?.userName ?? user?.email ?? user?.id}</b>
       </p>
       <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4 text-white">
         <button
@@ -62,13 +62,11 @@ export default function App() {
         <Route path="quizniva" element={<QuizNivåVy />} />
         <Route path="kurs/geografi" element={<QuizNivåVy />} />
 
-
         <Route element={<ProtectedOutlet />}>
           <Route path="app" element={<Home />} />
           <Route path="app/current-user" element={<CurrentUser />} />
         </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
