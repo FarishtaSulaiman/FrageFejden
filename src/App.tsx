@@ -7,6 +7,7 @@ import Footer from "./components/Footer";
 import HomePage from "./pages/HomePage/HomePage";
 import QuizNivåVy from "./pages/QuizNivåVy/QuizNivåVy";
 import QuizPage from "./pages/QuizPage/QuizPage";
+import StudentDashboardPage from "./pages/studentDashboard/studentDashboard";
 import CurrentUser from "./pages/apiHealth/CurrentUser";
 
 function Home() {
@@ -27,7 +28,9 @@ function Home() {
           count is {count}
         </button>
         <p className="mt-3 text-sm text-white/80">
-          Edit <code className="rounded bg-black/30 px-1 py-0.5">src/App.tsx</code> and save to test HMR
+          Edit{" "}
+          <code className="rounded bg-black/30 px-1 py-0.5">src/App.tsx</code>{" "}
+          and save to test HMR
         </p>
         <p className="mt-3">
           <button
@@ -61,6 +64,7 @@ export default function App() {
         <Route index element={<HomePage />} />
         <Route path="quizniva" element={<QuizNivåVy />} />
         <Route path="kurs/geografi" element={<QuizNivåVy />} />
+        <Route path="studentDashboard" element={<StudentDashboardPage />} />
 
         <Route element={<ProtectedOutlet />}>
           <Route path="app" element={<Home />} />
