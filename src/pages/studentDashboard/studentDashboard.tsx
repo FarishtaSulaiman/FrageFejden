@@ -127,7 +127,7 @@ export default function StudentDashboardPage() {
                     Dagens Quiz
                   </h3>
 
-                  {/* Frågeteckenbilden längre till höger */}
+                  {/* Frågeteckenbilden position */}
                   <img
                     src={questionmark}
                     alt="Frågetecken"
