@@ -5,5 +5,5 @@ export { Classes } from "./ClassApi/Classes";
 export { ClassMemberShips } from "./ClassApi/ClassMemberships";
 export { ClassAccess } from "./ClassApi/ClassAccess";
 export { QuizzesApi } from "./QuizApi/Quizzes";
-
+export { SubjectsApi } from "./SubjectApi/SubjectsApi";
 
