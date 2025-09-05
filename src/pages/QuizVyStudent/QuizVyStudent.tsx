@@ -30,7 +30,7 @@ export default function QuizVyStudent(): React.ReactElement {
 
   return (
     <div className="min-h-screen bg-[#0A0F1F] text-white">
-     
+
       <section className="relative">
         <div className="relative h-[230px] overflow-hidden bg-gradient-to-r from-[#5E2FD7] via-[#5B2ED6] to-[#3E1BB2]">
           <div
@@ -42,12 +42,12 @@ export default function QuizVyStudent(): React.ReactElement {
             className="absolute -right-48 -bottom-44 h-[620px] w-[620px] rounded-full bg-[radial-gradient(closest-side,rgba(255,255,255,0.08),transparent_72%)]"
           />
 
-          
+
           <div className="mx-auto flex h-full max-w-[1100px] items-center justify-between px-4">
             <img
-            src={titleImg}
-            alt="FRÅGEFEJDEN"
-            className="h-[96px] sm:h-[112px] w-auto -ml-3 sm:-ml-6 lg:-ml-10 drop-shadow-[0_12px_28px_rgba(0,0,0,0.35)]"
+              src={titleImg}
+              alt="FRÅGEFEJDEN"
+              className="h-[96px] sm:h-[112px] w-auto -ml-3 sm:-ml-6 lg:-ml-10 drop-shadow-[0_12px_28px_rgba(0,0,0,0.35)]"
             />
 
             <img
@@ -57,7 +57,7 @@ export default function QuizVyStudent(): React.ReactElement {
             />
           </div>
 
-         
+
           <div className="absolute left-1/2 top-[56%] -translate-x-1/2 -translate-y-1/2">
             <div className="flex items-center gap-5">
               <div className="flex h-14 items-center gap-3 rounded-[16px] bg-[#0F1426]/92 px-6 ring-1 ring-white/10 shadow-[0_14px_36px_rgba(0,0,0,0.45)] backdrop-blur">
@@ -79,12 +79,12 @@ export default function QuizVyStudent(): React.ReactElement {
         </div>
       </section>
 
-      
+
       <section className="mx-auto max-w-[1100px] px-4 pt-16">
         <h2 className="text-center text-[18px] font-semibold text-white/90">Välj din kurs</h2>
       </section>
 
-      
+
       <section className="mx-auto max-w-[1100px] px-4 pt-6">
         <div className="grid grid-cols-1 place-items-center gap-x-16 gap-y-10 sm:grid-cols-2">
           {SUBJECTS.map((s) => {
@@ -116,7 +116,7 @@ export default function QuizVyStudent(): React.ReactElement {
           })}
         </div>
 
-       
+
         <div className="mt-12 flex justify-center pb-20">
           <button
             type="button"

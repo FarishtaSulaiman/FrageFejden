@@ -11,7 +11,7 @@ export type Me = {
     userName?: string;
     roles: Role[];
 
-    xp?: number;
+    exp?: number;
 
     expiresAtMs?: number;
 };
@@ -84,13 +84,13 @@ function decodeTokenToMe(token: string): Me {
 
 
     const xpRaw = (p["xp"] ?? p["experience"] ?? p["exp_points"]) as unknown;
-    const xp = typeof xpRaw === "number" ? xpRaw : undefined;
+    const exp = typeof xpRaw === "number" ? xpRaw : undefined;
 
 
     const jwtExp = p["exp"];
     const expiresAtMs = typeof jwtExp === "number" ? jwtExp * 1000 : undefined;
 
-    return { id, email, userName, roles, xp, expiresAtMs };
+    return { id, email, userName, roles, exp, expiresAtMs };
 }
 
 export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
@@ -162,7 +162,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
                 if (me.id) next.id = me.id;
                 if (me.userName) next.userName = me.userName;
                 if (Array.isArray(me.roles)) next.roles = me.roles;
-                if (typeof me.exp === "number") next.xp = me.exp;
+                if (typeof me.exp === "number") next.exp = me.exp;
 
 
 

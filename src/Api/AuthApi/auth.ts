@@ -32,21 +32,21 @@ export const AuthApi = {
     },
 
     async logout(): Promise<void> {
-        
+
         try {
             await http.post("/Auth/logout");
         } catch {
-            
+
         }
     },
 
-    
+
     async logoutAll(): Promise<void> {
         await http.post("/Auth/logoutAll");
-       
+
     },
 
-    
+
     async getMe(): Promise<MeResp> {
         const res = await http.get("/Auth/me");
         return res.data as MeResp;

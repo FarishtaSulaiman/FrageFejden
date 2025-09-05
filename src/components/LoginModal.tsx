@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../auth/AuthContext";
+
 
 interface LoginModalProps {
     isOpen: boolean;
@@ -7,12 +8,23 @@ interface LoginModalProps {
     onLoginSuccess?: () => void;
 }
 
+
+
 const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess }) => {
     const { login } = useAuth();
     const [formData, setFormData] = useState({ emailOrUserName: "", password: "" });
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
+
+
+    useEffect(() => {
+
+        setFormData({
+            emailOrUserName: "mary.student@school.edu",
+            password: "Password123!",
+        });
+    }, []);
 
     if (!isOpen) return null;
 

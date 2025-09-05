@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { AuthApi } from "../../Api/AuthApi/auth";
+
+import { AuthApi, Classes } from "../../Api/index";
+
 import avatar from "../../assets/images/avatar/avatar2.png";
 import frageTitle from "../../assets/images/titles/frageFejden-title-pic.png";
 import trophy from "../../assets/images/icons/trophy-icon.png";
@@ -31,10 +33,12 @@ useEffect(() => {
     try {
       const me = await getMe();
 
+
       const name =
         me.userName?.trim() ||
         me.email?.split("@")[0] ||
         "Användare";
+
 
       setDisplayName(name);
       setEmail(me.email ?? ""); // spara e-post
