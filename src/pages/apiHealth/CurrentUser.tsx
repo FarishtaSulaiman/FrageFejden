@@ -23,7 +23,7 @@ export default function CurrentUser() {
         user.email ??
         "—";
 
-    const expiresAtUtc = user.exp ? new Date(user.exp * 1000).toISOString() : "—";
+    const expiresAtUtc = user.expiresAtMs ? new Date(user.expiresAtMs * 1000).toISOString() : "—";
 
     return (
         <div className="text-white space-y-3">

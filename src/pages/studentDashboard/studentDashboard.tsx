@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { AuthApi } from "../../Api/auth";
+import { AuthApi, Classes } from "../../Api/index";
 import avatar from "../../assets/images/avatar/avatar2.png";
 import frageTitle from "../../assets/images/titles/frageFejden-title-pic.png";
 import trophy from "../../assets/images/icons/trophy-icon.png";
@@ -12,11 +12,11 @@ import topplistPoints from "../../assets/images/icons/score-icon.png";
 export default function StudentDashboardPage() {
 
   // definiera typer för användaren
-    type User = {
-      id: string;
-      email: string;
-      userName: string;
-    };
+  type User = {
+    id: string;
+    email: string;
+    userName: string;
+  };
 
   // skapa en konstant variabel (state) för att lagra användaren - EVENTULLT INTE NEDAN OM VI KÖR AUTH.... PARENT?? 
   const [user, setUser] = useState(null);
