@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
+
 import { AuthApi, Classes } from "../../Api/index";
+
 import avatar from "../../assets/images/avatar/avatar2.png";
 import frageTitle from "../../assets/images/titles/frageFejden-title-pic.png";
 import trophy from "../../assets/images/icons/trophy-icon.png";
@@ -8,22 +10,72 @@ import rank from "../../assets/images/icons/ranking-icon.png";
 import points from "../../assets/images/icons/score-icon.png";
 import questionmark from "../../assets/images/pictures/questionmark-pic.png";
 import topplistPoints from "../../assets/images/icons/score-icon.png";
+import { useNavigate } from "react-router-dom";
+import { Classes } from "../../Api/index";
+
+
 
 export default function StudentDashboardPage() {
+  const navigate = useNavigate();
 
-  // definiera typer för användaren
-  type User = {
-    id: string;
-    email: string;
-    userName: string;
-  };
+  // Spara namnet på användaren
+const [displayName, setDisplayName] = useState("Användare");
+const [email, setEmail] = useState("");
+// useState för score/experiencepoints
 
-  // skapa en konstant variabel (state) för att lagra användaren - EVENTULLT INTE NEDAN OM VI KÖR AUTH.... PARENT?? 
-  const [user, setUser] = useState(null);
+  // Alias till API-metoden (funktionsreferens – anropas i useEffect)
+  const getMe = AuthApi.getMe;
 
-  // useEffect = kör kod när komponenten laddas
+  // useEffect för score/experiencepoints
 
-  // fetch för API-anrop av inloggad användare
+useEffect(() => {
+  (async () => {
+    try {
+      const me = await getMe();
+
+
+      const name =
+        me.userName?.trim() ||
+        me.email?.split("@")[0] ||
+        "Användare";
+
+
+      setDisplayName(name);
+      setEmail(me.email ?? ""); // spara e-post
+    } catch (e) {
+      console.error("Kunde inte hämta användare:", e);
+      setDisplayName("Användare");
+      setEmail("");
+    }
+  })();
+}, []);
+
+  //   // definiera typer för användaren
+  //     type User = {
+  //       id: string;
+  //       email: string;
+  //       userName: string;
+  //     };
+
+  //   // skapa en konstant variabel (state) för att lagra användaren 
+  //   const [user, setUser] = useState(null);
+
+  //   // useEffect = kör kod när komponenten laddas
+
+  //   // fetch för API-anrop av inloggad användare
+
+  // API ANROP FÖR ATT HÄMTA ENS KLASS, behövs ej på denna page
+  //   var res = Classes.MyClasses;
+
+  // funktion för att hämta studentens klass
+  // async function handleMyClassClick() {
+  //   const list = await res(); // <-- nu körs API-anropet
+  //   if (!list?.length) {
+  //     alert("Du är inte med i någon klass ännu.");
+  //     return;
+  //   }
+  //   navigate("/min-klass", { state: { classId: list[0].id } });
+  // }
 
   return (
     <div className="bg-[#080923] text-white">
@@ -37,7 +89,8 @@ export default function StudentDashboardPage() {
                 alt="Användaravatar"
                 className="h-10 w-10 rounded-full object-cover ring-2 ring-white/10"
               />
-              <span className="font-semibold">Hej Användare!</span>
+              <span className="font-semibold">Hej {displayName}!</span>
+              {/* <span className="block text-xs opacity-70">{email}</span> */}
             </div>
 
             <input
@@ -73,13 +126,24 @@ export default function StudentDashboardPage() {
 
             {/* Knappar */}
             <div className="mt-2 space-y-3">
-              <button className="w-full rounded-2xl bg-[#3BCC52] px-5 py-4 text-left text-lg font-bold text-white">
+              <button
+                onClick={() => navigate("/quizniva")} // Vilken sida ska jag navigera till?
+                className="w-full rounded-2xl bg-[#3BCC52] px-5 py-4 text-left text-lg font-bold text-white"
+              >
                 Starta Quiz
               </button>
-              <button className="w-full rounded-2xl bg-[#5827C6] px-5 py-4 text-left text-lg font-bold">
+
+              <button
+                onClick={() => navigate("/min-klass")} // sida ej skapad
+                className="w-full rounded-2xl bg-[#5827C6] px-5 py-4 text-left text-lg font-bold text-white"
+              >
                 Min klass
               </button>
-              <button className="flex w-full items-center gap-3 rounded-2xl bg-[#DA6410] px-5 py-4 text-lg font-bold text-white">
+
+              <button
+                onClick={() => navigate("/prestationer")} // sida ej skapad
+                className="flex w-full items-center gap-3 rounded-2xl bg-[#DA6410] px-5 py-4 text-lg font-bold text-white"
+              >
                 <img src={trophy} alt="Trophy" className="h-8 w-6" />
                 Prestationer
               </button>
@@ -114,7 +178,7 @@ export default function StudentDashboardPage() {
                     Dagens Quiz
                   </h3>
 
-                  {/* Frågeteckenbilden längre till höger */}
+                  {/* Frågeteckenbilden position */}
                   <img
                     src={questionmark}
                     alt="Frågetecken"

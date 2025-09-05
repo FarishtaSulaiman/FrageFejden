@@ -41,13 +41,18 @@ export const Classes = {
         await http.delete(`/Class/${classId}`);
     },
 
+
+    // Hämta användarens inloggade klass
     async GetUsersClasses(): Promise<any> {
         const data = await http.get("/Class/me");
         return data;
-    },
+
+    
 
     async GetLoggedInUserScore(Userid: string): Promise<any> {
         const data = await http.get(`/Class/user/${Userid}/points`)
         return data
+
     }
+    
 }
