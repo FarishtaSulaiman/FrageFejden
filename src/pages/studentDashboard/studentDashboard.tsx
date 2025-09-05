@@ -11,8 +11,6 @@ import points from "../../assets/images/icons/score-icon.png";
 import questionmark from "../../assets/images/pictures/questionmark-pic.png";
 import topplistPoints from "../../assets/images/icons/score-icon.png";
 import { useNavigate } from "react-router-dom";
-import { Classes } from "../../Api/index";
-
 
 
 export default function StudentDashboardPage() {
