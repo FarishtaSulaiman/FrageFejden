@@ -7,11 +7,11 @@ const JoinClassPage: React.FC = () => {
   const { joinCode: routeJoinCode } = useParams<{ joinCode: string }>();
   const joinCode = useMemo(() => (routeJoinCode ?? "").trim(), [routeJoinCode]);
   const navigate = useNavigate();
-    
+
   const { register, user } = useAuth();
 
   const [className, setClassName] = useState<string>("");
-  const [isValid,   setIsValid] = useState<boolean | null>(null);
+  const [isValid, setIsValid] = useState<boolean | null>(null);
   const [checking, setChecking] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [classId, setClassId] = useState<string | undefined>(undefined);
@@ -31,8 +31,8 @@ const JoinClassPage: React.FC = () => {
 
     async function validateAndFetch() {
       if (!joinCode) {
-        setIsValid(false);        
-        setChecking(false); 
+        setIsValid(false);
+        setChecking(false);
         return;
       }
       setChecking(true);
@@ -93,7 +93,7 @@ const JoinClassPage: React.FC = () => {
 
       // Then join class with the provided join code via API layer
       await ClassAccess.join(joinCode);
-      
+
       // Navigate to class page or dashboard
       navigate(`/classes/${classId}`, { replace: true });
 

@@ -72,15 +72,15 @@ export default function App() {
         <Route path="quizniva" element={<QuizNivåVy />} />
         <Route path="kurs/geografi" element={<QuizNivåVy />} />
         <Route path="quiz" element={<QuizPage />} />
-        <Route path="quizDuel" element={<StudentDashboardPage />} />
+        <Route path="quizDuel" element={<DuelRoom />} />
         <Route path="QuizVyStudent" element={<QuizVyStudent />} />
         <Route path="studentDashboard" element={<StudentDashboardPage />} />
 
 
         <Route path="class/join/:joinCode" element={<JoinClassPage />} />
-        
 
-        <Route path="duel" element={<DuelRoom/>}/>
+
+        <Route path="duel" element={<DuelRoom />} />
 
         <Route path="skapa-quiz" element={<SkapaQuizPage />} />
         <Route path="teacher/klassvy" element={<TeacherKlassVy />} />

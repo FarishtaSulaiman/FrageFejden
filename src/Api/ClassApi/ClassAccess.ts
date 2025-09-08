@@ -3,9 +3,9 @@ import { http } from "../../lib/http";
 
 type ValidateJoinCodeRaw = {
   IsValid?: boolean; isValid?: boolean;
-  ClassId?: string;  classId?: string;
+  ClassId?: string; classId?: string;
   ClassName?: string; className?: string;
-  Message?: string;  message?: string;
+  Message?: string; message?: string;
 };
 
 export type ValidateJoinCodeResp = {
@@ -25,7 +25,7 @@ export type JoinResp = {
 export const ClassAccess = {
   async validateJoinCode(joinCode: string): Promise<ValidateJoinCodeResp> {
     const { data } = await http.get<ValidateJoinCodeRaw>(
-      `/api/Class/validate-joincode/${encodeURIComponent(joinCode)}`
+      `/Class/validate-joincode/${encodeURIComponent(joinCode)}`
     );
     return {
       isValid: (data.isValid ?? data.IsValid) ?? false,
@@ -36,7 +36,7 @@ export const ClassAccess = {
   },
 
   async join(joinCode: string): Promise<JoinResp> {
-    const { data } = await http.post<JoinResp>(`/api/Class/join`, { joinCode });
+    const { data } = await http.post<JoinResp>(`/Class/join`, { joinCode });
     return data;
   },
 };
