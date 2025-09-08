@@ -17,5 +17,9 @@ export const ClassMemberShips = {
     //tar bort en medlem från en klass
     async RemoveMember(classId: string, userId: string): Promise<void> {
         await http.delete(`/Class/${classId}/members/${userId}`);
+    },
+
+    async IsValidInviteCode(InviteCode: string){
+        await http.get(`/Class`)
     }
 }

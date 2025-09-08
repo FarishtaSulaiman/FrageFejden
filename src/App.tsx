@@ -11,8 +11,11 @@ import QuizVyStudent from "./pages/QuizVyStudent/QuizVyStudent";
 import StudentDashboardPage from "./pages/studentDashboard/studentDashboard";
 import CurrentUser from "./pages/apiHealth/CurrentUser";
 import ApiPlayground from "./pages/apiHealth/ApiTest";
+import DuelRoom from "./pages/DuelPage/DuelRoom";
+import JoinClassPage from "./pages/JoinClass/JoinClass";
 import SkapaQuizPage from "./pages/SkapaQuizPage/SkapaQuizPage";
 import TeacherKlassVy from "./pages/TeacherKlassVy/TeacherKlassVy";
+
 
 function Home() {
   const [count, setCount] = useState(0);
@@ -72,8 +75,16 @@ export default function App() {
         <Route path="quizDuel" element={<StudentDashboardPage />} />
         <Route path="QuizVyStudent" element={<QuizVyStudent />} />
         <Route path="studentDashboard" element={<StudentDashboardPage />} />
+
+
+        <Route path="class/join/:joinCode" element={<JoinClassPage />} />
+        
+
+        <Route path="duel" element={<DuelRoom/>}/>
+
         <Route path="skapa-quiz" element={<SkapaQuizPage />} />
         <Route path="teacher/klassvy" element={<TeacherKlassVy />} />
+
 
         <Route element={<ProtectedOutlet />}>
           <Route path="app" element={<Home />} />
