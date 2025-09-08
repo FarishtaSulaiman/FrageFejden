@@ -12,6 +12,7 @@ import StudentDashboardPage from "./pages/studentDashboard/studentDashboard";
 import CurrentUser from "./pages/apiHealth/CurrentUser";
 import ApiPlayground from "./pages/apiHealth/ApiTest";
 import SkapaQuizPage from "./pages/SkapaQuizPage/SkapaQuizPage";
+import TeacherKlassVy from "./pages/TeacherKlassVy/TeacherKlassVy";
 
 function Home() {
   const [count, setCount] = useState(0);
@@ -72,6 +73,7 @@ export default function App() {
         <Route path="QuizVyStudent" element={<QuizVyStudent />} />
         <Route path="studentDashboard" element={<StudentDashboardPage />} />
         <Route path="skapa-quiz" element={<SkapaQuizPage />} />
+        <Route path="teacher/klassvy" element={<TeacherKlassVy />} />
 
         <Route element={<ProtectedOutlet />}>
           <Route path="app" element={<Home />} />
