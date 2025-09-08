@@ -7,59 +7,74 @@ import frageTitle from "../../assets/images/titles/frageFejden-title-pic.png";
 import trophy from "../../assets/images/icons/trophy-icon.png";
 import funfact from "../../assets/images/pictures/fun-fact-pic.png";
 import rank from "../../assets/images/icons/ranking-icon.png";
-import points from "../../assets/images/icons/score-icon.png";
+import pointsIcon from "../../assets/images/icons/score-icon.png";
 import questionmark from "../../assets/images/pictures/questionmark-pic.png";
 import topplistPoints from "../../assets/images/icons/score-icon.png";
 import { useNavigate } from "react-router-dom";
 
+
 export default function StudentDashboardPage() {
   const navigate = useNavigate();
 
-  // Spara namnet på användaren
-const [displayName, setDisplayName] = useState("Användare");
-const [email, setEmail] = useState("");
-// useState för score/experiencepoints
+  // Spara namn och mail på användaren
+  const [displayName, setDisplayName] = useState("Användare");
+  const [email, setEmail] = useState("");
+  // useState för score/experiencepoints
+  const [points, setPoints] = useState<number>(0);
+
+  // rank
+  const [rankNum, setRankNum] = useState<number | null>(null);
+  const [topThree, setTopThree] = useState<any[]>([]);
 
   // Alias till API-metoden (funktionsreferens – anropas i useEffect)
   const getMe = AuthApi.getMe;
 
-  // useEffect för score/experiencepoints
+  // useEffect för username, score/experiencepoints och ranking
+  useEffect(() => {
+    (async () => {
+      try {
+        const me = await AuthApi.getMe(); // hämtar inloggad + id
 
-useEffect(() => {
-  (async () => {
-    try {
-      const me = await getMe();
+        // namn + mail
+        const name =
+          me.userName?.trim() || me.email?.split("@")[0] || "Användare";
+        setDisplayName(name);
+        setEmail(me.email ?? "");
 
+        // poäng
+        const xp = await Classes.GetLoggedInUserScore(me.id); // /api/Class/user/{userId}/points
+        setPoints(typeof xp === "number" ? xp : 0);
 
-      const name =
-        me.userName?.trim() ||
-        me.email?.split("@")[0] ||
-        "Användare";
+        // 🧠 hämta mina klasser (vi tar första hittade)
+        const myClasses = await Classes.GetUsersClasses();
+        const first = myClasses?.[0];
+        // fallback om backend skickar 'id' eller 'classId' i olika format
+        const classId =
+          first?.classId ?? first?.id ?? first?.ClassId ?? first?.Id;
 
+        // 🧠 hämta leaderboard (hela klassen) + min ranking i ETT anrop
+        if (!classId) {
+          setRankNum(null);
+          setTopThree([]);
+          return;
+        }
 
-      setDisplayName(name);
-      setEmail(me.email ?? ""); // spara e-post
-    } catch (e) {
-      console.error("Kunde inte hämta användare:", e);
-      setDisplayName("Användare");
-      setEmail("");
-    }
-  })();
-}, []);
-
-  //   // definiera typer för användaren
-  //     type User = {
-  //       id: string;
-  //       email: string;
-  //       userName: string;
-  //     };
-
-  //   // skapa en konstant variabel (state) för att lagra användaren 
-  //   const [user, setUser] = useState(null);
-
-  //   // useEffect = kör kod när komponenten laddas
-
-  //   // fetch för API-anrop av inloggad användare
+        const { leaderboard, myRank } = await Classes.GetClassLeaderboard(
+          classId,
+          me.id
+        );
+        setRankNum(myRank); // kan bli null om inte medlem/ej hittad
+        setTopThree(leaderboard.slice(0, 3)); // topp 3 till rutan
+      } catch (e) {
+        console.error("Kunde inte hämta profil/poäng/ranking:", e);
+        setDisplayName("Användare");
+        setEmail("");
+        setPoints(0);
+        setRankNum(null);
+        setTopThree([]);
+      }
+    })();
+  }, []);
 
   // API ANROP FÖR ATT HÄMTA ENS KLASS, behövs ej på denna page
   //   var res = Classes.MyClasses;
@@ -98,11 +113,11 @@ useEffect(() => {
             <div className="flex items-center gap-6 text-sm">
               <div className="flex items-center gap-2">
                 <img src={rank} alt="Ranking" className="h-8 w-6" />
-                <span>Ranking</span>
+                <span>{rankNum ?? "—"}</span>
               </div>
               <div className="flex items-center gap-2">
-                <img src={points} alt="Points" className="h-6 w-6" />
-                <span>Poäng</span>
+                <img src={pointsIcon} alt="Points" className="h-6 w-6" />
+                <span>{points}</span>
               </div>
             </div>
           </div>
@@ -197,9 +212,18 @@ useEffect(() => {
             <section className="rounded-2xl bg-[#3D1C87] p-4">
               <h2 className="text-lg font-extrabold">Topplista</h2>
               <div className="mt-3 space-y-3 text-sm">
-                <Row name="Bea" points="2800" />
-                <Row name="Elsa" points="2100" />
-                <Row name="Bengt" points="1950" />
+                {topThree.length ? (
+                  topThree.map((p) => (
+                    <Row
+                      key={p.userId}
+                      // ⬇️ tar userName, kapar vid "@", trimmar, och fall back till "Okänd"
+                      name={(p.userName ?? "").split("@")[0].trim() || "Okänd"}
+                      points={String(p.score)}
+                    />
+                  ))
+                ) : (
+                  <div className="text-sm opacity-70">Ingen topplista ännu</div>
+                )}
               </div>
             </section>
 

@@ -13,7 +13,8 @@ import CurrentUser from "./pages/apiHealth/CurrentUser";
 import ApiPlayground from "./pages/apiHealth/ApiTest";
 import DuelRoom from "./pages/DuelPage/DuelRoom";
 import JoinClassPage from "./pages/JoinClass/JoinClass";
-
+import SkapaQuizPage from "./pages/SkapaQuizPage/SkapaQuizPage";
+import TeacherKlassVy from "./pages/TeacherKlassVy/TeacherKlassVy";
 
 
 function Home() {
@@ -75,19 +76,22 @@ export default function App() {
         <Route path="QuizVyStudent" element={<QuizVyStudent />} />
         <Route path="studentDashboard" element={<StudentDashboardPage />} />
 
+
         <Route path="class/join/:joinCode" element={<JoinClassPage />} />
         
 
         <Route path="duel" element={<DuelRoom/>}/>
 
+        <Route path="skapa-quiz" element={<SkapaQuizPage />} />
+        <Route path="teacher/klassvy" element={<TeacherKlassVy />} />
+
+
         <Route element={<ProtectedOutlet />}>
           <Route path="app" element={<Home />} />
           <Route path="app/current-user" element={<CurrentUser />} />
 
-
           <Route path="Api-test" element={<ApiPlayground />} />
         </Route>
-
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
