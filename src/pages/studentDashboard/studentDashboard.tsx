@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 
 import { AuthApi, Classes } from "../../Api/index";
+import { getRandomFunFact, FunFact } from "../../Api/FunFacts.ts/FunFacts";
 
 import avatar from "../../assets/images/avatar/avatar2.png";
 import frageTitle from "../../assets/images/titles/frageFejden-title-pic.png";
@@ -11,6 +12,7 @@ import pointsIcon from "../../assets/images/icons/score-icon.png";
 import questionmark from "../../assets/images/pictures/questionmark-pic.png";
 import topplistPoints from "../../assets/images/icons/score-icon.png";
 import { useNavigate } from "react-router-dom";
+
 
 
 export default function StudentDashboardPage() {
@@ -45,14 +47,14 @@ export default function StudentDashboardPage() {
         const xp = await Classes.GetLoggedInUserScore(me.id); // /api/Class/user/{userId}/points
         setPoints(typeof xp === "number" ? xp : 0);
 
-        // 🧠 hämta mina klasser (vi tar första hittade)
+        // hämta mina klasser (vi tar första hittade)
         const myClasses = await Classes.GetUsersClasses();
         const first = myClasses?.[0];
         // fallback om backend skickar 'id' eller 'classId' i olika format
         const classId =
           first?.classId ?? first?.id ?? first?.ClassId ?? first?.Id;
 
-        // 🧠 hämta leaderboard (hela klassen) + min ranking i ETT anrop
+        // hämta leaderboard (hela klassen) + min ranking i ETT anrop
         if (!classId) {
           setRankNum(null);
           setTopThree([]);
@@ -139,7 +141,7 @@ export default function StudentDashboardPage() {
             {/* Knappar */}
             <div className="mt-2 space-y-3">
               <button
-                onClick={() => navigate("/quizniva")} // Vilken sida ska jag navigera till?
+                onClick={() => navigate("/QuizVyStudent")}
                 className="w-full rounded-2xl bg-[#3BCC52] px-5 py-4 text-left text-lg font-bold text-white"
               >
                 Starta Quiz
@@ -153,7 +155,7 @@ export default function StudentDashboardPage() {
               </button>
 
               <button
-                onClick={() => navigate("/prestationer")} // sida ej skapad
+                onClick={() => navigate("/prestationer")} // navigera till leaderboard?
                 className="flex w-full items-center gap-3 rounded-2xl bg-[#DA6410] px-5 py-4 text-lg font-bold text-white"
               >
                 <img src={trophy} alt="Trophy" className="h-8 w-6" />
@@ -216,7 +218,7 @@ export default function StudentDashboardPage() {
                   topThree.map((p) => (
                     <Row
                       key={p.userId}
-                      // ⬇️ tar userName, kapar vid "@", trimmar, och fall back till "Okänd"
+                      // tar userName, kapar vid "@", trimmar, och fall back till "Okänd"
                       name={(p.userName ?? "").split("@")[0].trim() || "Okänd"}
                       points={String(p.score)}
                     />
