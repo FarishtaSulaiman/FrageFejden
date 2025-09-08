@@ -46,13 +46,12 @@ export const Classes = {
     async GetUsersClasses(): Promise<any> {
         const data = await http.get("/Class/me");
         return data;
-
-    
+    },
 
     async GetLoggedInUserScore(Userid: string): Promise<any> {
         const data = await http.get(`/Class/user/${Userid}/points`)
-        return data
-
+        return data;
     }
-    
+
+        
 }

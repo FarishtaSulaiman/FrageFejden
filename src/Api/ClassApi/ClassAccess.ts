@@ -1,11 +1,42 @@
+// src/Api/ClassApi/ClassAccess.ts
 import { http } from "../../lib/http";
 
+type ValidateJoinCodeRaw = {
+  IsValid?: boolean; isValid?: boolean;
+  ClassId?: string;  classId?: string;
+  ClassName?: string; className?: string;
+  Message?: string;  message?: string;
+};
+
+export type ValidateJoinCodeResp = {
+  isValid: boolean;
+  classId?: string;
+  className?: string;
+  message?: string;
+};
+
+// shape is flexible; we try multiple common keys
+export type JoinResp = {
+  id?: string; Id?: string;
+  classId?: string; ClassId?: string;
+  // ...any other fields your backend returns
+};
+
 export const ClassAccess = {
-    //hämtar alla klasser!! OBS ALLA INTE BARA ANVÄNDARENS
-    async Mask(page: number = 1, pageSize: number = 50): Promise<any[]> {
-        const res = await http.get(`/Class`, {
-            params: { page, pageSize },
-        });
-        return res.data.items;
-    },
-}
+  async validateJoinCode(joinCode: string): Promise<ValidateJoinCodeResp> {
+    const { data } = await http.get<ValidateJoinCodeRaw>(
+      `/api/Class/validate-joincode/${encodeURIComponent(joinCode)}`
+    );
+    return {
+      isValid: (data.isValid ?? data.IsValid) ?? false,
+      classId: data.classId ?? data.ClassId,
+      className: data.className ?? data.ClassName,
+      message: data.message ?? data.Message,
+    };
+  },
+
+  async join(joinCode: string): Promise<JoinResp> {
+    const { data } = await http.post<JoinResp>(`/api/Class/join`, { joinCode });
+    return data;
+  },
+};

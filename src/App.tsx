@@ -11,6 +11,9 @@ import QuizVyStudent from "./pages/QuizVyStudent/QuizVyStudent";
 import StudentDashboardPage from "./pages/studentDashboard/studentDashboard";
 import CurrentUser from "./pages/apiHealth/CurrentUser";
 import ApiPlayground from "./pages/apiHealth/ApiTest";
+import DuelRoom from "./pages/DuelPage/DuelRoom";
+import JoinClassPage from "./pages/JoinClass/JoinClass";
+
 
 
 function Home() {
@@ -72,6 +75,10 @@ export default function App() {
         <Route path="QuizVyStudent" element={<QuizVyStudent />} />
         <Route path="studentDashboard" element={<StudentDashboardPage />} />
 
+        <Route path="class/join/:joinCode" element={<JoinClassPage />} />
+        
+
+        <Route path="duel" element={<DuelRoom/>}/>
 
         <Route element={<ProtectedOutlet />}>
           <Route path="app" element={<Home />} />
