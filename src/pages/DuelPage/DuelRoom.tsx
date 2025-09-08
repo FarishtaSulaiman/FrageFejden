@@ -460,9 +460,8 @@ export default function DuelRoom(): React.ReactElement {
                 <div key={player.id} className="flex items-center justify-between rounded-xl bg-[#121a2f] px-4 py-3 ring-1 ring-white/10">
                   <span className="text-sm">{player.id === userId ? `${player.name} (Du)` : player.name}</span>
                   <span
-                    className={`text-xs ${
-                      !player.isConnected ? "text-red-400" : player.ready ? "text-emerald-400" : "text-white/70"
-                    }`}
+                    className={`text-xs ${!player.isConnected ? "text-red-400" : player.ready ? "text-emerald-400" : "text-white/70"
+                      }`}
                   >
                     {!player.isConnected ? "Frånkopplad" : player.ready ? "Redo" : "Inte redo"}
                   </span>
@@ -488,10 +487,10 @@ export default function DuelRoom(): React.ReactElement {
               {!name.trim()
                 ? "Ange ditt namn för att fortsätta"
                 : bothPresent
-                ? bothReady
-                  ? "Startar..."
-                  : "Väntar på att båda spelare blir redo"
-                : "Väntar på spelare 2"}
+                  ? bothReady
+                    ? "Startar..."
+                    : "Väntar på att båda spelare blir redo"
+                  : "Väntar på spelare 2"}
             </div>
           </div>
         </div>
