@@ -1,6 +1,7 @@
 // src/Api/ClassApi/Classes.ts
 import { http } from "../../lib/http";
 
+
 // Funktion för ranking: 1,1,3,4... (lika poäng => samma plats)
 function addCompetitionRank(rows: any[]) {
   const sorted = [...rows].sort((a, b) => b.score - a.score);
@@ -117,3 +118,4 @@ export const Classes = {
     return me?.rank ?? null;
   },
 };
+

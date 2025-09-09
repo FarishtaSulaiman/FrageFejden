@@ -11,6 +11,13 @@ import QuizVyStudent from "./pages/QuizVyStudent/QuizVyStudent";
 import StudentDashboardPage from "./pages/studentDashboard/studentDashboard";
 import CurrentUser from "./pages/apiHealth/CurrentUser";
 import ApiPlayground from "./pages/apiHealth/ApiTest";
+import DuelRoom from "./pages/DuelPage/DuelRoom";
+import JoinClassPage from "./pages/JoinClass/JoinClass";
+import SkapaQuizPage from "./pages/SkapaQuizPage/SkapaQuizPage";
+import TeacherKlassVy from "./pages/TeacherKlassVy/TeacherKlassVy";
+import TeacherKlassVyDemo from "./pages/TeacherKlassVy/TeacherKlassVyDemo";
+import DuelPageDemo from "./pages/DuelPage/DuelInvitePage";
+import DuelInvitePage from "./pages/DuelPage/DuelInvitePage";
 
 
 function Home() {
@@ -68,19 +75,32 @@ export default function App() {
         <Route path="quizniva" element={<QuizNivåVy />} />
         <Route path="kurs/geografi" element={<QuizNivåVy />} />
         <Route path="quiz" element={<QuizPage />} />
-        <Route path="quizDuel" element={<StudentDashboardPage />} />
+        <Route path="quizDuel" element={<DuelRoom />} />
         <Route path="QuizVyStudent" element={<QuizVyStudent />} />
         <Route path="studentDashboard" element={<StudentDashboardPage />} />
+
+
+        <Route path="class/join/:joinCode" element={<JoinClassPage />} />
+
+
+        <Route path="duel" element={<DuelRoom />} />
+
+        <Route path="skapa-quiz" element={<SkapaQuizPage />} />TeacherKlassVyDemo
+        <Route path="teacher/klassvy" element={<TeacherKlassVy />} />
+
+        /**Demo */
+        <Route path="klassvy" element={<TeacherKlassVyDemo />} />
+
 
 
         <Route element={<ProtectedOutlet />}>
           <Route path="app" element={<Home />} />
           <Route path="app/current-user" element={<CurrentUser />} />
 
+          <Route path="duelinvite" element={<DuelInvitePage />} />
 
           <Route path="Api-test" element={<ApiPlayground />} />
         </Route>
-
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
