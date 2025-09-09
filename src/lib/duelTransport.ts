@@ -1,6 +1,3 @@
-// WebSocket + BroadcastChannel fallback transport for Duel rooms
-// Usage: const { send, connected } = useRoomTransport(roomId, onMessage)
-
 export type RoomMessage = any;
 
 type WireMessage = { type: string; room: string; payload?: any };
@@ -13,7 +10,6 @@ export function useRoomTransport(
   roomId: string,
   onMessage: (msg: RoomMessage) => void
 ) {
-  // Fallback: BroadcastChannel for local multi-tabs
   const bcRef: { current: BroadcastChannel | null } =
     (window as any).__duel_bc_ref || { current: null };
   (window as any).__duel_bc_ref = bcRef;
@@ -22,7 +18,7 @@ export function useRoomTransport(
     (window as any).__duel_ws_ref || { current: null };
   (window as any).__duel_ws_ref = wsRef;
 
-  // Init BC per room
+
   if (!bcRef.current) {
     try {
       bcRef.current = new BroadcastChannel(`duel-room-${roomId}`);
@@ -30,7 +26,7 @@ export function useRoomTransport(
         onMessage(e.data);
       };
     } catch {
-      // Ignore if not supported
+
     }
   }
 
@@ -48,7 +44,6 @@ export function useRoomTransport(
         const msg = JSON.parse(ev.data) as WireMessage;
         if (msg.room === roomId) onMessage(msg.payload ?? msg);
       } catch {
-        // ignore parse errors
       }
     };
 
@@ -56,23 +51,21 @@ export function useRoomTransport(
     ws.onerror = () => {
       try {
         ws.close();
-      } catch {}
+      } catch { }
     };
   }
 
   if (!wsRef.current || wsRef.current.readyState > 1) {
     try {
       connectWs();
-    } catch {}
+    } catch { }
   }
 
   const send = (payload: RoomMessage) => {
-    // BroadcastChannel fan-out
     try {
       bcRef.current?.postMessage(payload);
-    } catch {}
+    } catch { }
 
-    // WebSocket fan-out
     const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
       const msg: WireMessage = { type: "EVENT", room: roomId, payload };

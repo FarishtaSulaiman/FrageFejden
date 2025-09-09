@@ -1,12 +1,11 @@
 import { http } from "../../lib/http";
 
-
 export type UUID = string;
 
-export type DuelStatus = string; 
-export type DuelResult = string; 
-export type QuestionType = string; 
-export type Difficulty = string; 
+export type DuelStatus = string;
+export type DuelResult = string;
+export type QuestionType = string;
+export type Difficulty = string;
 
 export interface CreateDuelRequest {
   subjectId: UUID;
@@ -29,7 +28,6 @@ export interface SubmitDuelAnswerRequest {
   selectedOptionId?: UUID | null;
   timeMs: number;
 }
-
 
 export interface SubjectDto {
   id: UUID;
@@ -87,8 +85,8 @@ export interface DuelDto {
   level?: LevelDto | null;
   status: DuelStatus;
   bestOf: number;
-  startedAt?: string | null; 
-  endedAt?: string | null;   
+  startedAt?: string | null;
+  endedAt?: string | null;
   participants: DuelParticipantDto[];
   rounds: DuelRoundDto[];
   currentRound?: DuelRoundDto | null;
@@ -100,7 +98,7 @@ export interface DuelInvitationDto {
   level?: LevelDto | null;
   invitedBy: UserDto;
   bestOf: number;
-  createdAt: string; 
+  createdAt: string;
 }
 
 export interface ClassmateDto {
@@ -120,73 +118,78 @@ export interface DuelStatsDto {
   bestStreak: number;
 }
 
-const basePath = "/api/duel";
-
+const basePath = "/duel";
 export const DuelApi = {
   /** Skapar en duel */
-  createDuel(payload: CreateDuelRequest) {
-    return http.post<DuelDto>(`${basePath}`, payload);
+  async createDuel(payload: CreateDuelRequest): Promise<DuelDto> {
+    const { data } = await http.post<DuelDto>(`${basePath}`, payload);
+    return data;
   },
 
-  /** POST /api/duel/invite — Bjud in en Classmedlem */
-  invite(payload: InviteToDuelRequest) {
-    return http.post<{ message: string }>(`${basePath}/invite`, payload);
+  /** Bjud in en klasskamrat */
+  async invite(payload: InviteToDuelRequest): Promise<{ message: string }> {
+    const { data } = await http.post<{ message: string }>(`${basePath}/invite`, payload);
+    return data;
   },
 
-  /** POST /api/duel/accept — Acepptera en inbjudan */
-  accept(payload: DuelActionRequest) {
-    return http.post<{ message: string }>(`${basePath}/accept`, payload);
+  /** Acceptera en inbjudan */
+  async accept(payload: DuelActionRequest): Promise<{ message: string }> {
+    const { data } = await http.post<{ message: string }>(`${basePath}/accept`, payload);
+    return data;
   },
 
-  /** POST /api/duel/decline — Decline en inbjudan */
-  decline(payload: DuelActionRequest) {
-    return http.post<{ message: string }>(`${basePath}/decline`, payload);
+  /** Avböj en inbjudan */
+  async decline(payload: DuelActionRequest): Promise<{ message: string }> {
+    const { data } = await http.post<{ message: string }>(`${basePath}/decline`, payload);
+    return data;
   },
 
-  /** POST /api/duel/{duelId}/start — starta en redo duel */
-  start(duelId: UUID) {
-    return http.post<{ message: string }>(`${basePath}/${duelId}/start`, {});
+  /** Starta en redo duel */
+  async start(duelId: UUID): Promise<{ message: string }> {
+    const { data } = await http.post<{ message: string }>(`${basePath}/${duelId}/start`, {});
+    return data;
   },
 
-  /** POST /api/duel/answer — skicka ett svar för den aktiva frågan */
-  submitAnswer(payload: SubmitDuelAnswerRequest) {
-    return http.post<{ message: string }>(`${basePath}/answer`, payload);
+  /** Skicka ett svar */
+  async submitAnswer(payload: SubmitDuelAnswerRequest): Promise<{ message: string }> {
+    const { data } = await http.post<{ message: string }>(`${basePath}/answer`, payload);
+    return data;
   },
 
-  /** GET /api/duel/{duelId} — hämta en specific duel */
-  getById(duelId: UUID) {
-    return http.get<DuelDto>(`${basePath}/${duelId}`);
+  /** Hämta specifik duel */
+  async getById(duelId: UUID): Promise<DuelDto> {
+    const { data } = await http.get<DuelDto>(`${basePath}/${duelId}`);
+    return data;
   },
 
-  /** GET /api/duel?status= — få användarens dueler, kan filtrera med satus */
-  list(params?: { status?: DuelStatus }) {
-    return http.get<DuelDto[]>(`${basePath}`,{ params });
+  /** Lista mina dueller (valfri status) */
+  async list(params?: { status?: DuelStatus }): Promise<DuelDto[]> {
+    const { data } = await http.get<DuelDto[]>(`${basePath}`, { params });
+    return data;
   },
 
-  /** GET /api/duel/invitations — väntande inbjudningar */
-  invitations() {
-    return http.get<DuelInvitationDto[]>(`${basePath}/invitations`);
+  /** Väntande inbjudningar */
+  async invitations(): Promise<DuelInvitationDto[]> {
+    const { data } = await http.get<DuelInvitationDto[]>(`${basePath}/invitations`);
+    return data;
   },
 
-  /** GET /api/duel/classmates/{subjectId} — klasskamrater som man kan bjuda in */
-  classmates(subjectId: UUID) {
-    return http.get<ClassmateDto[]>(`${basePath}/classmates/${subjectId}`);
+  /** Klasskamrater för ämnet */
+  async classmates(subjectId: UUID): Promise<ClassmateDto[]> {
+    const { data } = await http.get<ClassmateDto[]>(`${basePath}/classmates/${subjectId}`);
+    return data;
   },
 
-  /** GET /api/duel/stats?subjectId= —användarens duel statestik */
-  stats(subjectId?: UUID) {
+  /** Statistik */
+  async stats(subjectId?: UUID): Promise<DuelStatsDto> {
     const params = subjectId ? { subjectId } : undefined;
-    return http.get<DuelStatsDto>(`${basePath}/stats`, { params });
+    const { data } = await http.get<DuelStatsDto>(`${basePath}/stats`, { params });
+    return data;
   },
 
-  /** POST /api/duel/{duelId}/complete — Markera en duel som färdig (admin/system) */
-  complete(duelId: UUID) {
-    return http.post<{ message: string }>(`${basePath}/${duelId}/complete`, {});
+  /** Markera som klar (admin/system) */
+  async complete(duelId: UUID): Promise<{ message: string }> {
+    const { data } = await http.post<{ message: string }>(`${basePath}/${duelId}/complete`, {});
+    return data;
   },
 };
-
-
-export const isIsoDate = (v: unknown): v is string =>
-  typeof v === "string" && !Number.isNaN(Date.parse(v));
-
-
