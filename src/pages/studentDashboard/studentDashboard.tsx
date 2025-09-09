@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 
 import { AuthApi, Classes } from "../../Api/index";
-import { getRandomFunFact, FunFact } from "../../Api/FunFacts.ts/FunFacts";
+import { getFunFact, type FunFact } from "../../Api/FunFacts/FunFacts"
 
 import avatar from "../../assets/images/avatar/avatar2.png";
 import frageTitle from "../../assets/images/titles/frageFejden-title-pic.png";
