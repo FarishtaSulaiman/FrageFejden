@@ -15,6 +15,9 @@ import DuelRoom from "./pages/DuelPage/DuelRoom";
 import JoinClassPage from "./pages/JoinClass/JoinClass";
 import SkapaQuizPage from "./pages/SkapaQuizPage/SkapaQuizPage";
 import TeacherKlassVy from "./pages/TeacherKlassVy/TeacherKlassVy";
+import TeacherKlassVyDemo from "./pages/TeacherKlassVy/TeacherKlassVyDemo";
+import DuelPageDemo from "./pages/DuelPage/DuelInvitePage";
+import DuelInvitePage from "./pages/DuelPage/DuelInvitePage";
 
 
 function Home() {
@@ -82,13 +85,19 @@ export default function App() {
 
         <Route path="duel" element={<DuelRoom />} />
 
-        <Route path="skapa-quiz" element={<SkapaQuizPage />} />
+        <Route path="skapa-quiz" element={<SkapaQuizPage />} />TeacherKlassVyDemo
         <Route path="teacher/klassvy" element={<TeacherKlassVy />} />
+
+        /**Demo */
+        <Route path="klassvy" element={<TeacherKlassVyDemo />} />
+
 
 
         <Route element={<ProtectedOutlet />}>
           <Route path="app" element={<Home />} />
           <Route path="app/current-user" element={<CurrentUser />} />
+
+          <Route path="duelinvite" element={<DuelInvitePage />} />
 
           <Route path="Api-test" element={<ApiPlayground />} />
         </Route>
