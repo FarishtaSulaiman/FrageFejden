@@ -269,7 +269,7 @@ export default function QuizVyStudent(): React.ReactElement {
             );
           })}
 
-          {/* Ingen ämnen */}
+         
           {!loading && subjectCards.length === 0 && (
             <div className="col-span-full text-center text-white/75 text-sm">
               Inga ämnen i din profil ännu.
