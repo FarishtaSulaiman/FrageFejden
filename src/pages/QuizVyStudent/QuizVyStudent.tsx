@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-=======
-
->>>>>>> e4bdbfceafeed8b91786c089973ad0a9e9483248
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -16,7 +12,7 @@ import mathIcon from "../../assets/images/icons/math-transparent.png";
 import bookIcon from "../../assets/images/icons/open-book.png";
 import avatarImg from "../../assets/images/avatar/avatar1.png";
 
-
+// Mappar ämnesnamn till rätt ikon
 const SUBJECT_ICON_BY_NAME: Record<string, string> = {
   geografi: geografiIcon,
   historia: historyIcon,
@@ -32,39 +28,27 @@ export default function QuizVyStudent(): React.ReactElement {
   const navigate = useNavigate();
   const getMe = AuthApi.getMe;
 
-
+  // UI-state
   const [displayName, setDisplayName] = useState<string>("Användare");
   const [className, setClassName] = useState<string>("—");
   const [points, setPoints] = useState<number>(0);
   const [rankNum, setRankNum] = useState<number | null>(null);
 
-
-<<<<<<< HEAD
-=======
-  // Ämnen hämtade från profilen
->>>>>>> e4bdbfceafeed8b91786c089973ad0a9e9483248
+  // Ämnen
   const [subjects, setSubjects] = useState<
     Awaited<ReturnType<typeof SubjectsApi.getMySubjects>>
   >([]);
 
-<<<<<<< HEAD
- 
-=======
-  // Val av ämne 
->>>>>>> e4bdbfceafeed8b91786c089973ad0a9e9483248
+  // Val av ämne
   const [selected, setSelected] = useState<{ id: string; name: string } | null>(
     null
   );
 
-<<<<<<< HEAD
-  
-=======
- 
->>>>>>> e4bdbfceafeed8b91786c089973ad0a9e9483248
+  // Loading/error state
   const [loading, setLoading] = useState<boolean>(true);
   const [err, setErr] = useState<string | null>(null);
 
-  // Hämtar inloggad användare → poäng → klasser/rank → ämnen
+  // Hämtar användare + klass + poäng + ämnen
   useEffect(() => {
     let alive = true;
 
@@ -76,26 +60,13 @@ export default function QuizVyStudent(): React.ReactElement {
         // 1) Inloggad användare
         const me = await getMe();
 
-<<<<<<< HEAD
-        
+        // Prioritera FullName, annars userName/email
         const fullName =
-          (me as any).FullName?.trim?.() ||
-          (me as any).fullName?.trim?.() ||
-          "";
+          (me as any).FullName?.trim?.() || (me as any).fullName?.trim?.() || "";
         const nameFromUserName = me.userName?.split("@")[0]?.trim() || "";
         const nameFromEmail = me.email?.split("@")[0]?.trim() || "";
 
-        const name =
-          fullName ||
-          nameFromUserName ||
-          nameFromEmail ||
-          "Användare";
-
-=======
-        //  visningsnamn - om inget = "Användare"
-        const name =
-          me.userName?.trim() || me.email?.split("@")[0] || "Användare";
->>>>>>> e4bdbfceafeed8b91786c089973ad0a9e9483248
+        const name = fullName || nameFromUserName || nameFromEmail || "Användare";
         if (!alive) return;
         setDisplayName(name);
 
@@ -104,46 +75,29 @@ export default function QuizVyStudent(): React.ReactElement {
         if (!alive) return;
         setPoints(typeof xp === "number" ? xp : 0);
 
-<<<<<<< HEAD
-        // 3) Mina klasser
-=======
-        // 3) Mina klasser 
->>>>>>> e4bdbfceafeed8b91786c089973ad0a9e9483248
+        // 3) Klass + rank
         const myClasses = await Classes.GetUsersClasses();
         if (!alive) return;
-        const first = myClasses?.[0];
 
-<<<<<<< HEAD
-        // Klass-id (robust fältupplock)
-        const classId =
-          first?.classId ?? first?.id ?? first?.ClassId ?? first?.Id;
+        if (Array.isArray(myClasses) && myClasses.length > 0) {
+          const first = myClasses[0];
+          const classId = first?.id ?? first?.classId ?? null;
+          const clsName = first?.name ?? first?.className ?? "—";
+          setClassName(clsName || "—");
 
-        // Klassnamn
-=======
-        // Klass-id 
-        const classId =
-          first?.classId ?? first?.id ?? first?.ClassId ?? first?.Id;
-
-        // Klassnamn 
->>>>>>> e4bdbfceafeed8b91786c089973ad0a9e9483248
-        const clsName =
-          first?.name ?? first?.className ?? first?.Name ?? "—";
-        setClassName(clsName || "—");
-
-<<<<<<< HEAD
-        // 4) Rank (om classId finns)
-=======
-        // 4) Rank 
->>>>>>> e4bdbfceafeed8b91786c089973ad0a9e9483248
-        if (classId) {
-          const { myRank } = await Classes.GetClassLeaderboard(classId, me.id);
-          if (!alive) return;
-          setRankNum(myRank ?? null);
+          if (classId) {
+            const { myRank } = await Classes.GetClassLeaderboard(classId, me.id);
+            if (!alive) return;
+            setRankNum(myRank ?? null);
+          } else {
+            setRankNum(null);
+          }
         } else {
+          setClassName("—");
           setRankNum(null);
         }
 
-        // 5) Mina ämnen
+        // 4) Ämnen
         const mySubjects = await SubjectsApi.getMySubjects();
         if (!alive) return;
         setSubjects(Array.isArray(mySubjects) ? mySubjects : []);
@@ -151,31 +105,19 @@ export default function QuizVyStudent(): React.ReactElement {
         console.error("Kunde inte hämta profil/poäng/klass/ämnen:", e);
         if (!alive) return;
 
-<<<<<<< HEAD
-        // Visa tydlig feltext
-=======
->>>>>>> e4bdbfceafeed8b91786c089973ad0a9e9483248
         const status = e?.response?.status ?? "—";
         const msg =
           e?.response?.data?.message ||
           e?.response?.data?.title ||
           e?.message ||
           "Okänt fel";
-<<<<<<< HEAD
-        setErr(`Kunde inte ladda data (${status}). ${msg}`);
-=======
-        
->>>>>>> e4bdbfceafeed8b91786c089973ad0a9e9483248
+        setErr(`Fel ${status}: ${msg}`);
 
-        // fallbacks
+        // Fallbacks
         setDisplayName("Användare");
         setClassName("—");
         setPoints(0);
-<<<<<<< HEAD
-        setRankNum(null); // visa "—" i UI
-=======
-        setRankNum(0);
->>>>>>> e4bdbfceafeed8b91786c089973ad0a9e9483248
+        setRankNum(null);
         setSubjects([]);
       } finally {
         if (alive) setLoading(false);
@@ -187,26 +129,18 @@ export default function QuizVyStudent(): React.ReactElement {
     };
   }, []);
 
-<<<<<<< HEAD
-  
-=======
- 
->>>>>>> e4bdbfceafeed8b91786c089973ad0a9e9483248
+  // Mappa subjects till kort
   const subjectCards = useMemo(() => {
     if (!subjects?.length) return [];
     return subjects.map((s) => ({
       id: s.id,
       label: s.name,
-      sub: "10 nivåer kvar",
+      sub: s.levelsCount > 0 ? `${s.levelsCount} nivåer` : "Inga nivåer ännu",
       icon: subjectIconFor(s.name),
     }));
   }, [subjects]);
 
-<<<<<<< HEAD
-  // Navigering med ENDAST subjectId
-=======
-
->>>>>>> e4bdbfceafeed8b91786c089973ad0a9e9483248
+  // När man trycker "Bekräfta val"
   function handleConfirm() {
     if (!selected) return;
     navigate(`/quiz?subjectId=${selected.id}`);
@@ -214,16 +148,10 @@ export default function QuizVyStudent(): React.ReactElement {
 
   return (
     <div className="min-h-screen bg-[#0A0F1F] text-white">
-<<<<<<< HEAD
-   
+      {/* Header med namn, klass, poäng */}
       <section className="relative">
         <div className="relative h-[230px] overflow-hidden bg-gradient-to-r from-[#5E2FD7] via-[#5B2ED6] to-[#3E1BB2]">
-     
-=======
-      <section className="relative">
-        <div className="relative h-[230px] overflow-hidden bg-gradient-to-r from-[#5E2FD7] via-[#5B2ED6] to-[#3E1BB2]">
-
->>>>>>> e4bdbfceafeed8b91786c089973ad0a9e9483248
+          {/* Dekorativa cirklar */}
           <div
             aria-hidden
             className="absolute -left-40 -top-32 h-[520px] w-[520px] rounded-full bg-[radial-gradient(closest-side,rgba(255,255,255,0.12),transparent_72%)]"
@@ -233,11 +161,7 @@ export default function QuizVyStudent(): React.ReactElement {
             className="absolute -right-48 -bottom-44 h-[620px] w-[620px] rounded-full bg-[radial-gradient(closest-side,rgba(255,255,255,0.08),transparent_72%)]"
           />
 
-<<<<<<< HEAD
-          
-=======
           {/* Navbar */}
->>>>>>> e4bdbfceafeed8b91786c089973ad0a9e9483248
           <div className="mx-auto flex h-full max-w-[1100px] items-center justify-between px-4">
             <img
               src={titleImg}
@@ -247,17 +171,9 @@ export default function QuizVyStudent(): React.ReactElement {
 
             <div className="flex items-center gap-3">
               <div className="mr-1 text-right leading-tight">
-<<<<<<< HEAD
                 <div className="text-[13px] text-white/85">
                   {loading ? "Laddar…" : `Hej ${displayName}!`}
                 </div>
-=======
-                {/* Namn på inloggad */}
-                <div className="text-[13px] text-white/85">
-                  {loading ? "Laddar…" : `Hej ${displayName}!`}
-                </div>
-                {/* Klassnamn */}
->>>>>>> e4bdbfceafeed8b91786c089973ad0a9e9483248
                 <div className="text-[12px] text-white/70">
                   {loading ? "—" : `Klass: ${className}`}
                 </div>
@@ -271,11 +187,7 @@ export default function QuizVyStudent(): React.ReactElement {
             </div>
           </div>
 
-<<<<<<< HEAD
-         
-=======
-          {/* ranking + poäng */}
->>>>>>> e4bdbfceafeed8b91786c089973ad0a9e9483248
+          {/* Ranking + Poäng */}
           <div className="absolute left-1/2 top-[56%] -translate-x-1/2 -translate-y-1/2">
             <div className="flex items-center gap-5">
               <div className="flex h-14 items-center gap-3 rounded-[16px] bg-[#0F1426]/92 px-6 ring-1 ring-white/10 shadow-[0_14px_36px_rgba(0,0,0,0.45)] backdrop-blur">
@@ -283,7 +195,7 @@ export default function QuizVyStudent(): React.ReactElement {
                 <div className="leading-tight">
                   <div className="text-[13px] text-white/85">Ranking</div>
                   <div className="text-[17px] font-semibold">
-                    {loading ? "…" : (rankNum ?? "—")}
+                    {loading ? "…" : rankNum ?? "—"}
                   </div>
                 </div>
               </div>
@@ -301,22 +213,14 @@ export default function QuizVyStudent(): React.ReactElement {
         </div>
       </section>
 
-<<<<<<< HEAD
-      
-=======
-  
->>>>>>> e4bdbfceafeed8b91786c089973ad0a9e9483248
+      {/* Titel */}
       <section className="mx-auto max-w-[1100px] px-4 pt-16">
         <h2 className="text-center text-[18px] font-semibold text-white/90">
           Välj din kurs
         </h2>
       </section>
 
-<<<<<<< HEAD
-    
-=======
-   
->>>>>>> e4bdbfceafeed8b91786c089973ad0a9e9483248
+      {/* Felmeddelande */}
       {err && (
         <section className="mx-auto max-w-[1100px] px-4 pt-6">
           <div className="mx-auto mb-4 max-w-[700px] rounded-xl bg-red-500/15 px-4 py-3 text-sm text-red-200 ring-1 ring-red-500/30">
@@ -324,12 +228,8 @@ export default function QuizVyStudent(): React.ReactElement {
           </div>
         </section>
       )}
-<<<<<<< HEAD
-=======
 
->>>>>>> e4bdbfceafeed8b91786c089973ad0a9e9483248
-
-      
+      {/* Ämneskort */}
       <section className="mx-auto max-w-[1100px] px-4 pt-6">
         <div className="grid grid-cols-1 place-items-center gap-x-16 gap-y-10 sm:grid-cols-2">
           {subjectCards.map((s) => {
@@ -343,11 +243,6 @@ export default function QuizVyStudent(): React.ReactElement {
                 className="relative w-full max-w-[460px] text-left"
                 disabled={loading}
               >
-<<<<<<< HEAD
-              
-=======
-            
->>>>>>> e4bdbfceafeed8b91786c089973ad0a9e9483248
                 {isSelected && (
                   <div className="pointer-events-none absolute -inset-[6px] rounded-[26px] ring-2 ring-white/95 shadow-[0_0_0_6px_rgba(255,255,255,0.08)]" />
                 )}
@@ -364,7 +259,6 @@ export default function QuizVyStudent(): React.ReactElement {
 
                     <div className="translate-y-[-2px]">
                       <h3 className="text-[20px] font-semibold">{s.label}</h3>
-                  
                       <p className="mt-1 text-[13px] text-white/65">{s.sub}</p>
                     </div>
                   </div>
@@ -373,23 +267,15 @@ export default function QuizVyStudent(): React.ReactElement {
             );
           })}
 
-         
+          {/* Fallback om inga kurser */}
           {!loading && subjectCards.length === 0 && (
             <div className="col-span-full text-center text-white/75 text-sm">
-<<<<<<< HEAD
               Du har inga kurser inlagda ännu.
-=======
-              Inga ämnen i din profil ännu.
->>>>>>> e4bdbfceafeed8b91786c089973ad0a9e9483248
             </div>
           )}
         </div>
 
-<<<<<<< HEAD
-      
-=======
         {/* Bekräfta-knapp */}
->>>>>>> e4bdbfceafeed8b91786c089973ad0a9e9483248
         <div className="mt-12 flex justify-center pb-20">
           <button
             type="button"
