@@ -12,8 +12,6 @@ import questionmark from "../../assets/images/pictures/questionmark-pic.png";
 import topplistPoints from "../../assets/images/icons/score-icon.png";
 import { useNavigate } from "react-router-dom";
 
-
-
 export default function StudentDashboardPage() {
   const navigate = useNavigate();
 
@@ -28,67 +26,66 @@ export default function StudentDashboardPage() {
   const [topThree, setTopThree] = useState<any[]>([]);
 
   // useState för funfact
-const [fact, setFact] = useState<string>("");
+  const [fact, setFact] = useState<string>("");
 
   // Alias till API-metoden (funktionsreferens – anropas i useEffect)
   const getMe = AuthApi.getMe;
 
   // useEffect för username, score/experiencepoints, ranking och funfact
-useEffect(() => {
-  (async () => {
-    try {
-      const me = await AuthApi.getMe(); // hämtar inloggad + id
+  useEffect(() => {
+    (async () => {
+      try {
+        const me = await AuthApi.getMe(); // hämtar inloggad + id
 
-      // namn + mail
-      const name =
-        // me.fullName?.trim() || 
-        me.userName?.trim() ||
-        me.email?.split("@")[0] ||
-        "Användare";
+        // namn + mail
+        //   const name =
+        //     me.FullName?.trim()
+        // me.userName?.trim() ||
+        // me.email?.split("@")[0] ||
+        // "Användare";
 
-      setDisplayName(name);
-      setEmail(me.email ?? "");
+        const name = me.fullName ?? "";
+        setDisplayName(name);
 
-      // poäng
-      const xp = await Classes.GetLoggedInUserScore(me.id);
-      setPoints(typeof xp === "number" ? xp : 0);
+        // poäng
+        const xp = await Classes.GetLoggedInUserScore(me.id);
+        setPoints(typeof xp === "number" ? xp : 0);
 
-      // hämta mina klasser
-      const myClasses = await Classes.GetUsersClasses();
-      const first = myClasses?.[0];
-      const classId =
-        first?.classId ?? first?.id ?? first?.ClassId ?? first?.Id;
+        // hämta mina klasser
+        const myClasses = await Classes.GetUsersClasses();
+        const first = myClasses?.[0];
+        const classId =
+          first?.classId ?? first?.id ?? first?.ClassId ?? first?.Id;
 
-      if (classId) {
-        const { leaderboard, myRank } = await Classes.GetClassLeaderboard(
-          classId,
-          me.id
-        );
-        setRankNum(myRank);
-        setTopThree(leaderboard.slice(0, 3));
-      } else {
+        if (classId) {
+          const { leaderboard, myRank } = await Classes.GetClassLeaderboard(
+            classId,
+            me.id
+          );
+          setRankNum(myRank);
+          setTopThree(leaderboard.slice(0, 3));
+        } else {
+          setRankNum(null);
+          setTopThree([]);
+        }
+
+        // Hämta fun fact oavsett classId
+        try {
+          const f = await getFunFact();
+          setFact(f.text || "Ingen fun fact just nu.");
+        } catch {
+          setFact("Ingen fun fact just nu.");
+        }
+      } catch (e) {
+        console.error("Kunde inte hämta profil/poäng/ranking:", e);
+        setDisplayName("Användare");
+        setEmail("");
+        setPoints(0);
         setRankNum(null);
         setTopThree([]);
       }
-
-      // Hämta fun fact oavsett classId
-try {
-  const f = await getFunFact();
-  setFact(f.text || "Ingen fun fact just nu.");
-} catch {
-  setFact("Ingen fun fact just nu.");
-}
-    } catch (e) {
-      console.error("Kunde inte hämta profil/poäng/ranking:", e);
-      setDisplayName("Användare");
-      setEmail("");
-      setPoints(0);
-      setRankNum(null);
-      setTopThree([]);
-    }
-  })();
-}, []);
-
+    })();
+  }, []);
 
   // API ANROP FÖR ATT HÄMTA ENS KLASS, behövs ej på denna page
   //   var res = Classes.MyClasses;

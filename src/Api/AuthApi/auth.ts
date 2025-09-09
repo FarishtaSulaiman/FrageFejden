@@ -9,7 +9,7 @@ export type MeResp = {
     id: string;
     email?: string;
     userName?: string;
-    FullName?: string;
+    fullName?: string;
     roles: string[];
     exp?: number;
     expiresAtUtc?: string;
