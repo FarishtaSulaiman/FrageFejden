@@ -1,37 +1,40 @@
-// src/Api/FunFact.ts
+// Importerar vår "http"-klient (Axios-instans) som vet vilken server (baseURL) den ska prata med.
+// Det är denna som skickar nätverksanrop till vårt backend-projekt.
 import { http } from "../../lib/http";
 
-// Svaren kan variera (text/fact/value). Normalisera till { text, source?, permalink? }.
+// Typ/interface som beskriver hur en FunFact ska se ut i vår frontend.
 export type FunFact = {
   text: string;
-  source?: string;
-  permalink?: string;
 };
 
+// Typ som beskriver de olika "råa" format vi kan få tillbaka från backend eller externa API:er.
 type RawFunFact =
   | string
   | {
-      id?: string;
       text?: string;
       fact?: string;
       value?: string;
-      source?: string;
-      source_url?: string;
-      permalink?: string;
-      [k: string]: any;
+      [k: string]: any; // tillåter andra fält vi inte bryr oss om
     }
   | { data?: any };
 
+// Huvudfunktionen som frontend använder för att hämta en fun fact från backend.
 export async function getFunFact(): Promise<FunFact> {
+  // Skickar GET-anrop till backend-endpointen /FunFact dvs http://localhost:5173/api/FunFact
   const res = await http.get<RawFunFact>("/FunFact");
+
+  // Plocka ut datan (ibland ligger den direkt, ibland inuti "data").
   const raw = (res.data as any)?.data ?? res.data;
 
+  // Om svaret är en ren sträng, returneras sträng direkt
   if (typeof raw === "string") return { text: raw };
 
+  // Annars försöker vi plocka text från olika fält: text, fact eller value
   const text = raw?.text ?? raw?.fact ?? raw?.value ?? "";
-  const source = raw?.source ?? raw?.source_url;
-  const permalink = raw?.permalink ?? raw?.source_url;
 
+  // Om inget textfält hittades kastas ett fel (så vi ser att API:t inte gav oss något användbart).
   if (!text) throw new Error("Tomt svar från /FunFact");
-  return { text: String(text), source, permalink };
+
+  // Returnera ett objekt med text (som sträng).
+  return { text: String(text) };
 }

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 
-import { AuthApi, Classes } from "../../Api/index";
-import { getFunFact, type FunFact } from "../../Api/FunFacts/FunFacts"
+import { AuthApi, Classes, getFunFact, type FunFact } from "../../Api/index";
 
 import avatar from "../../assets/images/avatar/avatar2.png";
 import frageTitle from "../../assets/images/titles/frageFejden-title-pic.png";
@@ -28,55 +27,68 @@ export default function StudentDashboardPage() {
   const [rankNum, setRankNum] = useState<number | null>(null);
   const [topThree, setTopThree] = useState<any[]>([]);
 
+  // useState för funfact
+const [fact, setFact] = useState<string>("");
+
   // Alias till API-metoden (funktionsreferens – anropas i useEffect)
   const getMe = AuthApi.getMe;
 
-  // useEffect för username, score/experiencepoints och ranking
-  useEffect(() => {
-    (async () => {
-      try {
-        const me = await AuthApi.getMe(); // hämtar inloggad + id
+  // useEffect för username, score/experiencepoints, ranking och funfact
+useEffect(() => {
+  (async () => {
+    try {
+      const me = await AuthApi.getMe(); // hämtar inloggad + id
 
-        // namn + mail
-        const name =
-          me.userName?.trim() || me.email?.split("@")[0] || "Användare";
-        setDisplayName(name);
-        setEmail(me.email ?? "");
+      // namn + mail
+      const name =
+        // me.fullName?.trim() || 
+        me.userName?.trim() ||
+        me.email?.split("@")[0] ||
+        "Användare";
 
-        // poäng
-        const xp = await Classes.GetLoggedInUserScore(me.id); // /api/Class/user/{userId}/points
-        setPoints(typeof xp === "number" ? xp : 0);
+      setDisplayName(name);
+      setEmail(me.email ?? "");
 
-        // hämta mina klasser (vi tar första hittade)
-        const myClasses = await Classes.GetUsersClasses();
-        const first = myClasses?.[0];
-        // fallback om backend skickar 'id' eller 'classId' i olika format
-        const classId =
-          first?.classId ?? first?.id ?? first?.ClassId ?? first?.Id;
+      // poäng
+      const xp = await Classes.GetLoggedInUserScore(me.id);
+      setPoints(typeof xp === "number" ? xp : 0);
 
-        // hämta leaderboard (hela klassen) + min ranking i ETT anrop
-        if (!classId) {
-          setRankNum(null);
-          setTopThree([]);
-          return;
-        }
+      // hämta mina klasser
+      const myClasses = await Classes.GetUsersClasses();
+      const first = myClasses?.[0];
+      const classId =
+        first?.classId ?? first?.id ?? first?.ClassId ?? first?.Id;
 
+      if (classId) {
         const { leaderboard, myRank } = await Classes.GetClassLeaderboard(
           classId,
           me.id
         );
-        setRankNum(myRank); // kan bli null om inte medlem/ej hittad
-        setTopThree(leaderboard.slice(0, 3)); // topp 3 till rutan
-      } catch (e) {
-        console.error("Kunde inte hämta profil/poäng/ranking:", e);
-        setDisplayName("Användare");
-        setEmail("");
-        setPoints(0);
+        setRankNum(myRank);
+        setTopThree(leaderboard.slice(0, 3));
+      } else {
         setRankNum(null);
         setTopThree([]);
       }
-    })();
-  }, []);
+
+      // Hämta fun fact oavsett classId
+try {
+  const f = await getFunFact();
+  setFact(f.text || "Ingen fun fact just nu.");
+} catch {
+  setFact("Ingen fun fact just nu.");
+}
+    } catch (e) {
+      console.error("Kunde inte hämta profil/poäng/ranking:", e);
+      setDisplayName("Användare");
+      setEmail("");
+      setPoints(0);
+      setRankNum(null);
+      setTopThree([]);
+    }
+  })();
+}, []);
+
 
   // API ANROP FÖR ATT HÄMTA ENS KLASS, behövs ej på denna page
   //   var res = Classes.MyClasses;
@@ -164,17 +176,17 @@ export default function StudentDashboardPage() {
             </div>
 
             {/* Fun fact */}
-            <section className="mt-3 rounded-2xl bg-[#3D1C87] p-4">
-              <div className="mb-2 flex items-center gap-2">
-                <img src={funfact} alt="Fun fact" className="h-9 w-9" />
-                <h2 className="text-lg font-extrabold">Fun fact!</h2>
+            <section className="mt-3 rounded-2xl bg-[#3D1C87] p-5 shadow-lg">
+              <div className="flex items-center gap-3 mb-3">
+                <img src={funfact} alt="Fun fact" className="h-10 w-10" />
+                <div>
+                  <h2 className="text-lg font-extrabold">Fun fact</h2>
+                  <p className="text-sm text-white/70">Visste du att…</p>
+                </div>
               </div>
-              <p className="text-sm text-white/85">
-                Visste du att världens längsta flod är Nilen?
-              </p>
-              <p className="mt-2 text-sm text-white/70">
-                Albert Einstein fick Nobelpriset 1921 för den fotoelektriska
-                effekten (inte relativitetsteorin).
+
+              <p className="text-base leading-relaxed text-white/90">
+                {fact || "Hämtar fun fact…"}
               </p>
             </section>
           </div>
