@@ -9,10 +9,12 @@ export type SubjectDto = {
   classId?: string | null;
   createdById: string;
   createdAt: string;
+  iconUrl: string;
   topicCount: number;
   quizCount: number;
   questionCount: number;
 };
+
 
 export type SubjectCreateDto = {
   name: string;
@@ -28,7 +30,7 @@ export type SubjectUpdateDto = {
  * Subjects API (frontend)
  * ========================= */
 
-export const subjectsApi = {
+export const SubjectsApi = {
   // Hämtar alla ämnen i en viss klass
   async getForClass(classId: string): Promise<SubjectDto[]> {
     const res = await http.get<SubjectDto[]>(`/subjects/classes/${classId}`);

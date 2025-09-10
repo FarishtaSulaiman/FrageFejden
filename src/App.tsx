@@ -19,7 +19,7 @@ import TeacherKlassVyDemo from "./pages/TeacherKlassVy/TeacherKlassVyDemo";
 import DuelPageDemo from "./pages/DuelPage/DuelInvitePage";
 import DuelInvitePage from "./pages/DuelPage/DuelInvitePage";
 import TopicList from "./pages/TopicList/TopicList";
-import SubjectPicker from "./pages/Subject/SubjectPicker";
+import { PublicOnlyOutlet } from "./auth/PublicOnly";
 
 
 function Home() {
@@ -73,14 +73,13 @@ export default function App() {
   return (
     <Routes>
       <Route element={<AppLayout />}>
-        <Route index element={<HomePage />} />
+
 
 
 
         <Route path="quiz" element={<QuizPage />} />
         <Route path="quizDuel" element={<DuelRoom />} />
-        <Route path="QuizVyStudent" element={<QuizVyStudent />} />
-        <Route path="studentDashboard" element={<StudentDashboardPage />} />
+
 
 
         <Route path="class/join/:joinCode" element={<JoinClassPage />} />
@@ -88,24 +87,34 @@ export default function App() {
 
         <Route path="duel" element={<DuelRoom />} />
 
-        <Route path="skapa-quiz" element={<SkapaQuizPage />} />TeacherKlassVyDemo
+        <Route path="skapa-quiz" element={<SkapaQuizPage />} />
         <Route path="teacher/klassvy" element={<TeacherKlassVy />} />
 
-        /**Demo */
+
         <Route path="klassvy" element={<TeacherKlassVyDemo />} />
 
 
+        <Route element={<PublicOnlyOutlet />}>
+          <Route index element={<HomePage />} />
+        </Route>
 
         <Route element={<ProtectedOutlet />}>
           <Route path="app" element={<Home />} />
           <Route path="app/current-user" element={<CurrentUser />} />
+          <Route path="studentDashboard" element={<StudentDashboardPage />} />
 
-          <Route path="/classes/:classId/subjects" element={<SubjectPicker />} />
+          {/* Användarens "Ämnen / subjects" */}
+          <Route path="QuizVyStudent" element={<QuizVyStudent />} />
+
+          {/* Användarens "Användarens topics i ämnet" */}
           <Route path="/subjects/:subjectId/topics" element={<TopicList />} />
+          {/* Användarens page för att studera på quizzes */}
           <Route path="/topics/:topicId" element={<QuizNivåVy />} />
 
           <Route path="duelinvite" element={<DuelInvitePage />} />
 
+
+          {/*Test Saker*/}
           <Route path="Api-test" element={<ApiPlayground />} />
         </Route>
 
