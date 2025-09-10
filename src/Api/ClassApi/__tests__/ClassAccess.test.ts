@@ -1,36 +1,60 @@
-import { http } from "../../../lib/http";
 import { describe, it, expect, vi, type Mock, beforeEach } from 'vitest';
 import { ClassAccess } from '../ClassAccess';
+import { http } from '../../../lib/http';
 
-// Mockar http-modulen
 vi.mock('../../../lib/http', () => ({
   http: {
     get: vi.fn(),
+    post: vi.fn(),
   },
 }));
 
-// Rensar mockar innan varje test
 beforeEach(() => {
   vi.clearAllMocks();
 });
 
-// Testar Mask-metoden
-describe('ClassAccess.Mask', () => {
-  it('should fetch all classes with pagination', async () => {
-    const mockClasses = [{ id: 'c1', name: 'Matte' }, { id: 'c2', name: 'Fysik' }];
+//Testar validateJoinCode
+describe('ClassAccess.validateJoinCode', () => {
+  it('should return parsed response from raw keys', async () => {
     const mockGet = http.get as Mock;
-    mockGet.mockResolvedValue({ data: { items: mockClasses } });
+    mockGet.mockResolvedValue({ data: { IsValid: true, ClassId: 'c1', ClassName: 'Math', Message: 'OK' } });
 
-    const result = await ClassAccess.Mask(1, 50);
+    const result = await ClassAccess.validateJoinCode('abc');
 
-    expect(mockGet).toHaveBeenCalledWith('/Class', { params: { page: 1, pageSize: 50 } });
-    expect(result).toEqual(mockClasses);
+    expect(result).toEqual({ isValid: true, classId: 'c1', className: 'Math', message: 'OK' });
+    expect(mockGet).toHaveBeenCalledWith('/Class/validate-joincode/abc');
   });
 
-  it('should throw error if request fails', async () => {
+  it('should return parsed response from lowercase keys', async () => {
     const mockGet = http.get as Mock;
-    mockGet.mockRejectedValue(new Error('Network Error'));
+    mockGet.mockResolvedValue({ data: { isValid: true, classId: 'c2', className: 'Science', message: 'Valid' } });
 
-    await expect(ClassAccess.Mask()).rejects.toThrow('Network Error');
+    const result = await ClassAccess.validateJoinCode('def');
+
+    expect(result).toEqual({ isValid: true, classId: 'c2', className: 'Science', message: 'Valid' });
+    expect(mockGet).toHaveBeenCalledWith('/Class/validate-joincode/def');
+  });
+
+  it('should default to false if no valid keys', async () => {
+    const mockGet = http.get as Mock;
+    mockGet.mockResolvedValue({ data: {} });
+
+    const result = await ClassAccess.validateJoinCode('xyz');
+
+    expect(result).toEqual({ isValid: false, classId: undefined, className: undefined, message: undefined });
+    expect(mockGet).toHaveBeenCalledWith('/Class/validate-joincode/xyz');
+  });
+});
+
+//Testar join
+describe('ClassAccess.join', () => {
+  it('should return join response', async () => {
+    const mockPost = http.post as Mock;
+    mockPost.mockResolvedValue({ data: { id: 'u1', classId: 'c1' } });
+
+    const result = await ClassAccess.join('abc');
+
+    expect(result).toEqual({ id: 'u1', classId: 'c1' });
+    expect(mockPost).toHaveBeenCalledWith('/Class/join', { joinCode: 'abc' });
   });
 });
