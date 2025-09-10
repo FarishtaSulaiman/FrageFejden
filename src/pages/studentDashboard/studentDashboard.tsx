@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from "react";
-
-import { AuthApi, Classes, getFunFact, type FunFact } from "../../Api/index";
+import {
+  AuthApi,
+  Classes,
+  getFunFact,
+  type FunFact,
+  DailyApi,
+} from "../../Api/index";
 
 import avatar from "../../assets/images/avatar/avatar2.png";
 import frageTitle from "../../assets/images/titles/frageFejden-title-pic.png";
@@ -11,6 +16,7 @@ import pointsIcon from "../../assets/images/icons/score-icon.png";
 import questionmark from "../../assets/images/pictures/questionmark-pic.png";
 import topplistPoints from "../../assets/images/icons/score-icon.png";
 import { useNavigate } from "react-router-dom";
+import { DailyQuizModal } from "../../components/DailyQuizModal";
 
 export default function StudentDashboardPage() {
   const navigate = useNavigate();
@@ -28,6 +34,9 @@ export default function StudentDashboardPage() {
   // useState för funfact
   const [fact, setFact] = useState<string>("");
 
+  // useState för modal dagens mini quiz
+  const [openDaily, setOpenDaily] = useState(false);
+
   // Alias till API-metoden (funktionsreferens – anropas i useEffect)
   const getMe = AuthApi.getMe;
 
@@ -39,7 +48,7 @@ export default function StudentDashboardPage() {
 
         // namn + mail
         //   const name =
-        //     me.FullName?.trim()
+        //     me.FullName?.trim() ||
         // me.userName?.trim() ||
         // me.email?.split("@")[0] ||
         // "Användare";
@@ -211,9 +220,16 @@ export default function StudentDashboardPage() {
               </div>
 
               {/* CTA som överlappar nederkanten */}
-              <button className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-1/2 rounded-xl bg-[#5827C6] px-6 py-3 font-semibold text-white shadow">
+              <button
+                onClick={() => setOpenDaily(true)} // <-- öppnar modalen
+                className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-1/2 rounded-xl bg-[#5827C6] px-6 py-3 font-semibold text-white shadow"
+              >
                 Svara på dagens Quiz
               </button>
+
+              {openDaily && (
+                <DailyQuizModal onClose={() => setOpenDaily(false)} />
+              )}
             </div>
           </div>
 
