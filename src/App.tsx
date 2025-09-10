@@ -18,7 +18,8 @@ import TeacherKlassVy from "./pages/TeacherKlassVy/TeacherKlassVy";
 import TeacherKlassVyDemo from "./pages/TeacherKlassVy/TeacherKlassVyDemo";
 import DuelPageDemo from "./pages/DuelPage/DuelInvitePage";
 import DuelInvitePage from "./pages/DuelPage/DuelInvitePage";
-
+import MyPageModal from "./components/MyPageModal";
+import MyPagePage from "./pages/MypagePage/MyPagePage";
 
 function Home() {
   const [count, setCount] = useState(0);
@@ -78,21 +79,14 @@ export default function App() {
         <Route path="quizDuel" element={<DuelRoom />} />
         <Route path="QuizVyStudent" element={<QuizVyStudent />} />
         <Route path="studentDashboard" element={<StudentDashboardPage />} />
-
-
         <Route path="class/join/:joinCode" element={<JoinClassPage />} />
-
-
         <Route path="duel" element={<DuelRoom />} />
-
-        <Route path="skapa-quiz" element={<SkapaQuizPage />} />TeacherKlassVyDemo
+        <Route path="skapa-quiz" element={<SkapaQuizPage />} />
+        TeacherKlassVyDemo
         <Route path="teacher/klassvy" element={<TeacherKlassVy />} />
-
+        <Route path="mypage" element={<MyPagePage />} />
         /**Demo */
         <Route path="klassvy" element={<TeacherKlassVyDemo />} />
-
-
-
         <Route element={<ProtectedOutlet />}>
           <Route path="app" element={<Home />} />
           <Route path="app/current-user" element={<CurrentUser />} />
@@ -101,7 +95,6 @@ export default function App() {
 
           <Route path="Api-test" element={<ApiPlayground />} />
         </Route>
-
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

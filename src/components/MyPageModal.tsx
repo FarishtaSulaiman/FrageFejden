@@ -1,4 +1,3 @@
-// src/components/MyPageModal.tsx
 import React, { useEffect, useState } from "react";
 
 // importera alla 12 avatarer
@@ -15,7 +14,6 @@ import avatar10 from "../assets/images/avatar/avatar10.png";
 import avatar11 from "../assets/images/avatar/avatar11.png";
 import avatar12 from "../assets/images/avatar/avatar12.png";
 
-// array med alla avatarer
 const avatars = [
   avatar1,
   avatar2,
@@ -48,7 +46,6 @@ const MyPageModal: React.FC<MyPageModalProps> = ({ isOpen, onClose }) => {
   useEffect(() => {
     if (!isOpen) return;
 
-    // hårdkodade data för test
     setEmail("test@example.com");
     setFirstName("Test");
     setLastName("User");
@@ -74,12 +71,12 @@ const MyPageModal: React.FC<MyPageModalProps> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-[#0b0d2a] rounded-lg shadow-2xl w-full max-w-lg mx-4 relative text-white">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-[#0b0d2a] rounded-lg shadow-2xl w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl overflow-auto max-h-[90vh] relative text-white">
         {/* Stäng-knapp */}
         <button
           onClick={onClose}
-          className="absolute top-2 right-4 text-white text-xl hover:text-gray-300"
+          className="absolute top-2 right-4 text-white text-2xl hover:text-gray-300"
           type="button"
         >
           ×
@@ -87,11 +84,13 @@ const MyPageModal: React.FC<MyPageModalProps> = ({ isOpen, onClose }) => {
 
         {/* Header */}
         <div className="text-center py-6">
-          <h2 className="text-4xl font-extrabold text-yellow-400">MIN SIDA</h2>
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-yellow-400">
+            MIN SIDA
+          </h2>
         </div>
 
         {/* Body */}
-        <div className="px-8 pb-8 space-y-4">
+        <div className="px-6 sm:px-8 pb-8 space-y-4">
           {error && (
             <div className="bg-red-500 text-white p-3 rounded-lg text-sm">
               {error}
@@ -145,12 +144,12 @@ const MyPageModal: React.FC<MyPageModalProps> = ({ isOpen, onClose }) => {
           {/* Avatar-val */}
           <div>
             <label className="block text-sm mb-2">Välj avatar</label>
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-6 gap-2 sm:grid-cols-8 sm:gap-3">
               {avatars.map((img, index) => (
                 <div
                   key={index}
                   onClick={() => setAvatar(index + 1)}
-                  className={`w-16 h-16 rounded-full cursor-pointer border-4 ${
+                  className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full cursor-pointer border-4 ${
                     avatar === index + 1
                       ? "border-green-500"
                       : "border-transparent"
@@ -169,7 +168,7 @@ const MyPageModal: React.FC<MyPageModalProps> = ({ isOpen, onClose }) => {
           {/* Spara-knapp */}
           <button
             onClick={handleSave}
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-md"
+            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-md flex items-center justify-center"
           >
             Spara
           </button>
