@@ -110,7 +110,7 @@ export default function App() {
           <Route path="/subjects/:subjectId/topics" element={<TopicList />} />
           {/* Användarens page för att studera på quizzes */}
           <Route path="/topics/:topicId" element={<QuizNivåVy />} />
-
+          
           <Route path="duelinvite" element={<DuelInvitePage />} />
 
 
