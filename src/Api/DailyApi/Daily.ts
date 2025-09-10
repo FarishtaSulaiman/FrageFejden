@@ -17,4 +17,9 @@ export const DailyApi = {
     return res.data;
   },
 
+  // API för att hämta daily streak
+  async getStats(): Promise<any> {
+    const res = await http.get("/daily/stats");
+    return res.data;
+  },
 };
