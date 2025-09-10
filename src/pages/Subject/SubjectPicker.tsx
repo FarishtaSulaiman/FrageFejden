@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { subjectsApi, SubjectDto } from "../../Api/SubjectApi/SubjectsApi";
+import { SubjectsApi, SubjectDto } from "../../Api/SubjectApi/SubjectsApi";
 import frageTitle from "../../assets/images/titles/frageFejden-title-pic.png";
 import avatar from "../../assets/images/avatar/avatar3.png";
 
@@ -16,7 +16,7 @@ export default function SubjectPicker(): React.ReactElement {
         if (!classId) return;
         setLoading(true);
         setErr(null);
-        subjectsApi
+        SubjectsApi
             .getForClass(classId)
             .then((res) => setItems(res))
             .catch((e) => setErr(e?.message ?? "Kunde inte hämta ämnen"))

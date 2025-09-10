@@ -28,7 +28,7 @@ export type SubjectUpdateDto = {
  * Subjects API (frontend)
  * ========================= */
 
-export const subjectsApi = {
+export const SubjectsApi = {
   // Hämtar alla ämnen i en viss klass
   async getForClass(classId: string): Promise<SubjectDto[]> {
     const res = await http.get<SubjectDto[]>(`/subjects/classes/${classId}`);
