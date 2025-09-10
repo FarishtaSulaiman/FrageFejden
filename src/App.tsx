@@ -18,6 +18,8 @@ import TeacherKlassVy from "./pages/TeacherKlassVy/TeacherKlassVy";
 import TeacherKlassVyDemo from "./pages/TeacherKlassVy/TeacherKlassVyDemo";
 import DuelPageDemo from "./pages/DuelPage/DuelInvitePage";
 import DuelInvitePage from "./pages/DuelPage/DuelInvitePage";
+import TopicList from "./pages/TopicList/TopicList";
+import SubjectPicker from "./pages/Subject/SubjectPicker";
 
 
 function Home() {
@@ -72,8 +74,9 @@ export default function App() {
     <Routes>
       <Route element={<AppLayout />}>
         <Route index element={<HomePage />} />
-        <Route path="quizniva" element={<QuizNivåVy />} />
-        <Route path="kurs/geografi" element={<QuizNivåVy />} />
+
+
+
         <Route path="quiz" element={<QuizPage />} />
         <Route path="quizDuel" element={<DuelRoom />} />
         <Route path="QuizVyStudent" element={<QuizVyStudent />} />
@@ -96,6 +99,10 @@ export default function App() {
         <Route element={<ProtectedOutlet />}>
           <Route path="app" element={<Home />} />
           <Route path="app/current-user" element={<CurrentUser />} />
+
+          <Route path="/classes/:classId/subjects" element={<SubjectPicker />} />
+          <Route path="/subjects/:subjectId/topics" element={<TopicList />} />
+          <Route path="/topics/:topicId" element={<QuizNivåVy />} />
 
           <Route path="duelinvite" element={<DuelInvitePage />} />
 

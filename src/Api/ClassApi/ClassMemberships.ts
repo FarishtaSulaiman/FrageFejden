@@ -19,7 +19,7 @@ export const ClassMemberShips = {
         await http.delete(`/Class/${classId}/members/${userId}`);
     },
 
-    async IsValidInviteCode(InviteCode: string){
+    async IsValidInviteCode(InviteCode: string) {
         await http.get(`/Class`)
     }
 }
