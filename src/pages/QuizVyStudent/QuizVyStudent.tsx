@@ -1,23 +1,38 @@
 // src/pages/QuizVyStudent/QuizVyStudent.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AuthApi, Classes, SubjectsApi, topicApi } from "../../Api/index";
+import { AuthApi, Classes, SubjectsApi } from "../../Api/index";
 
 import titleImg from "../../assets/images/titles/frageFejden-title-pic.png";
 import rankingIcon from "../../assets/images/icons/ranking-icon.png";
 import scoreIcon from "../../assets/images/icons/score-icon.png";
 import avatarImg from "../../assets/images/avatar/avatar1.png";
 
-/** Normaliserad topic för UI */
-type UINormalizedTopic = {
+/** UI-subject (normaliserad) */
+type UINormalizedSubject = {
   id: string;
-  subjectId: string;
-  subjectName: string;
-  subjectIconUrl?: string | null;
   name: string;
-  levelCount: number;
-  sortOrder?: number;
+  iconUrl?: string | null;
+  // valfri metadata att visa under titeln
+  levelsCount?: number;
+  topicsCount?: number;
 };
+
+/** Försök hitta ikon-URL på olika fältnamn + fallback till lokal ikon */
+function resolveIconUrl(s: any): string {
+  const url =
+    s?.iconUrl ??
+    s?.IconUrl ??
+    s?.iconURL ??
+    s?.icon ??
+    null;
+
+  // Om backend returnerar absolut URL → använd den
+  if (typeof url === "string" && url.trim()) return url;
+
+  // Om ni lagrar ikoner lokalt i /public/icons/...
+  return "/icons/open-book.png";
+}
 
 export default function QuizVyStudent(): React.ReactElement {
   const navigate = useNavigate();
@@ -28,10 +43,14 @@ export default function QuizVyStudent(): React.ReactElement {
   const [points, setPoints] = useState<number>(0);
   const [rankNum, setRankNum] = useState<number | null>(null);
 
-  // Topics (alla ämnens topics i första klassen)
-  const [topics, setTopics] = useState<UINormalizedTopic[]>([]);
+  // 🔹 Nu hämtar vi ÄMNEN (subjects) – inte topics
+  const [subjects, setSubjects] = useState<UINormalizedSubject[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<{ id: string; name: string } | null>(null);
+
+  // Vald subject
+  const [selected, setSelected] = useState<{ id: string; name: string } | null>(
+    null
+  );
 
   useEffect(() => {
     let alive = true;
@@ -39,17 +58,17 @@ export default function QuizVyStudent(): React.ReactElement {
     (async () => {
       setLoading(true);
 
-      // 1) Inloggad användare
+      // 1) Hämta användare
       let me: any = null;
       try {
-        me = await AuthApi.getMe();
+        me = await AuthApi.getMe(); // hämtar inloggad användare
         if (!alive) return;
         setDisplayName(me?.fullName?.trim() || "Användare");
       } catch {
         setDisplayName("Användare");
       }
 
-      // 2) Poäng (XP)
+      // 2) Hämta poäng
       try {
         if (me?.id) {
           const xp = await Classes.GetLoggedInUserScore(me.id);
@@ -60,7 +79,7 @@ export default function QuizVyStudent(): React.ReactElement {
         setPoints(0);
       }
 
-      // 3) Klasser & ranking (välj första klassen)
+      // 3) Hämta klasser & ranking (vi använder första klassen)
       let pickedClassId: string | null = null;
       try {
         const myClasses = await Classes.GetUsersClasses();
@@ -70,13 +89,15 @@ export default function QuizVyStudent(): React.ReactElement {
           const first = myClasses[0];
           pickedClassId =
             first?.classId ?? first?.id ?? first?.ClassId ?? first?.Id ?? null;
-
           const clsName = first?.name ?? first?.className ?? "—";
           setClassName(clsName || "—");
           setClassId(pickedClassId);
 
           if (pickedClassId && me?.id) {
-            const { myRank } = await Classes.GetClassLeaderboard(pickedClassId, me.id);
+            const { myRank } = await Classes.GetClassLeaderboard(
+              pickedClassId,
+              me.id
+            );
             if (!alive) return;
             setRankNum(myRank ?? null);
           } else {
@@ -91,58 +112,35 @@ export default function QuizVyStudent(): React.ReactElement {
         setRankNum(null);
       }
 
-      // 4) Ämnen -> Topics (med subject.iconUrl)
+      // 4) 🔁 HÄMTA ÄMNEN I KLASSEN (inte topics)
       try {
         if (!pickedClassId) {
-          setTopics([]);
+          setSubjects([]);
         } else {
-          const subjects = await SubjectsApi.getForClass(pickedClassId);
+          const list = await SubjectsApi.getForClass(pickedClassId); // ämnen i klassen
           if (!alive) return;
 
-          // snabb lookup (id -> {name, iconUrl})
-          const subjectMap = new Map<string, { name: string; iconUrl?: string | null }>(
-            subjects.map((s) => [s.id, { name: s.name, iconUrl: (s as any).iconUrl }])
-          );
+          const normalized: UINormalizedSubject[] = (Array.isArray(list)
+            ? list
+            : []
+          ).map((s: any) => ({
+            id: s.id ?? s.subjectId,
+            name: s.name ?? "Ämne",
+            iconUrl: resolveIconUrl(s),
+            // försök visa vettig siffra i undertexten
+            levelsCount:
+              s.levelsCount ?? s.levelCount ?? undefined,
+            topicsCount:
+              s.topicCount ?? s.topicsCount ?? undefined,
+          }));
 
-          // hämta topics per ämne
-          const topicGroups = await Promise.all(
-            subjects.map(async (s) => {
-              const list = await topicApi.listBySubject(s.id);
-              return list.map((t: any): UINormalizedTopic => ({
-                id: t.id ?? t.topicId,
-                subjectId: t.subjectId ?? s.id,
-                subjectName: s.name,
-                subjectIconUrl: (s as any).iconUrl,
-                name: t.name,
-                levelCount: t.levelCount ?? t.levelsCount ?? 0,
-                sortOrder: t.sortOrder ?? 0,
-              }));
-            })
-          );
-
-          if (!alive) return;
-
-          // sortera: ämne A→Ö, sedan sortOrder, sedan namn
-          const flat = topicGroups.flat().sort((a, b) => {
-            const sa = a.subjectName.localeCompare(b.subjectName);
-            if (sa !== 0) return sa;
-            const so = (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
-            if (so !== 0) return so;
-            return a.name.localeCompare(b.name);
-          });
-
-          // säkerställ ikon (fallback till public/icons)
-          const withIcon = flat.map((t) => {
-            const meta = subjectMap.get(t.subjectId);
-            const url = (t.subjectIconUrl ?? meta?.iconUrl ?? "").trim();
-            return { ...t, subjectIconUrl: url || "/icons/open-book.png" };
-          });
-
-          setTopics(withIcon);
+          // sortera alfabetiskt
+          normalized.sort((a, b) => a.name.localeCompare(b.name));
+          setSubjects(normalized);
         }
       } catch (err) {
-        console.error("Kunde inte hämta topics:", err);
-        setTopics([]);
+        console.error("Kunde inte hämta ämnen:", err);
+        setSubjects([]);
       }
 
       if (alive) setLoading(false);
@@ -153,22 +151,32 @@ export default function QuizVyStudent(): React.ReactElement {
     };
   }, []);
 
-  // Presentationskort
-  const topicCards = useMemo(() => {
-    if (!topics.length) return [];
-    return topics.map((t) => ({
-      id: t.id,
-      label: t.name,
-      sub: t.levelCount > 0 ? `${t.levelCount} nivåer` : "Inga nivåer ännu",
-      iconUrl: t.subjectIconUrl || "/icons/open-book.png",
-    }));
-  }, [topics]);
+  // Mappa ÄMNEN till kort (samma design som tidigare)
+  const subjectCards = useMemo(() => {
+    if (!subjects.length) return [];
+    return subjects.map((s) => {
+      // välj en trevlig undertext
+      const sub =
+        typeof s.levelsCount === "number" && s.levelsCount > 0
+          ? `${s.levelsCount} nivåer`
+          : typeof s.topicsCount === "number" && s.topicsCount > 0
+            ? `${s.topicsCount} områden`
+            : "Inga nivåer ännu";
 
-  // Bekräfta val -> gå till levels/progress-vy för topic
+      return {
+        id: s.id,
+        label: s.name,
+        sub,
+        iconUrl: s.iconUrl,
+      };
+    });
+  }, [subjects]);
+
+  // Bekräfta val -> gå till SUBJECTS TOPIC-LISTA
   function handleConfirm() {
     if (!selected) return;
     const cid = classId ?? "";
-    navigate(`/topics/${selected.id}?classId=${cid}`);
+    navigate(`/subjects/${selected.id}/topics?classId=${cid}`);
   }
 
   return (
@@ -226,15 +234,22 @@ export default function QuizVyStudent(): React.ReactElement {
       </section>
 
       {/* Titel */}
+      <section className="mx-auto max-w-[1100px] px-4 pt-16">
+        <h2 className="text-center text-[18px] font-semibold text-white/90">
+          Välj din kurs
+        </h2>
+      </section>
+
+      {/* Ämneskort (samma design, men renderar subjects) */}
       <section className="mx-auto max-w-[1100px] px-4 pt-6">
         <div className="grid grid-cols-1 place-items-center gap-x-16 gap-y-10 sm:grid-cols-2">
-          {topicCards.map((t) => {
-            const isSelected = selected?.id === t.id;
+          {subjectCards.map((s) => {
+            const isSelected = selected?.id === s.id;
             return (
               <button
-                key={t.id}
+                key={s.id}
                 type="button"
-                onClick={() => setSelected({ id: t.id, name: t.label })}
+                onClick={() => setSelected({ id: s.id, name: s.label })}
                 aria-pressed={isSelected}
                 className="relative w-full max-w-[460px] text-left"
                 disabled={loading}
@@ -246,17 +261,18 @@ export default function QuizVyStudent(): React.ReactElement {
                   <div className="flex h-full items-center gap-6">
                     <div className="flex h-[84px] w-[84px] items-center justify-center rounded-2xl bg-gradient-to-b from-[#0E1A34] to-[#0B152A] ring-1 ring-white/5 shadow-[0_12px_28px_rgba(0,0,0,0.45)]">
                       <img
-                        src={t.iconUrl}
-                        alt={t.label}
+                        src={s.iconUrl || "/icons/open-book.png"}
+                        alt={s.label}
                         className="h-[56px] w-[56px] object-contain"
                         onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src = "/icons/open-book.png";
+                          (e.currentTarget as HTMLImageElement).src =
+                            "/icons/open-book.png";
                         }}
                       />
                     </div>
                     <div className="translate-y-[-2px]">
-                      <h3 className="text-[20px] font-semibold">{t.label}</h3>
-                      <p className="mt-1 text-[13px] text-white/65">{t.sub}</p>
+                      <h3 className="text-[20px] font-semibold">{s.label}</h3>
+                      <p className="mt-1 text-[13px] text-white/65">{s.sub}</p>
                     </div>
                   </div>
                 </article>
@@ -264,8 +280,8 @@ export default function QuizVyStudent(): React.ReactElement {
             );
           })}
 
-          {/* Fallback om inga topics */}
-          {!loading && topicCards.length === 0 && (
+          {/* Fallback om inga kurser */}
+          {!loading && subjectCards.length === 0 && (
             <div className="col-span-full text-center text-white/75 text-sm">
               Du har inga kurser inlagda ännu.
             </div>
