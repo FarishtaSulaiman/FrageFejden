@@ -1,4 +1,4 @@
-// src/pages/QuizVyStudent/QuizVyStudent.tsx
+
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthApi, Classes, SubjectsApi, topicApi } from "../../Api/index";
@@ -8,7 +8,7 @@ import rankingIcon from "../../assets/images/icons/ranking-icon.png";
 import scoreIcon from "../../assets/images/icons/score-icon.png";
 import avatarImg from "../../assets/images/avatar/avatar1.png";
 
-/** Normaliserad topic för UI */
+
 type UINormalizedTopic = {
   id: string;
   subjectId: string;
@@ -60,7 +60,7 @@ export default function QuizVyStudent(): React.ReactElement {
         setPoints(0);
       }
 
-      // 3) Klasser & ranking (välj första klassen)
+      // 3) Klasser & ranking 
       let pickedClassId: string | null = null;
       try {
         const myClasses = await Classes.GetUsersClasses();
@@ -91,7 +91,7 @@ export default function QuizVyStudent(): React.ReactElement {
         setRankNum(null);
       }
 
-      // 4) Ämnen -> Topics (med subject.iconUrl)
+      // 4) Ämnen 
       try {
         if (!pickedClassId) {
           setTopics([]);
@@ -99,7 +99,7 @@ export default function QuizVyStudent(): React.ReactElement {
           const subjects = await SubjectsApi.getForClass(pickedClassId);
           if (!alive) return;
 
-          // snabb lookup (id -> {name, iconUrl})
+          // 
           const subjectMap = new Map<string, { name: string; iconUrl?: string | null }>(
             subjects.map((s) => [s.id, { name: s.name, iconUrl: (s as any).iconUrl }])
           );
@@ -122,7 +122,7 @@ export default function QuizVyStudent(): React.ReactElement {
 
           if (!alive) return;
 
-          // sortera: ämne A→Ö, sedan sortOrder, sedan namn
+          
           const flat = topicGroups.flat().sort((a, b) => {
             const sa = a.subjectName.localeCompare(b.subjectName);
             if (sa !== 0) return sa;
@@ -131,7 +131,7 @@ export default function QuizVyStudent(): React.ReactElement {
             return a.name.localeCompare(b.name);
           });
 
-          // säkerställ ikon (fallback till public/icons)
+          // säkerställ ikon 
           const withIcon = flat.map((t) => {
             const meta = subjectMap.get(t.subjectId);
             const url = (t.subjectIconUrl ?? meta?.iconUrl ?? "").trim();
@@ -153,7 +153,7 @@ export default function QuizVyStudent(): React.ReactElement {
     };
   }, []);
 
-  // Presentationskort
+  
   const topicCards = useMemo(() => {
     if (!topics.length) return [];
     return topics.map((t) => ({
@@ -164,7 +164,7 @@ export default function QuizVyStudent(): React.ReactElement {
     }));
   }, [topics]);
 
-  // Bekräfta val -> gå till levels/progress-vy för topic
+  
   function handleConfirm() {
     if (!selected) return;
     const cid = classId ?? "";
