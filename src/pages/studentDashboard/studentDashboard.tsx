@@ -1,68 +1,91 @@
 import React, { useEffect, useState } from "react";
 
-import { AuthApi, Classes } from "../../Api/index";
+import { AuthApi, Classes, getFunFact, type FunFact } from "../../Api/index";
 
 import avatar from "../../assets/images/avatar/avatar2.png";
 import frageTitle from "../../assets/images/titles/frageFejden-title-pic.png";
 import trophy from "../../assets/images/icons/trophy-icon.png";
 import funfact from "../../assets/images/pictures/fun-fact-pic.png";
 import rank from "../../assets/images/icons/ranking-icon.png";
-import points from "../../assets/images/icons/score-icon.png";
+import pointsIcon from "../../assets/images/icons/score-icon.png";
 import questionmark from "../../assets/images/pictures/questionmark-pic.png";
 import topplistPoints from "../../assets/images/icons/score-icon.png";
 import { useNavigate } from "react-router-dom";
-import { Classes } from "../../Api/index";
-
-
 
 export default function StudentDashboardPage() {
   const navigate = useNavigate();
 
-  // Spara namnet på användaren
-const [displayName, setDisplayName] = useState("Användare");
-const [email, setEmail] = useState("");
-// useState för score/experiencepoints
+  // Spara namn och mail på användaren
+  const [displayName, setDisplayName] = useState("Användare");
+  const [email, setEmail] = useState("");
+  // useState för score/experiencepoints
+  const [points, setPoints] = useState<number>(0);
+
+  // rank
+  const [rankNum, setRankNum] = useState<number | null>(null);
+  const [topThree, setTopThree] = useState<any[]>([]);
+
+  // useState för funfact
+  const [fact, setFact] = useState<string>("");
 
   // Alias till API-metoden (funktionsreferens – anropas i useEffect)
   const getMe = AuthApi.getMe;
 
-  // useEffect för score/experiencepoints
+  // useEffect för username, score/experiencepoints, ranking och funfact
+  useEffect(() => {
+    (async () => {
+      try {
+        const me = await AuthApi.getMe(); // hämtar inloggad + id
 
-useEffect(() => {
-  (async () => {
-    try {
-      const me = await getMe();
+        // namn + mail
+        //   const name =
+        //     me.FullName?.trim()
+        // me.userName?.trim() ||
+        // me.email?.split("@")[0] ||
+        // "Användare";
 
+        const name = me.fullName ?? "";
+        setDisplayName(name);
 
-      const name =
-        me.userName?.trim() ||
-        me.email?.split("@")[0] ||
-        "Användare";
+        // poäng
+        const xp = await Classes.GetLoggedInUserScore(me.id);
+        setPoints(typeof xp === "number" ? xp : 0);
 
+        // hämta mina klasser
+        const myClasses = await Classes.GetUsersClasses();
+        const first = myClasses?.[0];
+        const classId =
+          first?.classId ?? first?.id ?? first?.ClassId ?? first?.Id;
 
-      setDisplayName(name);
-      setEmail(me.email ?? ""); // spara e-post
-    } catch (e) {
-      console.error("Kunde inte hämta användare:", e);
-      setDisplayName("Användare");
-      setEmail("");
-    }
-  })();
-}, []);
+        if (classId) {
+          const { leaderboard, myRank } = await Classes.GetClassLeaderboard(
+            classId,
+            me.id
+          );
+          setRankNum(myRank);
+          setTopThree(leaderboard.slice(0, 3));
+        } else {
+          setRankNum(null);
+          setTopThree([]);
+        }
 
-  //   // definiera typer för användaren
-  //     type User = {
-  //       id: string;
-  //       email: string;
-  //       userName: string;
-  //     };
-
-  //   // skapa en konstant variabel (state) för att lagra användaren 
-  //   const [user, setUser] = useState(null);
-
-  //   // useEffect = kör kod när komponenten laddas
-
-  //   // fetch för API-anrop av inloggad användare
+        // Hämta fun fact oavsett classId
+        try {
+          const f = await getFunFact();
+          setFact(f.text || "Ingen fun fact just nu.");
+        } catch {
+          setFact("Ingen fun fact just nu.");
+        }
+      } catch (e) {
+        console.error("Kunde inte hämta profil/poäng/ranking:", e);
+        setDisplayName("Användare");
+        setEmail("");
+        setPoints(0);
+        setRankNum(null);
+        setTopThree([]);
+      }
+    })();
+  }, []);
 
   // API ANROP FÖR ATT HÄMTA ENS KLASS, behövs ej på denna page
   //   var res = Classes.MyClasses;
@@ -101,11 +124,11 @@ useEffect(() => {
             <div className="flex items-center gap-6 text-sm">
               <div className="flex items-center gap-2">
                 <img src={rank} alt="Ranking" className="h-8 w-6" />
-                <span>Ranking</span>
+                <span>{rankNum ?? "—"}</span>
               </div>
               <div className="flex items-center gap-2">
-                <img src={points} alt="Points" className="h-6 w-6" />
-                <span>Poäng</span>
+                <img src={pointsIcon} alt="Points" className="h-6 w-6" />
+                <span>{points}</span>
               </div>
             </div>
           </div>
@@ -127,7 +150,7 @@ useEffect(() => {
             {/* Knappar */}
             <div className="mt-2 space-y-3">
               <button
-                onClick={() => navigate("/quizniva")} // Vilken sida ska jag navigera till?
+                onClick={() => navigate("/QuizVyStudent")}
                 className="w-full rounded-2xl bg-[#3BCC52] px-5 py-4 text-left text-lg font-bold text-white"
               >
                 Starta Quiz
@@ -141,7 +164,7 @@ useEffect(() => {
               </button>
 
               <button
-                onClick={() => navigate("/prestationer")} // sida ej skapad
+                onClick={() => navigate("/prestationer")} // navigera till leaderboard?
                 className="flex w-full items-center gap-3 rounded-2xl bg-[#DA6410] px-5 py-4 text-lg font-bold text-white"
               >
                 <img src={trophy} alt="Trophy" className="h-8 w-6" />
@@ -150,17 +173,17 @@ useEffect(() => {
             </div>
 
             {/* Fun fact */}
-            <section className="mt-3 rounded-2xl bg-[#3D1C87] p-4">
-              <div className="mb-2 flex items-center gap-2">
-                <img src={funfact} alt="Fun fact" className="h-9 w-9" />
-                <h2 className="text-lg font-extrabold">Fun fact!</h2>
+            <section className="mt-3 rounded-2xl bg-[#3D1C87] p-5 shadow-lg">
+              <div className="flex items-center gap-3 mb-3">
+                <img src={funfact} alt="Fun fact" className="h-10 w-10" />
+                <div>
+                  <h2 className="text-lg font-extrabold">Fun fact</h2>
+                  <p className="text-sm text-white/70">Visste du att…</p>
+                </div>
               </div>
-              <p className="text-sm text-white/85">
-                Visste du att världens längsta flod är Nilen?
-              </p>
-              <p className="mt-2 text-sm text-white/70">
-                Albert Einstein fick Nobelpriset 1921 för den fotoelektriska
-                effekten (inte relativitetsteorin).
+
+              <p className="text-base leading-relaxed text-white/90">
+                {fact || "Hämtar fun fact…"}
               </p>
             </section>
           </div>
@@ -200,9 +223,18 @@ useEffect(() => {
             <section className="rounded-2xl bg-[#3D1C87] p-4">
               <h2 className="text-lg font-extrabold">Topplista</h2>
               <div className="mt-3 space-y-3 text-sm">
-                <Row name="Bea" points="2800" />
-                <Row name="Elsa" points="2100" />
-                <Row name="Bengt" points="1950" />
+                {topThree.length ? (
+                  topThree.map((p) => (
+                    <Row
+                      key={p.userId}
+                      // tar userName, kapar vid "@", trimmar, och fall back till "Okänd"
+                      name={(p.userName ?? "").split("@")[0].trim() || "Okänd"}
+                      points={String(p.score)}
+                    />
+                  ))
+                ) : (
+                  <div className="text-sm opacity-70">Ingen topplista ännu</div>
+                )}
               </div>
             </section>
 
