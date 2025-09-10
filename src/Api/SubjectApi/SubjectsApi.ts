@@ -9,10 +9,12 @@ export type SubjectDto = {
   classId?: string | null;
   createdById: string;
   createdAt: string;
+  iconUrl: string;
   topicCount: number;
   quizCount: number;
   questionCount: number;
 };
+
 
 export type SubjectCreateDto = {
   name: string;

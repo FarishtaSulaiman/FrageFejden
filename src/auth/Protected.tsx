@@ -5,5 +5,5 @@ import { useAuth } from "./AuthContext";
 export function ProtectedOutlet() {
     const { user } = useAuth();
     const loc = useLocation();
-    return user ? <Outlet /> : <Navigate to="/login" replace state={{ from: loc }} />;
+    return user ? <Outlet /> : <Navigate to="/" replace state={{ from: loc }} />;
 }
