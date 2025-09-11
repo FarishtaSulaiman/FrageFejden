@@ -10,9 +10,7 @@ export type Me = {
     email?: string;
     userName?: string;
     roles: Role[];
-
     exp?: number;
-
     expiresAtMs?: number;
 };
 
