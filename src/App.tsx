@@ -103,7 +103,7 @@ export default function App() {
           <Route path="app/current-user" element={<CurrentUser />} />
           <Route path="studentDashboard" element={<StudentDashboardPage />} />
 
-          {/* Användarens "Ämnen / subjects" */}
+          {/* Användarens "Ämnen / subjects" i sin klass */}
           <Route path="QuizVyStudent" element={<QuizVyStudent />} />
 
           {/* Användarens "Användarens topics i ämnet" */}

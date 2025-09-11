@@ -1,6 +1,5 @@
-// src/pages/QuizVyStudent/QuizVyStudent.tsx
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { AuthApi, Classes, SubjectsApi, topicApi } from "../../Api/index";
 
 import titleImg from "../../assets/images/titles/frageFejden-title-pic.png";
@@ -19,7 +18,6 @@ const SUBJECT_ICON_BY_NAME: Record<string, string> = {
     matematik: mathIcon,
     svenska: bookIcon,
 };
-
 function subjectIconFor(name?: string) {
     const key = (name ?? "").trim().toLowerCase();
     return SUBJECT_ICON_BY_NAME[key] ?? bookIcon;
@@ -36,6 +34,8 @@ type UINormalizedTopic = {
 
 export default function QuizVyStudent(): React.ReactElement {
     const navigate = useNavigate();
+    const location = useLocation();
+    const { subjectId: subjectIdFromPath } = useParams(); // /subjects/:subjectId/topics
 
     const [displayName, setDisplayName] = useState("Användare");
     const [className, setClassName] = useState("—");
@@ -43,55 +43,50 @@ export default function QuizVyStudent(): React.ReactElement {
     const [points, setPoints] = useState<number>(0);
     const [rankNum, setRankNum] = useState<number | null>(null);
 
-    // Hämta användarens topics (alla ämnens topics i första klassen)
     const [topics, setTopics] = useState<UINormalizedTopic[]>([]);
     const [loading, setLoading] = useState(true);
 
     // Vald topic
     const [selected, setSelected] = useState<{ id: string; name: string } | null>(null);
 
+    // 1) Boot: user, score, first class, rank  (runs once)
     useEffect(() => {
         let alive = true;
 
         (async () => {
             setLoading(true);
 
-            // 1) Hämta användare
-            let me: any = null;
             try {
-                me = await AuthApi.getMe();                         // 🔹 hämtar inloggad användare
+                // 1) Hämta användare
+                const me = await AuthApi.getMe().catch(() => null);
                 if (!alive) return;
                 setDisplayName(me?.fullName?.trim() || "Användare");
-            } catch {
-                setDisplayName("Användare");
-            }
 
-            // 2) Hämta poäng
-            try {
+                // 2) Hämta poäng
                 if (me?.id) {
-                    const xp = await Classes.GetLoggedInUserScore(me.id); // 🔹 användarens XP
+                    const xp = await Classes.GetLoggedInUserScore(me.id).catch(() => 0);
                     if (!alive) return;
                     setPoints(typeof xp === "number" ? xp : 0);
+                } else {
+                    setPoints(0);
                 }
-            } catch {
-                setPoints(0);
-            }
 
-            // 3) Hämta klasser & ranking (vi använder första klassen)
-            let pickedClassId: string | null = null;
-            try {
-                const myClasses = await Classes.GetUsersClasses();      // 🔹 mina klasser
+                // 3) Hämta klasser & ranking (vi använder första klassen)
+                let picked: string | null = null;
+                const myClasses = await Classes.GetUsersClasses().catch(() => []);
                 if (!alive) return;
 
                 if (Array.isArray(myClasses) && myClasses.length > 0) {
                     const first = myClasses[0];
-                    pickedClassId = first?.classId ?? first?.id ?? first?.ClassId ?? first?.Id ?? null;
+                    picked = first?.classId ?? first?.id ?? first?.ClassId ?? first?.Id ?? null;
                     const clsName = first?.name ?? first?.className ?? "—";
                     setClassName(clsName || "—");
-                    setClassId(pickedClassId);
+                    setClassId(picked);
 
-                    if (pickedClassId && me?.id) {
-                        const { myRank } = await Classes.GetClassLeaderboard(pickedClassId, me.id); // 🔹 ranking
+                    if (picked && me?.id) {
+                        const { myRank } =
+                            (await Classes.GetClassLeaderboard(picked, me.id).catch(() => ({ myRank: null }))) ??
+                            {};
                         if (!alive) return;
                         setRankNum(myRank ?? null);
                     } else {
@@ -102,46 +97,87 @@ export default function QuizVyStudent(): React.ReactElement {
                     setRankNum(null);
                 }
             } catch {
-                setClassName("—");
-                setRankNum(null);
+                // no-op, defaults already set
+            } finally {
+                if (alive) setLoading(false);
             }
-
-            // 4) Hämta topics via ämnen i klassen
-            try {
-                if (!pickedClassId) {
-                    setTopics([]);
-                } else {
-                    const subjects = await SubjectsApi.getForClass(pickedClassId); // 🔹 ämnen i klassen
-                    if (!alive) return;
-
-                    // hämta alla ämnens topics och flata
-                    const topicGroups = await Promise.all(
-                        subjects.map(async (s) => {
-                            const list = await topicApi.listBySubject(s.id);     // 🔹 topics per ämne
-                            // normalisera id/levelCount från olika DTO-varianter
-                            return list.map((t: any): UINormalizedTopic => ({
-                                id: t.id ?? t.topicId,
-                                subjectId: t.subjectId ?? s.id,
-                                subjectName: s.name,
-                                name: t.name,
-                                levelCount: t.levelCount ?? t.levelsCount ?? 0,
-                            }));
-                        })
-                    );
-                    setTopics(topicGroups.flat().sort((a, b) => a.name.localeCompare(b.name)));
-                }
-            } catch (err) {
-                console.error("Kunde inte hämta topics:", err);
-                setTopics([]);
-            }
-
-            if (alive) setLoading(false);
         })();
 
         return () => {
             alive = false;
         };
     }, []);
+
+    // 2) Load topics whenever class OR subject (from PATH) changes
+    useEffect(() => {
+        if (!classId) {
+            setTopics([]);
+            return;
+        }
+
+        let alive = true;
+
+        (async () => {
+            setLoading(true);
+            try {
+                const subjects = await SubjectsApi.getForClass(classId);
+                if (!alive) return;
+
+                // pick active subject: from PATH param or fallback to first subject in class
+                const activeSubjectId = (subjectIdFromPath as string | undefined) ?? subjects[0]?.id ?? null;
+
+                // Optional guard: ensure the URL subject belongs to this class
+                if (
+                    activeSubjectId &&
+                    subjects.length > 0 &&
+                    !subjects.some((s) => s.id === activeSubjectId)
+                ) {
+                    console.warn(
+                        "SubjectId in URL doesn't belong to this class:",
+                        activeSubjectId,
+                        "Class subjects:",
+                        subjects.map((s) => s.id)
+                    );
+                    setTopics([]);
+                    return;
+                }
+
+                if (!activeSubjectId) {
+                    setTopics([]);
+                    return;
+                }
+
+                // Hämta endast topics för det aktiva ämnet
+                const list = await topicApi.listBySubject(activeSubjectId);
+                if (!alive) return;
+
+                const activeSubjectName =
+                    subjects.find((s) => s.id === activeSubjectId)?.name ?? "—";
+
+                const onlyThisSubjectsTopics: UINormalizedTopic[] = list.map((t: any) => ({
+                    id: t.topicId ?? t.id, // TopicSummaryDto uses topicId
+                    subjectId: t.subjectId ?? activeSubjectId,
+                    subjectName: activeSubjectName,
+                    name: t.name,
+                    levelCount: t.levelCount ?? t.levelsCount ?? 0,
+                }));
+
+                setTopics(
+                    onlyThisSubjectsTopics.sort((a, b) => a.name.localeCompare(b.name))
+                );
+                setSelected(null); // reset selection when subject changes
+            } catch (err) {
+                console.error("Kunde inte hämta topics:", err);
+                setTopics([]);
+            } finally {
+                if (alive) setLoading(false);
+            }
+        })();
+
+        return () => {
+            alive = false;
+        };
+    }, [classId, subjectIdFromPath]);
 
     // Mappa topics till kort
     const topicCards = useMemo(() => {
@@ -167,7 +203,7 @@ export default function QuizVyStudent(): React.ReactElement {
             {/* Header med namn, klass, poäng */}
             <section className="relative">
                 <div className="relative h-[230px] overflow-hidden bg-gradient-to-r from-[#5E2FD7] via-[#5B2ED6] to-[#3E1BB2]">
-                    <div className="mx-auto flex h-full max-w-[1100px] items-center justify-between px-4">
+                    <div className="mx-auto flex h-full max-w={[1100]} items-center justify-between px-4">
                         <img
                             src={titleImg}
                             alt="FRÅGEFEJDEN"
