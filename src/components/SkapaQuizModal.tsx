@@ -106,19 +106,18 @@ const SkapaQuizModal: React.FC<SkapaQuizModalProps> = ({ isOpen, onClose }) => {
           <div className="flex items-center justify-between">
             <span>Antal frågor</span>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setNumQuestions((n) => Math.max(1, n - 1))}
-                className="px-3 py-1 bg-gray-700 rounded"
-              >
-                -
-              </button>
-              <span>{numQuestions}</span>
-              <button
-                onClick={() => setNumQuestions((n) => n + 1)}
-                className="px-3 py-1 bg-gray-700 rounded"
-              >
-                +
-              </button>
+              <input
+                type="number"
+                value={numQuestions}
+                min={1}
+                max={30}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  if (!isNaN(val))
+                    setNumQuestions(Math.min(30, Math.max(1, val)));
+                }}
+                className="w-16 text-center rounded bg-gray-200 text-black"
+              />
             </div>
           </div>
 
@@ -126,26 +125,23 @@ const SkapaQuizModal: React.FC<SkapaQuizModalProps> = ({ isOpen, onClose }) => {
           <div className="flex items-center justify-between">
             <span>Välj nivå</span>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setLevel((l) => Math.max(1, l - 1))}
-                className="px-3 py-1 bg-gray-700 rounded"
-              >
-                -
-              </button>
-              <span>{level}</span>
-              <button
-                onClick={() => setLevel((l) => l + 1)}
-                className="px-3 py-1 bg-gray-700 rounded"
-              >
-                +
-              </button>
+              <input
+                type="number"
+                value={level}
+                min={1}
+                max={10}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  if (!isNaN(val)) setLevel(Math.min(10, Math.max(1, val)));
+                }}
+                className="w-16 text-center rounded bg-gray-200 text-black"
+              />
             </div>
           </div>
-
           {/* Generera-knapp */}
           <button
             onClick={handleGenerate}
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-md"
+            className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-md mx-auto block"
           >
             Generera frågor
           </button>
