@@ -20,7 +20,7 @@ import DuelPageDemo from "./pages/DuelPage/DuelInvitePage";
 import DuelInvitePage from "./pages/DuelPage/DuelInvitePage";
 import TopicList from "./pages/TopicList/TopicList";
 import { PublicOnlyOutlet } from "./auth/PublicOnly";
-
+import Leaderboard from "./pages/Leaderboard/Leaderboard";
 
 function Home() {
   const [count, setCount] = useState(0);
@@ -79,7 +79,7 @@ export default function App() {
 
         <Route path="quiz" element={<QuizPage />} />
         <Route path="quizDuel" element={<DuelRoom />} />
-
+        <Route path="leaderboard" element={<Leaderboard />} />
 
 
         <Route path="class/join/:joinCode" element={<JoinClassPage />} />
