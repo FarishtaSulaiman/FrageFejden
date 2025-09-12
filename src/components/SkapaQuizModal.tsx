@@ -1,14 +1,15 @@
 import React, { useState } from "react";
+import { QuizzesApi, QuizCreateDto } from "../Api/QuizApi/Quizzes";
 
-//styr om den är öppen och hanterar stängning
+// styr om den är öppen och hanterar stängning
 interface SkapaQuizModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-//ämnen
+// ämnen
 type Subject = "Geografi" | "Matte" | "Svenska" | "Historia";
-//lista med ämnen + emojis --> byta till iconer?
+// lista med ämnen + emojis --> byta till iconer?
 const subjects: { name: Subject; icon: string }[] = [
   { name: "Geografi", icon: "🌍" },
   { name: "Matte", icon: "➗" },
@@ -22,18 +23,40 @@ const SkapaQuizModal: React.FC<SkapaQuizModalProps> = ({ isOpen, onClose }) => {
   const [text, setText] = useState("");
   const [numQuestions, setNumQuestions] = useState(8);
   const [level, setLevel] = useState(3);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
-  //Funktion som hanterar "Generera frågor", behöver bytas ut när vi lägger till AI?
-  const handleGenerate = () => {
-    console.log("Genererar quiz:", {
-      quizName,
-      selectedSubject,
-      text,
-      numQuestions,
-      level,
-    });
-    onClose();
+
+  // Funktion som skapar quiz via backend
+  const handleGenerate = async () => {
+    if (!quizName || !selectedSubject) {
+      setError("Fyll i namn och välj ämne!");
+      return;
+    }
+
+    setLoading(true); //sätter loading till true så vi vet att vi väntar på svar
+    setError(null); //nollställer eventuella tidigare felmeddelanden
+
+    try {
+      // skapar ett objekt med information om quizet som ska skickas till backend
+      const dto: QuizCreateDto = {
+        applicationUserId: "CURRENT_USER_ID", // <-- hårdkodat just nu, borde tas från backend?
+        title: quizName, //quizets namn från inputfältet
+        subjectId: selectedSubject, // ämnet som användaren valt
+        levelId: level.toString(), // nivå
+        isPublished: false, // skickas som opublicerat så det inte blir synligt för elever direkt
+      };
+
+      await QuizzesApi.create(dto); // skickar quiz-objektet till backend för att skapa quizet
+
+      onClose(); // stäng modal
+    } catch (e) {
+      console.error(e);
+      setError("Något gick fel vid skapandet av quiz.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -106,19 +129,18 @@ const SkapaQuizModal: React.FC<SkapaQuizModalProps> = ({ isOpen, onClose }) => {
           <div className="flex items-center justify-between">
             <span>Antal frågor</span>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setNumQuestions((n) => Math.max(1, n - 1))}
-                className="px-3 py-1 bg-gray-700 rounded"
-              >
-                -
-              </button>
-              <span>{numQuestions}</span>
-              <button
-                onClick={() => setNumQuestions((n) => n + 1)}
-                className="px-3 py-1 bg-gray-700 rounded"
-              >
-                +
-              </button>
+              <input
+                type="number"
+                value={numQuestions}
+                min={1}
+                max={30}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  if (!isNaN(val))
+                    setNumQuestions(Math.min(30, Math.max(1, val)));
+                }}
+                className="w-16 text-center rounded bg-gray-200 text-black"
+              />
             </div>
           </div>
 
@@ -126,28 +148,29 @@ const SkapaQuizModal: React.FC<SkapaQuizModalProps> = ({ isOpen, onClose }) => {
           <div className="flex items-center justify-between">
             <span>Välj nivå</span>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setLevel((l) => Math.max(1, l - 1))}
-                className="px-3 py-1 bg-gray-700 rounded"
-              >
-                -
-              </button>
-              <span>{level}</span>
-              <button
-                onClick={() => setLevel((l) => l + 1)}
-                className="px-3 py-1 bg-gray-700 rounded"
-              >
-                +
-              </button>
+              <input
+                type="number"
+                value={level}
+                min={1}
+                max={10}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  if (!isNaN(val)) setLevel(Math.min(10, Math.max(1, val)));
+                }}
+                className="w-16 text-center rounded bg-gray-200 text-black"
+              />
             </div>
           </div>
+
+          {error && <div className="text-red-500 text-sm">{error}</div>}
 
           {/* Generera-knapp */}
           <button
             onClick={handleGenerate}
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-md"
+            disabled={loading}
+            className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-md mx-auto block"
           >
-            Generera frågor
+            {loading ? "Skapar..." : "Generera frågor"}
           </button>
         </div>
       </div>
