@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { UserCard } from '../../components/Leaderboard/UserCard';
+import { ClassLeaderboard } from '../../components/Leaderboard/ClassLeaderboard';
 import { Classes } from '../../Api/ClassApi/Classes';
+
+
 export const Leaderboard = () => {
   const [classId, setClassId] = useState<string | null>(null);
 
@@ -19,7 +22,7 @@ export const Leaderboard = () => {
   return (
     <div className="page-layout">
       <UserCard classId={classId} />
-      {/* Andra komponenter */}
+      <ClassLeaderboard classId={classId} />
     </div>
   );
 };
