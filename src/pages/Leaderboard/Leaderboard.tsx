@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { UserCard } from '../../components/Leaderboard/UserCard';
 import { ClassLeaderboard } from '../../components/Leaderboard/ClassLeaderboard';
 import { Classes } from '../../Api/ClassApi/Classes';
-
+import { SubjectLeaderboard } from '../../components/Leaderboard/SubjectLeaderboard';
 
 export const Leaderboard = () => {
   const [classId, setClassId] = useState<string | null>(null);
+  
 
   useEffect(() => {
     const fetchClass = async () => {
@@ -23,6 +24,7 @@ export const Leaderboard = () => {
     <div className="page-layout">
       <UserCard classId={classId} />
       <ClassLeaderboard classId={classId} />
+      <SubjectLeaderboard classId={ classId }/>
     </div>
   );
 };
