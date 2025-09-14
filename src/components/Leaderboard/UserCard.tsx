@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from "react";
 import { fetchUserResult } from "../../Services/leaderboardServices";
 import { UserResult } from "../../types/leaderboard";
+import styles from "./UserCard.module.css";
 
 type UserCardProps = {
     classId: string;
@@ -32,12 +33,12 @@ export const UserCard: React.FC<UserCardProps> = ({ classId }) => {
     if (!userResult) return null;
 
     return (
-        <div className="user-card">
+        <div className={styles.userCard}>
             <h2>Mina resultat</h2>
-            <img src={userResult.avatarUrl} alt="Avatar" className="avatar" />
-            <p><strong>{userResult.username}</strong></p>
-            <p>Poäng: <strong>{userResult.score}</strong></p>
-            <p>Placering: <strong>{userResult.placement}</strong></p>
+            <img src={userResult.avatarUrl} alt="Avatar" className={styles.avatar} />
+    <div className={styles.username}>{userResult.username}</div>
+    <div className={styles.score}>Poäng: {userResult.score}</div>
+    <div className={styles.placement}>Placering #{userResult.placement}</div>
             </div>
     );
 };
