@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { http } from '../../lib/http';
+import styles from './SubjectLeaderboard.module.css';
 
 type Subject = {
   id: string;
@@ -54,8 +55,9 @@ if (subjects.length > 0) {
   if (!subjectId) return <div>Laddar ämnesdata...</div>;
 
   return (
-    <div className="page-layout">
-<select value={subjectId} onChange={(e) => setSubjectId(e.target.value)}>
+    <div className={styles.leaderboardContainer}>
+      <h1>Ämne</h1>
+<select className={styles.select} value={subjectId} onChange={(e) => setSubjectId(e.target.value)}>
   {subjects.map((subject) => (
     <option key={subject.id} value={subject.id}>
       {subject.name}
@@ -63,10 +65,10 @@ if (subjects.length > 0) {
   ))}
 </select>
 
-      <ul>
+      <ul className={styles.userList}>
         {users.length === 0 && <li>Inga resultat ännu för detta ämne.</li>}
         {users.map((user) => (
-          <li key={user.userId}>
+          <li className={styles.userItem} key={user.userId}>
             {user.rank === 1 && '🥇 '}
             {user.rank === 2 && '🥈 '}
             {user.rank === 3 && '🥉 '}
