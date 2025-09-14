@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Classes } from '../../Api/ClassApi/Classes';
 import { http } from '../../lib/http';
+import styles from './ClassLeaderboard.module.css';
 
 type LeaderboardUser = {
   userId: string;
@@ -24,17 +25,20 @@ export function ClassLeaderboard({ classId }: Props) {
     fetchLeaderboard();
   }, [classId]);
 
-  return (
-    <ul>
-      {users.map((user) => (
-        <li key={user.userId}>
+return (
+  <ul className={styles.userList}>
+    {users.map((user) => (
+      <li key={user.userId} className={styles.userItem}>
+        <span className={styles.rank}>
           {user.rank === 1 && '🥇 '}
           {user.rank === 2 && '🥈 '}
           {user.rank === 3 && '🥉 '}
           {user.rank > 3 && `${user.rank}. `}
-          <strong>{user.userId}</strong> – {user.score} poäng
-        </li>
-      ))}
-    </ul>
-  );
+        </span>
+        <strong className={styles.userId}>{user.userId}</strong> –
+        <span className={styles.score}> {user.score} poäng</span>
+      </li>
+    ))}
+  </ul>
+);
 }
