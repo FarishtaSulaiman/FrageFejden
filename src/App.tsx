@@ -4,6 +4,7 @@ import { ProtectedOutlet } from "./auth/Protected";
 import { useAuth } from "./auth/AuthContext";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import MyPageModal from "./components/MyPageModal";
 import HomePage from "./pages/HomePage/HomePage";
 import QuizNivåVy from "./pages/QuizNivåVy/QuizNivåVy";
 import QuizPage from "./pages/QuizPage/QuizPage";
@@ -90,6 +91,7 @@ export default function App() {
 
         <Route path="skapa-quiz" element={<SkapaQuizPage />} />
         <Route path="teacher/klassvy" element={<TeacherKlassVy />} />
+        
 
 
         <Route path="klassvy" element={<TeacherKlassVyDemo />} />
