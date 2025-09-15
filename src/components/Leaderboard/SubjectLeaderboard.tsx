@@ -56,7 +56,7 @@ if (subjects.length > 0) {
 
   return (
     <div className={styles.leaderboardContainer}>
-      <h1>Ämne</h1>
+      <h1>Ämne - Väntar på implementation</h1>
 <select className={styles.select} value={subjectId} onChange={(e) => setSubjectId(e.target.value)}>
   {subjects.map((subject) => (
     <option key={subject.id} value={subject.id}>

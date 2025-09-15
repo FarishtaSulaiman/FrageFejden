@@ -27,17 +27,10 @@ export function ClassLeaderboard({ classId }: Props) {
     fetchLeaderboard();
   }, [classId]);
 
-  useEffect(() => {
-  const fetchLeaderboard = async () => {
-    const { data } = await http.get(`/Class/class/${classId}/scores`);
-    console.log('Leaderboard response:', data); // ← logga detta!
-    // ...
-  };
-  fetchLeaderboard();
-}, [classId]);
 
 return (
   <ul className={styles.userList}>
+    <h1>TOPPLISTA</h1>
     {users.map((user) => (
       <li key={user.userId} className={styles.userItem}>
         <span className={styles.rank}>
