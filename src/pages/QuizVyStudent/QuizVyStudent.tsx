@@ -20,12 +20,7 @@ type UINormalizedSubject = {
 
 /** Försök hitta ikon-URL på olika fältnamn + fallback till lokal ikon */
 function resolveIconUrl(s: any): string {
-  const url =
-    s?.iconUrl ??
-    s?.IconUrl ??
-    s?.iconURL ??
-    s?.icon ??
-    null;
+  const url = s?.iconUrl ?? s?.IconUrl ?? s?.iconURL ?? s?.icon ?? null;
 
   // Om backend returnerar absolut URL → använd den
   if (typeof url === "string" && url.trim()) return url;
@@ -120,18 +115,15 @@ export default function QuizVyStudent(): React.ReactElement {
           const list = await SubjectsApi.getForClass(pickedClassId); // ämnen i klassen
           if (!alive) return;
 
-          const normalized: UINormalizedSubject[] = (Array.isArray(list)
-            ? list
-            : []
+          const normalized: UINormalizedSubject[] = (
+            Array.isArray(list) ? list : []
           ).map((s: any) => ({
             id: s.id ?? s.subjectId,
             name: s.name ?? "Ämne",
             iconUrl: resolveIconUrl(s),
             // försök visa vettig siffra i undertexten
-            levelsCount:
-              s.levelsCount ?? s.levelCount ?? undefined,
-            topicsCount:
-              s.topicCount ?? s.topicsCount ?? undefined,
+            levelsCount: s.levelsCount ?? s.levelCount ?? undefined,
+            topicsCount: s.topicCount ?? s.topicsCount ?? undefined,
           }));
 
           // sortera alfabetiskt
@@ -160,8 +152,8 @@ export default function QuizVyStudent(): React.ReactElement {
         typeof s.levelsCount === "number" && s.levelsCount > 0
           ? `${s.levelsCount} nivåer`
           : typeof s.topicsCount === "number" && s.topicsCount > 0
-            ? `${s.topicsCount} områden`
-            : "Inga nivåer ännu";
+          ? `${s.topicsCount} områden`
+          : "Inga nivåer ännu";
 
       return {
         id: s.id,
