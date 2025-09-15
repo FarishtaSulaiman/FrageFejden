@@ -101,7 +101,7 @@ export default function QuizVyTeacher(): React.ReactElement {
   function handleCreateQuiz() {
     if (!selected) return;
     const cid = classId ?? "";
-    navigate(`/teacher/${selected.id}/create-quiz?classId=${cid}`);
+    navigate(`/skapa-quiz?subjectId=${selected.id}&classId=${cid}`);
   }
 
   return (
