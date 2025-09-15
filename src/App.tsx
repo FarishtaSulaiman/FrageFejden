@@ -78,7 +78,6 @@ export default function App() {
         <Route path="class/join/:joinCode" element={<JoinClassPage />} />
         <Route path="duel" element={<DuelRoom />} />
         <Route path="skapa-quiz" element={<SkapaQuizPage />} />
-        <Route path="teacher/klassvy" element={<TeacherKlassVy />} />
         <Route path="klassvy" element={<TeacherKlassVy />} />
         <Route path="mypage" element={<MyPagePage />} />
 
