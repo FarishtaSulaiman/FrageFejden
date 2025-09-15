@@ -20,6 +20,7 @@ import TopicList from "./pages/TopicList/TopicList";
 import { PublicOnlyOutlet } from "./auth/PublicOnly";
 import MyPageModal from "./components/MyPageModal";
 import MyPagePage from "./pages/MypagePage/MyPagePage";
+import QuizStatsPage from "./pages/teacherQuizStatistics/teacherQuizStatistics";
 
 function Home() {
   const [count, setCount] = useState(0);
@@ -85,6 +86,8 @@ export default function App() {
           <Route index element={<HomePage />} />
         </Route>
 
+        <Route path="teacherQuizStatistics" element={<QuizStatsPage />} />
+
         <Route element={<ProtectedOutlet />}>
           <Route path="app" element={<Home />} />
           <Route path="app/current-user" element={<CurrentUser />} />
@@ -104,7 +107,6 @@ export default function App() {
           {/* Test Saker */}
           <Route path="Api-test" element={<ApiPlayground />} />
         </Route>
-
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
