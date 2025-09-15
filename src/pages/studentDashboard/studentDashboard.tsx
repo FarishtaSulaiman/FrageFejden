@@ -184,10 +184,10 @@ export default function StudentDashboardPage() {
               {/* <span className="block text-xs opacity-70">{email}</span> */}
             </div>
 
-            <input
+            {/* <input
               placeholder="Sök…."
               className="w-full rounded-full bg-black/30 px-4 py-2 text-sm placeholder:text-white/60 md:max-w-md"
-            />
+            /> */}
 
             <div className="flex items-center gap-6 text-sm">
               <div className="flex items-center gap-2">

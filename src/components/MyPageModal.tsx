@@ -118,7 +118,7 @@ const MyPageModal: React.FC<MyPageModalProps> = ({ isOpen, onClose }) => {
     // bakgrund
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       {/* själva rutan */}
-      <div className="bg-[#0b0d2a] rounded-lg shadow-2xl w-full max-w-xl overflow-auto max-h-[90vh] relative text-white">
+      <div className="bg-[#1a1f3c]/80 backdrop-blur-md border border-white/30 rounded-lg shadow-2xl w-full max-w-xl overflow-auto max-h-[90vh] relative text-white">
         {/* stäng-knapp */}
         <button
           onClick={onClose}
