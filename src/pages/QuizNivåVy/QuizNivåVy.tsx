@@ -1,15 +1,22 @@
 // pages/QuizNivåVy/QuizNivåVy.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
+import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
+
 import frageTitle from "../../assets/images/titles/frageFejden-title-pic.png";
 import avatar from "../../assets/images/avatar/avatar3.png";
 import globe from "../../assets/images/icons/geografy-icon.png";
 import bulb from "../../assets/images/pictures/fun-fact-pic.png";
 
-// ✔ API: uses your working topics API (adjust import path if you re-export in Api/index)
-import { topicApi, type TopicLevelStatusDto, type TopicProgressDto } from "../../Api/TopicsApi/topics";
+import {
+  topicApi,
+  type TopicLevelStatusDto,
+  type TopicProgressDto,
+  type LevelStudyDto,
+  type LevelStudyReadStatusDto,
+} from "../../Api/TopicsApi/topics";
 
-/* icons (UI only) */
 function LockIcon({ className = "h-6 w-6", ...rest }: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...rest}>
@@ -26,83 +33,34 @@ function StarIcon({ className = "h-6 w-6", ...rest }: React.SVGProps<SVGSVGEleme
   );
 }
 
-/* ------- Optional reading/flashcards demo content (pure UI) ------- */
-const sampleReadingBlocks = [
-  { id: "read-1", title: "Kartor & Skala", minutes: 7, summary: "Hur kartor representerar verkligheten och hur du tolkar skala.", bullets: ["Vad är skala? 1:50 000", "Avståndsberäkningar", "Tematisk vs. topografisk karta"] },
-  { id: "read-2", title: "Klimat & Vegetationszoner", minutes: 10, summary: "Hur klimat påverkar vegetation och livsvillkor i regioner.", bullets: ["Klimatzoner & årstider", "Nederbörd & temperatur", "Anpassningar i natur och samhälle"] },
-  { id: "read-3", title: "Naturresurser & Hållbarhet", minutes: 8, summary: "Råvaror, energi och hållbar användning av resurser.", bullets: ["Fossila vs. förnybara", "Ekologiskt fotavtryck", "Cirkulär ekonomi"] },
-];
-const articleText: Record<string, string> = {
-  "read-1": `### Kartor & Skala
-
-En karta är en förenkling av verkligheten. **Skalan** anger förhållandet mellan avstånd på kartan och i verkligheten.
-
-- Skalan _1:50 000_ betyder att 1 cm på kartan är 50 000 cm (alltså 500 m) i verkligheten.
-- På topografiska kartor ser du höjdskillnader med höjdkurvor.
-- På tematiska kartor visas ett tema, t.ex. befolkningstäthet eller medeltemperatur.
-
-**Exempel:** Om två orter ligger 3 cm isär på kartan med skala 1:50 000, är avståndet 1,5 km i verkligheten.`,
-  "read-2": `### Klimat & Vegetationszoner
-
-Klimat beskriver vädermönster över lång tid. Klimatet påverkar vilka växter som trivs och hur människor lever.
-
-- **Tropiska zoner** har små temperaturvariationer över året.
-- **Tempererade zoner** har fyra årstider.
-- **Polara zoner** har mycket kalla vintrar och korta somrar.
-
-Vegetationen anpassar sig efter temperatur och nederbörd, t.ex. regnskog i tropikerna och barrskog i kallare områden.`,
-  "read-3": `### Naturresurser & Hållbarhet
-
-Naturresurser kan vara **fossila** (t.ex. olja) eller **förnybara** (t.ex. sol och vind).
-
-- Fossila bränslen har hög energitäthet men bidrar till utsläpp.
-- Förnybara källor är renare men kan kräva större ytor och varierar i tillgänglighet.
-- **Cirkulär ekonomi** syftar till att minimera avfall och återanvända material.
-
-Målet är att möta dagens behov utan att äventyra framtida generationers möjligheter.`,
-};
-const keyTerms = [
-  { term: "Skala", def: "Förhållandet mellan avstånd på kartan och i verkligheten." },
-  { term: "Breddgrad", def: "Avstånd norr/söder från ekvatorn, i grader." },
-  { term: "Klimatzon", def: "Område med liknande klimatförhållanden." },
-  { term: "Longitud", def: "Avstånd öst/väst från nollmeridianen." },
-  { term: "Topografi", def: "Beskrivning av terrängens höjder och dalar." },
-];
-function getReadingForLevel(levelNumber: number) {
-  const a = sampleReadingBlocks[(levelNumber - 1) % sampleReadingBlocks.length];
-  const b = sampleReadingBlocks[(levelNumber) % sampleReadingBlocks.length];
-  return [a, b];
-}
-function getTermsForLevel(levelNumber: number) {
-  const start = (levelNumber - 1) % keyTerms.length;
-  return [keyTerms[start], keyTerms[(start + 1) % keyTerms.length]];
-}
-const readingKey = (levelId: string, blockId: string) => `${levelId}:${blockId}`;
-
-
+/* ===================== Page ===================== */
 export default function QuizNivåVy(): React.ReactElement {
   const { topicId = "" } = useParams<{ topicId: string }>();
   const [params] = useSearchParams();
-  const classId = params.get("classId") ?? "";
+  const classId = params.get("classId") ?? ""; // reserved for future routing
   const navigate = useNavigate();
 
   const [progress, setProgress] = useState<TopicProgressDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
+  // ---- backend study text + read status ----
+  const [study, setStudy] = useState<LevelStudyDto | null>(null);
+  const [readStatus, setReadStatus] = useState<LevelStudyReadStatusDto | null>(null);
+  const isStudyRead = !!readStatus?.hasReadStudyText;
 
-  const [readStates, setReadStates] = useState<Record<string, boolean>>({});
-  const setReadAndPersist = (upd: Record<string, boolean>) => setReadStates(upd);
-
-
+  // Reader modal
   const [readerOpen, setReaderOpen] = useState(false);
-  const [readerBlockId, setReaderBlockId] = useState<string | null>(null);
 
+  // Allow selecting previous/unlocked levels to view their study in the left panel
+  const [selectedLevelId, setSelectedLevelId] = useState<string | null>(null);
 
+  // Fetch topic progress (levels come from DB; totalLevels reflects DB count)
   useEffect(() => {
     if (!topicId) return;
     setLoading(true);
     setErr(null);
+    setSelectedLevelId(null);
     topicApi
       .getProgress(topicId)
       .then((p) => setProgress(p))
@@ -111,6 +69,18 @@ export default function QuizNivåVy(): React.ReactElement {
   }, [topicId]);
 
   const items: TopicLevelStatusDto[] = progress?.levels ?? [];
+
+  const activeLevel = useMemo(() => {
+    if (items.length === 0) return undefined;
+    const fromSelection = selectedLevelId ? items.find((l) => l.levelId === selectedLevelId) : undefined;
+    if (fromSelection) return fromSelection;
+    // Default: first unlocked & not completed, else last level
+    return items.find((l) => l.isUnlocked && !l.isCompleted) ?? items[items.length - 1];
+  }, [items, selectedLevelId]);
+
+  const allDone = items.length > 0 && items.every((l) => l.isCompleted);
+  const activeLevelNumber = activeLevel?.levelNumber ?? 1;
+
   const pct = useMemo(
     () =>
       !progress || progress.totalLevels === 0
@@ -119,49 +89,76 @@ export default function QuizNivåVy(): React.ReactElement {
     [progress]
   );
 
-
-  const activeLevel = useMemo(
-    () => items.find((l) => l.isUnlocked && !l.isCompleted) ?? items[items.length - 1],
-    [items]
-  );
-  const allDone = items.length > 0 && items.every((l) => l.isCompleted);
-  const activeLevelNumber = activeLevel?.levelNumber ?? 1;
-
-
-  const startQuiz = (lvl: TopicLevelStatusDto) => {
-    navigate(`/quizzes/start?topicId=${topicId}&levelId=${lvl.levelId}`);
-  };
-
-
-  const activeBlocks = useMemo(() => getReadingForLevel(activeLevelNumber), [activeLevelNumber]);
-  const openReader = (blockId: string) => { setReaderBlockId(blockId); setReaderOpen(true); };
-  const closeReader = () => setReaderOpen(false);
-  const markReadAndClose = () => {
-    if (readerBlockId && activeLevel) {
-      const k = readingKey(activeLevel.levelId, readerBlockId);
-      setReadAndPersist({ ...readStates, [k]: true });
+  // Load study + read status for active level (API-only, no placeholders)
+  useEffect(() => {
+    if (!topicId || !activeLevel) {
+      setStudy(null);
+      setReadStatus(null);
+      return;
     }
-    setReaderOpen(false);
-  };
-  const openNextUnread = () => {
-    if (!activeLevel) return;
-    const next = activeBlocks.find((b) => !readStates[readingKey(activeLevel.levelId, b.id)]);
-    if (next) openReader(next.id);
+    let mounted = true;
+
+    (async () => {
+      try {
+        const [s, r] = await Promise.all([
+          topicApi.getLevelStudy(topicId, activeLevel.levelId).catch(() => null),
+          topicApi.getStudyReadStatus(topicId, activeLevel.levelId).catch(() => null),
+        ]);
+        if (!mounted) return;
+        setStudy(s);
+        setReadStatus(r);
+      } catch (e: any) {
+        if (!mounted) return;
+        console.warn("Study/read load failed", e?.message || e);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [topicId, activeLevel?.levelId]);
+
+  // Start quiz: only requires study-read if backend study exists
+  const startQuiz = async (lvl: TopicLevelStatusDto) => {
+    try {
+      if (study?.studyText) {
+        const status = readStatus ?? (await topicApi.getStudyReadStatus(topicId, lvl.levelId));
+        if (!status?.hasReadStudyText) {
+          alert("Du måste läsa studiematerialet för denna nivå innan du kan starta quizet.");
+          return;
+        }
+      }
+      navigate(`/quizzes/start?topicId=${topicId}&levelId=${lvl.levelId}`);
+    } catch (e: any) {
+      alert(e?.message ?? "Kunde inte starta quiz.");
+    }
   };
 
-  const subjectIcon =
-    ((progress as any)?.subjectIconUrl as string | undefined) || globe;
+  // Mark study as read (backend only)
+  const markReadAndClose = async () => {
+    try {
+      if (activeLevel && study?.studyText) {
+        const newStatus = await topicApi.markStudyRead(topicId, activeLevel.levelId);
+        setReadStatus(newStatus);
+      }
+    } finally {
+      setReaderOpen(false);
+    }
+  };
+
+  // Subject icon (if provided by API)
+  // @ts-expect-error: subjectIconUrl is an optional field your API may add
+  const subjectIcon: string = (progress?.subjectIconUrl as string | undefined) || globe;
 
   return (
     <div className="min-h-screen w-full bg-[#0A0F1F] text-white overflow-x-hidden">
-
       <style>{`
         .scrollbar-thin::-webkit-scrollbar { height: 8px; width: 8px; }
         .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 9999px; }
         .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
       `}</style>
 
-
+      {/* Header */}
       <div className="w-full">
         <div className="relative h-48 md:h-56 overflow-hidden rounded-b-[28px] bg-gradient-to-r from-[#5A39E6] via-[#4F2ACB] to-[#4A2BC3]">
           <div aria-hidden className="pointer-events-none absolute -left-20 -top-24 h-[320px] w-[320px] rounded-full bg-[radial-gradient(closest-side,rgba(173,140,255,0.95),rgba(123,76,255,0.5)_58%,transparent_72%)]" />
@@ -172,7 +169,7 @@ export default function QuizNivåVy(): React.ReactElement {
         </div>
       </div>
 
-
+      {/* Body */}
       <div className="px-4 sm:px-6 md:px-8 pt-8 pb-16">
         <div className="flex flex-col items-center gap-3">
           <div className="flex items-center gap-3">
@@ -191,7 +188,6 @@ export default function QuizNivåVy(): React.ReactElement {
             />
           </div>
 
-
           <div className="relative mx-auto mt-2 w-full max-w-4xl">
             <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-sm text-white/90">
               {loading || !progress
@@ -203,14 +199,13 @@ export default function QuizNivåVy(): React.ReactElement {
             </div>
           </div>
 
-
           <TopLevelsBar
             items={items}
             activeId={allDone ? null : (activeLevel?.levelId ?? null)}
             onStartQuiz={(lvl) => startQuiz(lvl)}
+            onSelectLevel={(lvl) => setSelectedLevelId(lvl.levelId)}
             allDone={allDone}
           />
-
 
           {allDone && (
             <div className="mt-3 flex items-center gap-2 rounded-xl bg-emerald-600/15 px-4 py-2 ring-1 ring-emerald-400/30">
@@ -222,62 +217,58 @@ export default function QuizNivåVy(): React.ReactElement {
           )}
         </div>
 
-
         {!allDone && activeLevel && (
           <div className="mt-10 grid gap-8 lg:grid-cols-3">
-
+            {/* LEFT: Reading area */}
             <section className="lg:col-span-2 rounded-2xl bg-[#11182B] p-5 ring-1 ring-white/10">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-white/90">Läsning för nivå {activeLevel.levelNumber}</h3>
                 <span className="text-xs text-white/60">
-                  Est. tid: {activeBlocks.reduce((t, b) => t + b.minutes, 0)} min
+                  {study?.studyText ? (isStudyRead ? "Markerad som läst" : "Ej läst") : "Ingen studietext"}
                 </span>
               </div>
 
-              <ul className="space-y-4">
-                {activeBlocks.map((b) => {
-                  const k = readingKey(activeLevel.levelId, b.id);
-                  const read = !!readStates[k];
-                  return (
-                    <li key={k} className="rounded-xl border border-white/10 bg-[#0D1426] p-4">
-                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-3">
-                            <h4 className="text-base font-semibold text-white/90">{b.title}</h4>
-                            <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-xs text-white/70">
-                              {b.minutes} min
-                            </span>
-                          </div>
-                          <p className="mt-1 text-sm text-white/70 break-words">{b.summary}</p>
-                          <ul className="mt-3 list-disc pl-5 text-sm text-white/70 space-y-1">
-                            {b.bullets.map((s, i) => (
-                              <li key={i} className="break-words">
-                                {s}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                        <div className="flex shrink-0 flex-row sm:flex-col items-end gap-2">
-                          <button
-                            onClick={() => openReader(b.id)}
-                            className="rounded-md bg-white/10 px-3 py-1.5 text-xs hover:bg-white/15"
-                          >
-                            Öppna
-                          </button>
-                          <button
-                            onClick={() => setReadAndPersist({ ...readStates, [k]: !read })}
-                            className={`rounded-md px-3 py-1.5 text-xs font-medium ring-1 ring-white/15 ${read ? "bg-emerald-600 text-white" : "bg-white/5 text-white/90 hover:bg-white/10"
-                              }`}
-                            aria-pressed={read}
-                          >
-                            {read ? "Markerad som läst" : "Markera som läst"}
-                          </button>
-                        </div>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+              {/* Only backend study text—no placeholders */}
+              {study?.studyText ? (
+                <div className="rounded-xl border border-white/10 bg-[#0D1426] p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h4 className="text-base font-semibold text-white/90">
+                        {study.title || `Studietext för nivå ${activeLevel.levelNumber}`}
+                      </h4>
+                      <p className="mt-1 text-sm text-white/70 break-words">
+                        Läs igenom materialet och markera som läst för att kunna starta quizet.
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-2">
+                      <button
+                        onClick={() => setReaderOpen(true)}
+                        className="rounded-md bg-white/10 px-3 py-1.5 text-xs hover:bg-white/15"
+                      >
+                        Öppna
+                      </button>
+                      <button
+                        onClick={markReadAndClose}
+                        className={`rounded-md px-3 py-1.5 text-xs font-medium ring-1 ring-white/15 ${isStudyRead ? "bg-emerald-600 text-white" : "bg-white/5 text-white/90 hover:bg-white/10"}`}
+                        aria-pressed={isStudyRead}
+                        disabled={isStudyRead}
+                        title={isStudyRead ? "Redan markerad som läst" : "Markera som läst"}
+                      >
+                        {isStudyRead ? "Markerad som läst" : "Markera som läst"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-white/10 bg-[#0D1426] p-4">
+                  <h4 className="text-base font-semibold text-white/90">
+                    Ingen studietext för denna nivå
+                  </h4>
+                  <p className="mt-1 text-sm text-white/70">
+                    Du kan fortfarande starta quizet för att gå vidare.
+                  </p>
+                </div>
+              )}
 
               <div className="mt-5 flex flex-col sm:flex-row items-center justify-between rounded-xl bg-[#0E1930] p-4 gap-3">
                 <div className="flex items-center gap-3 self-start">
@@ -285,40 +276,66 @@ export default function QuizNivåVy(): React.ReactElement {
                   <div>
                     <div className="text-sm font-semibold text-white">Tips</div>
                     <div className="text-xs text-white/80">
-                      Läs klart blocken ovan och starta sen quiz för nivå {activeLevel.levelNumber}.
+                      {study?.studyText
+                        ? "Läs studiematerialet och markera som läst för att låsa upp quizet."
+                        : "Ingen studietext krävs här – kör igång med quizet när du är redo."}
                     </div>
                   </div>
                 </div>
-                <button
-                  onClick={openNextUnread}
-                  className="self-end sm:self-auto rounded-lg bg-[#5B3CF2] px-3 py-1.5 text-xs font-semibold hover:brightness-110"
-                >
-                  Fortsätt läsa
-                </button>
+                {study?.studyText && (
+                  <button
+                    onClick={() => setReaderOpen(true)}
+                    className="self-end sm:self-auto rounded-lg bg-[#5B3CF2] px-3 py-1.5 text-xs font-semibold hover:brightness-110"
+                  >
+                    Öppna studietext
+                  </button>
+                )}
               </div>
             </section>
 
-
+            {/* RIGHT: Quiz */}
             <aside className="space-y-6 min-w-0">
               <section className="rounded-2xl bg-[#11182B] p-5 ring-1 ring-white/10">
                 <h3 className="text-sm font-semibold text-white/90">Quiz för nivå {activeLevel.levelNumber}</h3>
-                <p className="mt-2 text-xs text-white/70">Redo? Starta quizet för att låsa upp nästa nivå.</p>
-                <button
-                  onClick={() => startQuiz(activeLevel)}
-                  className="mt-3 w-full rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:brightness-110"
-                >
-                  Starta quiz
-                </button>
-              </section>
+                <p className="mt-2 text-xs text-white/70">
+                  {study?.studyText ? "Markera studiematerialet som läst för att starta." : "Redo? Starta quizet för att låsa upp nästa nivå."}
+                </p>
+                <div className="mt-3 grid grid-cols-1 gap-2">
+                  <button
+                    onClick={() => startQuiz(activeLevel)}
+                    disabled={!!study?.studyText && !isStudyRead}
+                    className={`w-full rounded-lg px-3 py-2 text-sm font-semibold 
+                      ${!!study?.studyText && !isStudyRead
+                        ? "bg-white/10 text-white/60 cursor-not-allowed"
+                        : "bg-emerald-600 text-white hover:brightness-110"}`}
+                    title={!!study?.studyText && !isStudyRead ? "Du måste läsa studietexten först" : "Starta quiz"}
+                  >
+                    Starta quiz
+                  </button>
 
-              <section className="rounded-2xl bg-[#11182B] p-5 ring-1 ring-white/10">
-                <h3 className="text-sm font-semibold text-white/90">Nyckelbegrepp (nivå {activeLevel.levelNumber})</h3>
-                <Flashcards terms={getTermsForLevel(activeLevelNumber)} />
+                  {/* Demo: complete level -> unlock next -> carousel slides */}
+                  <button
+                    onClick={async () => {
+                      try {
+                        const updated = await topicApi.completeLevel(topicId, activeLevel.levelId);
+                        setProgress(updated);
+                        // move selection to the next unlocked active level (if any)
+                        const nextActive = updated.levels.find(l => l.isUnlocked && !l.isCompleted);
+                        setSelectedLevelId(nextActive?.levelId ?? null);
+                        alert("Quiz markerat som klart! 🚀");
+                      } catch (e: any) {
+                        alert(e?.message ?? "Kunde inte markera quiz som klart.");
+                      }
+                    }}
+                    className="w-full rounded-lg bg-white/10 px-3 py-2 text-sm font-semibold text-white hover:bg-white/15"
+                  >
+                    ✔ Markera som färdig (demo)
+                  </button>
+                </div>
               </section>
             </aside>
           </div>
         )}
-
 
         {err && (
           <div className="mt-8 rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200">
@@ -327,13 +344,13 @@ export default function QuizNivåVy(): React.ReactElement {
         )}
       </div>
 
-
-      {readerOpen && readerBlockId && activeLevel && (
+      {/* Reader modal: API studyText only */}
+      {readerOpen && activeLevel && study?.studyText && (
         <ReaderModal
-          blockId={readerBlockId}
-          onClose={closeReader}
+          title={`${study.title || `Studiematerial (nivå ${activeLevel.levelNumber})`}`}
+          text={study.studyText}
+          onClose={() => setReaderOpen(false)}
           onMarkRead={markReadAndClose}
-          titlePrefix={`Nivå ${activeLevel.levelNumber}: `}
         />
       )}
     </div>
@@ -341,153 +358,194 @@ export default function QuizNivåVy(): React.ReactElement {
 }
 
 
+
+
 function TopLevelsBar({
   items,
   activeId,
   onStartQuiz,
+  onSelectLevel,
   allDone,
 }: {
   items: TopicLevelStatusDto[];
   activeId: string | null;
   onStartQuiz: (lvl: TopicLevelStatusDto) => void;
+  onSelectLevel: (lvl: TopicLevelStatusDto) => void;
   allDone: boolean;
 }) {
-  const [visibleStartIndex, setVisibleStartIndex] = useState(0);
-  const VISIBLE_COUNT = 5;
+  // find current center index from props
+  const activeIndex = React.useMemo(
+    () => (activeId ? items.findIndex((l) => l.levelId === activeId) : 0),
+    [items, activeId]
+  );
 
-  const clampStart = (n: number) =>
-    Math.max(0, Math.min(n, Math.max(0, items.length - VISIBLE_COUNT)));
+  const bubbleSize = "h-[72px] w-[72px]";
 
-  useEffect(() => {
-    if (!activeId || allDone) return;
-    const idx = items.findIndex((x) => x.levelId === activeId);
-    if (idx === -1) return;
-    const idealStart = clampStart(idx - Math.floor(VISIBLE_COUNT / 2));
-    if (idealStart !== visibleStartIndex) setVisibleStartIndex(idealStart);
-  }, [activeId, allDone, items.length]);
+  function Bubble(lvl: TopicLevelStatusDto, isActive: boolean, onClick: () => void) {
+    const isCompleted = lvl.isCompleted;
+    const isUnlocked = lvl.isUnlocked && !isCompleted;
 
-  const visibleItems = items.slice(visibleStartIndex, visibleStartIndex + VISIBLE_COUNT);
+    const base =
+      `relative grid ${bubbleSize} place-items-center rounded-full select-none transition-all duration-300 cursor-pointer` +
+      (isCompleted
+        ? " bg-gradient-to-b from-emerald-400 to-emerald-600 text-white shadow-[0_22px_60px_rgba(16,185,129,0.35)]"
+        : isUnlocked
+          ? " bg-gradient-to-b from-[#8B5CF6] to-[#4F2ACB] text-white shadow-[0_22px_60px_rgba(79,42,203,0.45)]"
+          : " bg-[#12192B] text-white/85 ring-1 ring-[#2A3760]/60");
+
+    return (
+      <button
+        key={lvl.levelId}
+        onClick={onClick}
+        className={base + (isActive ? (isCompleted ? " ring-2 ring-emerald-300/80 scale-110" : isUnlocked ? " ring-2 ring-violet-300/80 scale-110" : " ring-2 ring-white/40 scale-110") : " hover:scale-105")}
+        aria-label={`Nivå ${lvl.levelNumber}`}
+      >
+        {isCompleted ? (
+          <>
+            <span className="text-[20px] font-bold">{lvl.levelNumber}</span>
+            <div className="pointer-events-none absolute -inset-3 rounded-full bg-emerald-500/25 blur-[16px]" />
+          </>
+        ) : isUnlocked ? (
+          <>
+            <StarIcon className={isActive ? "h-8 w-8" : "h-6 w-6"} />
+            <div className="pointer-events-none absolute -inset-3 rounded-full bg-[#6B46F2]/30 blur-[16px]" />
+          </>
+        ) : (
+          <LockIcon className="h-7 w-7" />
+        )}
+      </button>
+    );
+  }
+
+  // Calculate which 3 items to show based on active index
+  const getVisibleItems = () => {
+    if (items.length <= 3) {
+      // Show all items if we have 3 or fewer
+      return items.map((item, index) => ({ item, isActive: index === activeIndex }));
+    }
+
+    // For carousel logic with more than 3 items
+    let startIndex;
+
+    if (activeIndex === 0) {
+      // At the beginning
+      startIndex = 0;
+    } else if (activeIndex === items.length - 1) {
+      // At the end
+      startIndex = items.length - 3;
+    } else {
+      // In the middle, keep active item centered
+      startIndex = activeIndex - 1;
+    }
+
+    return [
+      { item: items[startIndex], isActive: startIndex === activeIndex },
+      { item: items[startIndex + 1], isActive: startIndex + 1 === activeIndex },
+      { item: items[startIndex + 2], isActive: startIndex + 2 === activeIndex }
+    ];
+  };
+
+  const visibleItems = getVisibleItems();
+
+  const canGoLeft = activeIndex > 0;
+  const canGoRight = activeIndex < items.length - 1;
+
+  const goLeft = () => {
+    if (canGoLeft) {
+      onSelectLevel(items[activeIndex - 1]);
+    }
+  };
+
+  const goRight = () => {
+    if (canGoRight) {
+      onSelectLevel(items[activeIndex + 1]);
+    }
+  };
 
   return (
-    <section className="mt-6 w-full max-w-4xl">
+    <section className="mt-6 w-full">
       <div className="mb-2 flex items-center justify-between px-1">
         <h3 className="text-sm font-semibold text-white/85">Nivåer</h3>
-        {!allDone && (
-          <span className="text-[11px] text-white/60">
-            Visar {visibleStartIndex + 1}–
-            {Math.min(visibleStartIndex + VISIBLE_COUNT, items.length)} av {items.length}
-          </span>
-        )}
+        {!allDone && <span className="text-[11px] text-white/60">{activeIndex + 1} av {items.length} nivåer</span>}
       </div>
 
-      <div className="relative">
+      <div className="relative mx-auto w-full max-w-md">
+        {allDone ? (
+          <div className="h-[130px] flex items-center justify-center gap-3 rounded-2xl bg-emerald-600/15 px-6 py-4 ring-1 ring-emerald-400/30">
+            <span className="text-3xl">🏆</span>
+            <div className="text-sm leading-tight">
+              <div className="font-semibold text-emerald-200">Alla nivåer klara!</div>
+              <div className="text-emerald-100/90">Fantastiskt jobbat!</div>
+            </div>
+          </div>
+        ) : (
+          <div className="relative h-[130px] flex items-center">
+            {/* Left Arrow */}
+            {items.length > 3 && (
+              <button
+                onClick={goLeft}
+                disabled={!canGoLeft}
+                className={`absolute left-0 z-10 p-2 rounded-full transition-all duration-200 ${canGoLeft
+                  ? 'bg-white/10 hover:bg-white/20 text-white cursor-pointer'
+                  : 'bg-white/5 text-white/30 cursor-not-allowed'
+                  }`}
+                aria-label="Previous level"
+              >
+                <ChevronLeftIcon className="h-5 w-5" />
+              </button>
+            )}
 
-        {visibleStartIndex > 0 && !allDone && (
-          <button
-            type="button"
-            onClick={() => setVisibleStartIndex(clampStart(visibleStartIndex - 1))}
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-10 rounded-full bg-[#11182B] p-2 ring-1 ring-white/20 hover:bg-[#1A2332] transition-colors"
-            aria-label="Visa föregående nivåer"
-          >
-            <svg className="h-4 w-4 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-        )}
+            {/* Carousel Content */}
+            <div className="flex-1 mx-8">
+              <div className="grid grid-cols-3 gap-4 place-items-center transition-all duration-300 ease-out">
+                {visibleItems.map(({ item, isActive }, index) => {
+                  const click = item.isUnlocked && !item.isCompleted
+                    ? () => (isActive ? onStartQuiz(item) : onSelectLevel(item))
+                    : () => onSelectLevel(item);
 
-
-        {visibleStartIndex + VISIBLE_COUNT < items.length && !allDone && (
-          <button
-            type="button"
-            onClick={() => setVisibleStartIndex(clampStart(visibleStartIndex + 1))}
-            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-10 rounded-full bg-[#11182B] p-2 ring-1 ring-white/20 hover:bg-[#1A2332] transition-colors"
-            aria-label="Visa nästa nivåer"
-          >
-            <svg className="h-4 w-4 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        )}
-
-
-        <div className="flex justify-center gap-6 py-4 px-8">
-          {allDone ? (
-            <div className="flex items-center gap-3 rounded-2xl bg-emerald-600/15 px-6 py-4 ring-1 ring-emerald-400/30">
-              <span className="text-3xl">🏆</span>
-              <div className="text-sm leading-tight">
-                <div className="font-semibold text-emerald-200">Alla nivåer klara!</div>
-                <div className="text-emerald-100/90">Fantastiskt jobbat!</div>
+                  return (
+                    <div key={item.levelId} className={`flex flex-col items-center min-w-[88px] transition-all duration-300 ${!isActive ? "opacity-75 scale-95" : ""}`}>
+                      {Bubble(item, isActive, click)}
+                      <div className={`mt-3 text-xs font-medium text-center transition-all duration-300 ${isActive ? "text-white" : "text-white/70"}`}>
+                        Nivå {item.levelNumber}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          ) : (
-            visibleItems.map((lvl) => {
-              const isCompleted = lvl.isCompleted;
-              const isUnlocked = lvl.isUnlocked && !isCompleted;
-              const isActive = activeId === lvl.levelId;
-              const bubbleSize = "h-[72px] w-[72px]";
 
-              return (
-                <div key={`${lvl.levelId}-${visibleStartIndex}`} className="flex flex-col items-center min-w-[80px]" title={`Nivå ${lvl.levelNumber}`}>
-                  {isCompleted ? (
-                    <div
-                      className={`relative grid ${bubbleSize} place-items-center rounded-full
-                        bg-gradient-to-b from-emerald-400 to-emerald-600
-                        text-[20px] font-bold text-white shadow-[0_22px_60px_rgba(16,185,129,0.35)]
-                        ${isActive ? "ring-2 ring-emerald-300/80" : ""}`}
-                    >
-                      {lvl.levelNumber}
-                      <div className="pointer-events-none absolute -inset-3 rounded-full bg-emerald-500/25 blur-[16px]" />
-                    </div>
-                  ) : isUnlocked ? (
-                    <button
-                      type="button"
-                      onClick={() => onStartQuiz(lvl)}
-                      aria-label={`Starta nivå ${lvl.levelNumber}`}
-                      className="flex flex-col items-center focus:outline-none group"
-                    >
-                      <div
-                        className={`relative grid ${bubbleSize} place-items-center rounded-full
-                          bg-gradient-to-b from-[#8B5CF6] to-[#4F2ACB] text-white
-                          shadow-[0_22px_60px_rgba(79,42,203,0.45)]
-                          ${isActive ? "ring-2 ring-violet-300/80" : ""}`}
-                      >
-                        <StarIcon className="h-8 w-8" />
-                        <div className="pointer-events-none absolute -inset-3 rounded-full bg-[#6B46F2]/30 blur-[16px]" />
-                      </div>
-                    </button>
-                  ) : (
-                    <div
-                      className={`grid ${bubbleSize} place-items-center rounded-full
-                        bg-[#12192B] text-white/85 ring-1 ring-[#2A3760]/60
-                        ${isActive ? "ring-2 ring-white/40" : ""}`}
-                    >
-                      <LockIcon className="h-7 w-7" />
-                    </div>
-                  )}
-                  <div className={`mt-3 text-xs font-medium text-center ${isActive ? "text-white" : "text-white/70"}`}>
-                    Nivå {lvl.levelNumber}
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
+            {/* Right Arrow */}
+            {items.length > 3 && (
+              <button
+                onClick={goRight}
+                disabled={!canGoRight}
+                className={`absolute right-0 z-10 p-2 rounded-full transition-all duration-200 ${canGoRight
+                  ? 'bg-white/10 hover:bg-white/20 text-white cursor-pointer'
+                  : 'bg-white/5 text-white/30 cursor-not-allowed'
+                  }`}
+                aria-label="Next level"
+              >
+                <ChevronRightIcon className="h-5 w-5" />
+              </button>
+            )}
+          </div>
+        )}
 
-
-        {!allDone && items.length > VISIBLE_COUNT && (
-          <div className="mt-1 flex justify-center gap-1.5">
-            {Array.from({ length: Math.max(1, Math.ceil(items.length / VISIBLE_COUNT)) }).map((_, i) => {
-              const isOnPage = Math.floor(visibleStartIndex / VISIBLE_COUNT) === i;
-              return (
-                <button
-                  type="button"
-                  key={i}
-                  onClick={() => setVisibleStartIndex(clampStart(i * VISIBLE_COUNT))}
-                  className={`h-1.5 rounded-full transition-all duration-200 ${isOnPage ? "w-5 bg-white/80" : "w-1.5 bg-white/30 hover:bg-white/50"}`}
-                  aria-label={`Gå till nivågrupp ${i + 1}`}
-                />
-              );
-            })}
+        {/* Dots indicator for levels > 3 */}
+        {items.length > 3 && !allDone && (
+          <div className="flex justify-center mt-4 gap-2">
+            {items.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => onSelectLevel(items[index])}
+                className={`w-2 h-2 rounded-full transition-all duration-200 ${index === activeIndex
+                  ? 'bg-white scale-125'
+                  : 'bg-white/30 hover:bg-white/50'
+                  }`}
+                aria-label={`Go to level ${index + 1}`}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -495,66 +553,33 @@ function TopLevelsBar({
   );
 }
 
-function Flashcards({ terms }: { terms: { term: string; def: string }[] }) {
-  const [i, setI] = useState(0);
-  if (terms.length === 0) return null;
-  return (
-    <div className="mt-3 rounded-lg bg-[#0D1426] p-4">
-      <div className="text-xs text-white/75">
-        <b>{terms[i].term}:</b> {terms[i].def}
-      </div>
-      <div className="mt-3 flex items-center justify-between">
-        <button className="rounded-md bg-white/10 px-3 py-1.5 text-xs hover:bg-white/15" onClick={() => setI((x) => (x - 1 + terms.length) % terms.length)}>
-          ← Föregående
-        </button>
-        <span className="text-[11px] text-white/60">
-          {i + 1}/{terms.length}
-        </span>
-        <button className="rounded-md bg-white/10 px-3 py-1.5 text-xs hover:bg-white/15" onClick={() => setI((x) => (x + 1) % terms.length)}>
-          Nästa →
-        </button>
-      </div>
-    </div>
-  );
-}
-
-
+/* ===================== Reader Modal ===================== */
 function ReaderModal({
-  blockId,
+  title,
+  text,
   onClose,
   onMarkRead,
-  titlePrefix = "",
 }: {
-  blockId: string;
+  title: string;
+  text: string;
   onClose: () => void;
   onMarkRead: () => void;
-  titlePrefix?: string;
 }) {
-  const block = sampleReadingBlocks.find((b) => b.id === blockId)!;
-  const text = articleText[blockId] ?? "Ingen text tillgänglig.";
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
       <div className="w-full max-w-3xl rounded-2xl bg-[#0F1527] ring-1 ring-white/10">
         <div className="flex items-start justify-between border-b border-white/10 p-5">
           <div>
             <div className="text-xs text-white/70">Läsning</div>
-            <h4 className="text-lg font-semibold text-white">
-              {titlePrefix}
-              {block.title}
-            </h4>
-            <div className="mt-1 text-[11px] text-white/60">Est. tid: {block.minutes} min</div>
+            <h4 className="text-lg font-semibold text-white">{title}</h4>
           </div>
           <button onClick={onClose} className="rounded-md bg-white/10 px-2 py-1 text-xs hover:bg-white/15">
             Stäng
           </button>
         </div>
 
-        <div className="max-h-[60vh] overflow-auto p-5 text-sm leading-6 text-white/90 prose-invert">
-          {text.split("\n\n").map((para, i) => (
-            <p key={i} className="mb-3 whitespace-pre-wrap">
-              {para}
-            </p>
-          ))}
+        <div className="max-h-[60vh] overflow-auto p-5 text-sm leading-6 text-white/90 prose-invert whitespace-pre-wrap">
+          {text}
         </div>
 
         <div className="flex items-center justify-end gap-2 border-t border-white/10 p-4">

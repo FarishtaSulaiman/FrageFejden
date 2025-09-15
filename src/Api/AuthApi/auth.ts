@@ -40,7 +40,7 @@ export const AuthApi = {
   async logout(): Promise<void> {
     try {
       await http.post("/Auth/logout");
-    } catch {}
+    } catch { }
   },
 
   async logoutAll(): Promise<void> {
