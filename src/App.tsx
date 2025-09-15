@@ -15,7 +15,6 @@ import DuelRoom from "./pages/DuelPage/DuelRoom";
 import JoinClassPage from "./pages/JoinClass/JoinClass";
 import SkapaQuizPage from "./pages/SkapaQuizPage/SkapaQuizPage";
 import TeacherKlassVy from "./pages/TeacherKlassVy/TeacherKlassVy";
-import TeacherKlassVyDemo from "./pages/TeacherKlassVy/TeacherKlassVyDemo";
 import DuelInvitePage from "./pages/DuelPage/DuelInvitePage";
 import TopicList from "./pages/TopicList/TopicList";
 import { PublicOnlyOutlet } from "./auth/PublicOnly";
@@ -79,8 +78,7 @@ export default function App() {
         <Route path="class/join/:joinCode" element={<JoinClassPage />} />
         <Route path="duel" element={<DuelRoom />} />
         <Route path="skapa-quiz" element={<SkapaQuizPage />} />
-        <Route path="teacher/klassvy" element={<TeacherKlassVy />} />
-        <Route path="klassvy" element={<TeacherKlassVyDemo />} />
+        <Route path="klassvy" element={<TeacherKlassVy />} />
         <Route path="mypage" element={<MyPagePage />} />
 
         <Route element={<PublicOnlyOutlet />}>
