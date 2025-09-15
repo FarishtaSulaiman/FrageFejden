@@ -55,7 +55,7 @@ export default function Navbar() {
           </Link>
 
           <div className="ml-auto flex items-center pr-3 md:pr-4">
-            
+
             <ul className="hidden items-center gap-6 md:flex">
               {NAV_ITEMS.map((item) => (
                 <li key={item.to}>
@@ -85,7 +85,7 @@ export default function Navbar() {
               ))}
             </ul>
 
-            
+
             <button
               onClick={() => setOpen((v) => !v)}
               className="inline-flex h-9 w-9 items-center justify-center rounded-md text-white/95 hover:bg-white/10 active:scale-[0.98] md:hidden focus-visible:outline-none"
@@ -101,7 +101,7 @@ export default function Navbar() {
         </nav>
       </div>
 
-      
+
       <div
         id="mobile-nav"
         className={[

@@ -82,7 +82,7 @@ export default function App() {
         <Route path="klassvy" element={<TeacherKlassVy />} />
         <Route path="mypage" element={<MyPagePage />} />
         <Route path="teachertopic" element={<TeacherQuizÄmne />} />
-
+        <Route path="Api-test" element={<ApiPlayground />} />
         <Route element={<PublicOnlyOutlet />}>
           <Route index element={<HomePage />} />
         </Route>
@@ -106,7 +106,7 @@ export default function App() {
           <Route path="duelinvite" element={<DuelInvitePage />} />
 
           {/* Test Saker */}
-          <Route path="Api-test" element={<ApiPlayground />} />
+
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
