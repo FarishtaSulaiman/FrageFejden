@@ -4,7 +4,6 @@ import { ProtectedOutlet } from "./auth/Protected";
 import { useAuth } from "./auth/AuthContext";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
-import MyPageModal from "./components/MyPageModal";
 import HomePage from "./pages/HomePage/HomePage";
 import QuizNivåVy from "./pages/QuizNivåVy/QuizNivåVy";
 import QuizPage from "./pages/QuizPage/QuizPage";
@@ -17,12 +16,12 @@ import JoinClassPage from "./pages/JoinClass/JoinClass";
 import SkapaQuizPage from "./pages/SkapaQuizPage/SkapaQuizPage";
 import TeacherKlassVy from "./pages/TeacherKlassVy/TeacherKlassVy";
 import TeacherKlassVyDemo from "./pages/TeacherKlassVy/TeacherKlassVyDemo";
-import DuelPageDemo from "./pages/DuelPage/DuelInvitePage";
 import DuelInvitePage from "./pages/DuelPage/DuelInvitePage";
 import TopicList from "./pages/TopicList/TopicList";
 import { PublicOnlyOutlet } from "./auth/PublicOnly";
-
-
+import MyPagePage from "./pages/MypagePage/MyPagePage";
+import QuizStatsPage from "./pages/teacherQuizStatistics/teacherQuizStatistics";
+import RoleRoute from "./auth/RoleRoute"; 
 
 function Home() {
   const [count, setCount] = useState(0);
@@ -42,9 +41,7 @@ function Home() {
           count is {count}
         </button>
         <p className="mt-3 text-sm text-white/80">
-          Edit{" "}
-          <code className="rounded bg-black/30 px-1 py-0.5">src/App.tsx</code>{" "}
-          and save to test HMR
+          Edit <code className="rounded bg-black/30 px-1 py-0.5">src/App.tsx</code> and save to test HMR
         </p>
         <p className="mt-3">
           <button
@@ -75,50 +72,42 @@ export default function App() {
   return (
     <Routes>
       <Route element={<AppLayout />}>
-
-
-
-
         <Route path="quiz" element={<QuizPage />} />
         <Route path="quizDuel" element={<DuelRoom />} />
-
-
-
         <Route path="class/join/:joinCode" element={<JoinClassPage />} />
-
-
         <Route path="duel" element={<DuelRoom />} />
-
-        <Route path="skapa-quiz" element={<SkapaQuizPage />} />
-        <Route path="teacher/klassvy" element={<TeacherKlassVy />} />
-        
-
-
         <Route path="klassvy" element={<TeacherKlassVyDemo />} />
-
+        <Route path="mypage" element={<MyPagePage />} />
 
         <Route element={<PublicOnlyOutlet />}>
           <Route index element={<HomePage />} />
         </Route>
 
+        {/* Teacher-routes */}
+        <Route element={<RoleRoute allowedRoles={["Lärare"]} />}>
+          <Route path="skapa-quiz" element={<SkapaQuizPage />} />
+          <Route path="teacher/klassvy" element={<TeacherKlassVy />} />
+          <Route path="teacherQuizStatistics" element={<QuizStatsPage />} />
+        </Route>
+
+        {/* Student-routes */}
+        <Route element={<RoleRoute allowedRoles={["Student"]} />}>
+          <Route path="studentDashboard" element={<StudentDashboardPage />} />
+          <Route path="QuizVyStudent" element={<QuizVyStudent />} />
+          <Route path="subjects/:subjectId/topics" element={<TopicList />} />
+          <Route path="topics/:topicId" element={<QuizNivåVy />} />
+        </Route>
+
+        {/* Admin-routes */}
+        <Route element={<RoleRoute allowedRoles={["Admin"]} />}>
+          <Route path="app/current-user" element={<CurrentUser />} />
+          <Route path="Api-test" element={<ApiPlayground />} />
+        </Route>
+
+        {/* Skyddade för alla inloggade */}
         <Route element={<ProtectedOutlet />}>
           <Route path="app" element={<Home />} />
-          <Route path="app/current-user" element={<CurrentUser />} />
-          <Route path="studentDashboard" element={<StudentDashboardPage />} />
-
-          {/* Användarens "Ämnen / subjects" */}
-          <Route path="QuizVyStudent" element={<QuizVyStudent />} />
-
-          {/* Användarens "Användarens topics i ämnet" */}
-          <Route path="/subjects/:subjectId/topics" element={<TopicList />} />
-          {/* Användarens page för att studera på quizzes */}
-          <Route path="/topics/:topicId" element={<QuizNivåVy />} />
-
           <Route path="duelinvite" element={<DuelInvitePage />} />
-
-
-          {/*Test Saker*/}
-          <Route path="Api-test" element={<ApiPlayground />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
