@@ -1,4 +1,3 @@
-// src/components/Navbar.tsx
 import { MouseEvent, useEffect, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import logo from "../assets/images/logo/fragefejden-brain-logo.png";
@@ -54,6 +53,7 @@ export default function Navbar() {
     }
   };
 
+// backendroller
   const roleLabel =
     user?.roles.includes("Admin")
       ? "Admin"
@@ -195,6 +195,7 @@ export default function Navbar() {
         </nav>
       </div>
 
+      {/* Mobile nav */}
       <div
         id="mobile-nav"
         className={[
@@ -230,10 +231,12 @@ export default function Navbar() {
         </ul>
       </div>
 
+      {/* Modals */}
       <LoginModal isOpen={showLogin} onClose={() => setShowLogin(false)} />
       <RegisterModal isOpen={showRegister} onClose={() => setShowRegister(false)} />
       <MyPageModal isOpen={showMyPage} onClose={() => setShowMyPage(false)} /> 
 
+      {/* Sidebar */}
       {sidebarOpen && user && (
         <div className="fixed inset-0 z-50">
           <div
