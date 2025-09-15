@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from "react";
-
-import { AuthApi, Classes, getFunFact, type FunFact } from "../../Api/index";
+import {
+  AuthApi,
+  Classes,
+  getFunFact,
+  type FunFact,
+  DailyApi,
+} from "../../Api/index";
 
 import avatar from "../../assets/images/avatar/avatar2.png";
 import frageTitle from "../../assets/images/titles/frageFejden-title-pic.png";
@@ -11,6 +16,52 @@ import pointsIcon from "../../assets/images/icons/score-icon.png";
 import questionmark from "../../assets/images/pictures/questionmark-pic.png";
 import topplistPoints from "../../assets/images/icons/score-icon.png";
 import { useNavigate } from "react-router-dom";
+import { DailyQuizModal } from "../../components/DailyQuizModal";
+
+
+type DailyStats = {
+  totalAnswered: number;
+  currentStreak: number;
+  longestStreak: number;
+  lastAnsweredDate: string | null;
+};
+
+function normalizeStats(raw: any): DailyStats {
+  if (!raw || typeof raw !== "object") {
+    return {
+      totalAnswered: 0,
+      currentStreak: 0,
+      longestStreak: 0,
+      lastAnsweredDate: null,
+    };
+  }
+
+  const totalAnswered = Number(
+    raw.TotalAnswered ?? raw.totalAnswered ?? raw.total_answered ?? 0
+  );
+
+  const currentStreak = Number(
+    raw.CurrentStreak ?? raw.currentStreak ?? raw.current_streak ?? 0
+  );
+
+  const longestStreak = Number(
+    raw.LongestStreak ?? raw.longestStreak ?? raw.longest_streak ?? 0
+  );
+
+  const lastAnsweredDate =
+    raw.LastAnsweredDate ??
+    raw.lastAnsweredDate ??
+    raw.last_answered_date ??
+    null;
+
+  return {
+    totalAnswered,
+    currentStreak,
+    longestStreak,
+    lastAnsweredDate: lastAnsweredDate ? String(lastAnsweredDate) : null,
+  };
+}
+
 
 export default function StudentDashboardPage() {
   const navigate = useNavigate();
@@ -28,10 +79,17 @@ export default function StudentDashboardPage() {
   // useState för funfact
   const [fact, setFact] = useState<string>("");
 
+  // useState för modal dagens mini quiz
+  const [openDaily, setOpenDaily] = useState(false);
+
+  // useState för stats, se ens streaks
+  const [stats, setStats] = useState<DailyStats | null>(null);
+  const [statsErr, setStatsErr] = useState<string | null>(null);
+
   // Alias till API-metoden (funktionsreferens – anropas i useEffect)
   const getMe = AuthApi.getMe;
 
-  // useEffect för username, score/experiencepoints, ranking och funfact
+  // useEffect för username, score/experiencepoints, ranking, funfact och dailyStreak
   useEffect(() => {
     (async () => {
       try {
@@ -39,7 +97,7 @@ export default function StudentDashboardPage() {
 
         // namn + mail
         //   const name =
-        //     me.FullName?.trim()
+        //     me.FullName?.trim() ||
         // me.userName?.trim() ||
         // me.email?.split("@")[0] ||
         // "Användare";
@@ -84,21 +142,31 @@ export default function StudentDashboardPage() {
         setRankNum(null);
         setTopThree([]);
       }
+
+      // Hämta progress (streak + veckomål)
+      try {
+        const serverResponse = await DailyApi.getStats(); // hämtar rådata från backend
+        const normalizedStats = normalizeStats(serverResponse); // mappa till camelCase
+        setStats(normalizedStats); // spara i state
+      } catch (error: any) {
+        console.error("Kunde inte hämta /daily/stats:", error);
+        setStatsErr(error?.message ?? "Kunde inte hämta progress.");
+      }
+
     })();
   }, []);
 
-  // API ANROP FÖR ATT HÄMTA ENS KLASS, behövs ej på denna page
-  //   var res = Classes.MyClasses;
 
-  // funktion för att hämta studentens klass
-  // async function handleMyClassClick() {
-  //   const list = await res(); // <-- nu körs API-anropet
-  //   if (!list?.length) {
-  //     alert("Du är inte med i någon klass ännu.");
-  //     return;
-  //   }
-  //   navigate("/min-klass", { state: { classId: list[0].id } });
-  // }
+        async function refreshDailyStats() {
+          try {
+            const serverResponse = await DailyApi.getStats(); // GET /api/daily/stats
+            const normalizedStats = normalizeStats(serverResponse); // PascalCase → camelCase
+            setStats(normalizedStats);
+          } catch (error: any) {
+            console.error("Kunde inte hämta /daily/stats:", error);
+            setStatsErr(error?.message ?? "Kunde inte hämta progress.");
+          }
+        }
 
   return (
     <div className="bg-[#080923] text-white">
@@ -116,10 +184,10 @@ export default function StudentDashboardPage() {
               {/* <span className="block text-xs opacity-70">{email}</span> */}
             </div>
 
-            <input
+            {/* <input
               placeholder="Sök…."
               className="w-full rounded-full bg-black/30 px-4 py-2 text-sm placeholder:text-white/60 md:max-w-md"
-            />
+            /> */}
 
             <div className="flex items-center gap-6 text-sm">
               <div className="flex items-center gap-2">
@@ -210,10 +278,20 @@ export default function StudentDashboardPage() {
                 </div>
               </div>
 
-              {/* CTA som överlappar nederkanten */}
-              <button className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-1/2 rounded-xl bg-[#5827C6] px-6 py-3 font-semibold text-white shadow">
+              {/* Svara på dagens quiz knapp */}
+              <button
+                onClick={() => setOpenDaily(true)} // <-- öppnar modalen
+                className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-1/2 rounded-xl bg-[#5827C6] px-6 py-3 font-semibold text-white shadow"
+              >
                 Svara på dagens Quiz
               </button>
+
+              {openDaily && (
+                <DailyQuizModal
+                  onClose={() => setOpenDaily(false)}
+                  onAnswered={refreshDailyStats}
+                />
+              )}
             </div>
           </div>
 
@@ -227,8 +305,11 @@ export default function StudentDashboardPage() {
                   topThree.map((p) => (
                     <Row
                       key={p.userId}
-                      // tar userName, kapar vid "@", trimmar, och fall back till "Okänd"
-                      name={(p.userName ?? "").split("@")[0].trim() || "Okänd"}
+                      name={
+                        (p.fullName ?? "").trim() ||
+                        (p.userName ?? "").split("@")[0].trim() ||
+                        "Okänd"
+                      }
                       points={String(p.score)}
                     />
                   ))
@@ -242,26 +323,54 @@ export default function StudentDashboardPage() {
             <section className="rounded-2xl bg-[#0F1369] p-4">
               <h2 className="text-lg font-extrabold">Mål & streak</h2>
 
-              <div className="mt-3 rounded-xl bg-[#FBA500] px-3 py-2 font-extrabold text-black">
-                🔥 5 dagar i rad
-              </div>
-
-              <div className="mt-3 rounded-xl bg-black/20 p-3">
-                <div className="text-sm font-semibold">Veckomål</div>
-                <div className="text-xs text-white/80">
-                  Quiz genomförda: 2/3
+              {!stats && !statsErr && (
+                <div className="mt-3 text-sm text-white/70">
+                  Hämtar statistik…
                 </div>
-                <div className="mt-2 h-3 w-full rounded-full bg-black/40">
-                  <div
-                    className="h-3 rounded-full bg-[#3BCC52]"
-                    style={{ width: "66%" }}
-                  />
+              )}
+              {statsErr && (
+                <div className="mt-3 rounded-md bg-red-500/20 p-3 text-sm text-red-200">
+                  {statsErr}
                 </div>
-              </div>
+              )}
 
-              <button className="mt-3 w-full rounded-xl bg-[#FFBE2F] px-5 py-3 font-semibold text-black">
-                Fortsätt streaken
-              </button>
+              {stats && (
+                <>
+                  {/* 🔥 Streak */}
+                  <div className="mt-3 rounded-xl bg-[#FBA500] px-3 py-2 font-extrabold text-black">
+                    🔥 {stats.currentStreak} dagar i rad
+                  </div>
+
+                  {/* Längsta streak (extra rad) */}
+                  <div className="mt-2 text-xs text-white/70">
+                    Längsta streak: {stats.longestStreak} dagar
+                  </div>
+
+                  {/* Veckomål */}
+                  <div className="mt-3 rounded-xl bg-black/20 p-3">
+                    <div className="text-sm font-semibold">Veckomål</div>
+                    <div className="text-xs text-white/80">
+                      Quiz genomförda: {stats.totalAnswered % 7}/7
+                    </div>
+                    <div className="mt-2 h-3 w-full rounded-full bg-black/40">
+                      <div
+                        className="h-3 rounded-full bg-[#3BCC52]"
+                        style={{
+                          width: `${((stats.totalAnswered % 7) / 7) * 100}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Senast besvarad */}
+                  {stats.lastAnsweredDate && (
+                    <div className="mt-2 text-xs text-white/60">
+                      Senast besvarad:{" "}
+                      {String(stats.lastAnsweredDate).slice(0, 10)}
+                    </div>
+                  )}
+                </>
+              )}
             </section>
           </div>
         </div>
