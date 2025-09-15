@@ -17,7 +17,7 @@ console.log('scores:', scores);
   const placement = sorted.findIndex((u) => u.userId === user.id) + 1;
 
   return {
-    avatarUrl: `/avatars/${user.id}.png`,
+    avatarUrl: user.avatarUrl,
     username: user.fullName,
     score: user.exp,
     placement,

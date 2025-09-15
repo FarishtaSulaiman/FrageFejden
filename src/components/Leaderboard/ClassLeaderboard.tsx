@@ -7,6 +7,8 @@ type LeaderboardUser = {
   userId: string;
   score: number;
   rank: number;
+  UserName: string;
+  
 };
 
 type Props = {
@@ -35,7 +37,7 @@ return (
           {user.rank === 3 && '🥉 '}
           {user.rank > 3 && `${user.rank}. `}
         </span>
-        <strong className={styles.userId}>{user.userId}</strong> –
+        <strong className={styles.userId}>{user.UserName}</strong> –
         <span className={styles.score}> {user.score} poäng</span>
       </li>
     ))}
