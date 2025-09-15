@@ -38,19 +38,27 @@ if (subjects.length > 0) {
   }, [classId]);
 
   useEffect(() => {
-    if (!subjectId) return;
-    const fetchLeaderboard = async () => {
-      const { data: scores } = await http.get(`/Subject/${subjectId}/scores`);
-      const sorted = scores
-        .sort((a, b) => b.score - a.score)
-        .map((user, index) => ({
-          ...user,
-          rank: index + 1,
-        }));
-      setUsers(sorted);
-    };
-    fetchLeaderboard();
-  }, [subjectId]);
+  if (!subjectId) return;
+
+  // Implementera backend-endpoint för att hämta poäng per ämne
+  // När detta är klart, ersätt mockad logik nedan med riktig datakälla
+
+  const fetchLeaderboard = async () => {
+    // Temporär mock – denna del ska ersättas med riktig poänghämtning
+    const { data: scores } = await http.get(`/Subject/${subjectId}/scores`);
+
+    const sorted = scores
+      .sort((a, b) => b.score - a.score)
+      .map((user, index) => ({
+        ...user,
+        rank: index + 1,
+      }));
+
+    setUsers(sorted);
+  };
+
+  fetchLeaderboard();
+}, [subjectId]);
 
   if (!subjectId) return <div>Laddar ämnesdata...</div>;
 
