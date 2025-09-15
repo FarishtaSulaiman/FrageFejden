@@ -7,7 +7,7 @@ type LeaderboardUser = {
   userId: string;
   score: number;
   rank: number;
-  UserName: string;
+  fullName: string;
   
 };
 
@@ -27,6 +27,15 @@ export function ClassLeaderboard({ classId }: Props) {
     fetchLeaderboard();
   }, [classId]);
 
+  useEffect(() => {
+  const fetchLeaderboard = async () => {
+    const { data } = await http.get(`/Class/class/${classId}/scores`);
+    console.log('Leaderboard response:', data); // ← logga detta!
+    // ...
+  };
+  fetchLeaderboard();
+}, [classId]);
+
 return (
   <ul className={styles.userList}>
     {users.map((user) => (
@@ -37,7 +46,7 @@ return (
           {user.rank === 3 && '🥉 '}
           {user.rank > 3 && `${user.rank}. `}
         </span>
-        <strong className={styles.userId}>{user.UserName}</strong> –
+        <strong className={styles.userId}>{user.fullName}</strong>
         <span className={styles.score}> {user.score} poäng</span>
       </li>
     ))}
