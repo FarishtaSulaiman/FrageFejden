@@ -21,7 +21,9 @@ import { PublicOnlyOutlet } from "./auth/PublicOnly";
 import MyPageModal from "./components/MyPageModal";
 import MyPagePage from "./pages/MypagePage/MyPagePage";
 import QuizStatsPage from "./pages/teacherQuizStatistics/teacherQuizStatistics";
+import Leaderboard from "./pages/Leaderboard/Leaderboard";
 import TeacherQuizÄmne from "./pages/TeacherQuizÄmne/TeacherQuizÄmne";
+
 
 function Home() {
   const [count, setCount] = useState(0);
@@ -76,6 +78,9 @@ export default function App() {
       <Route element={<AppLayout />}>
         <Route path="quiz" element={<QuizPage />} />
         <Route path="quizDuel" element={<DuelRoom />} />
+        <Route path="leaderboard" element={<Leaderboard />} />
+
+
         <Route path="class/join/:joinCode" element={<JoinClassPage />} />
         <Route path="duel" element={<DuelRoom />} />
         <Route path="skapa-quiz" element={<SkapaQuizPage />} />
