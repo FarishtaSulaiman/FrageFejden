@@ -18,7 +18,6 @@ import topplistPoints from "../../assets/images/icons/score-icon.png";
 import { useNavigate } from "react-router-dom";
 import { DailyQuizModal } from "../../components/DailyQuizModal";
 
-
 type DailyStats = {
   totalAnswered: number;
   currentStreak: number;
@@ -58,12 +57,10 @@ function normalizeStats(raw: any): DailyStats {
     raw.last_answered_date ??
     null;
 
-      const weekAnswered = Number(
-        raw.WeekAnswered ?? raw.weekAnswered ?? raw.week_answered ?? 0
-      );
-      const weekGoal = Number(
-        raw.WeekGoal ?? raw.weekGoal ?? raw.week_goal ?? 5
-      );
+  const weekAnswered = Number(
+    raw.WeekAnswered ?? raw.weekAnswered ?? raw.week_answered ?? 0
+  );
+  const weekGoal = Number(raw.WeekGoal ?? raw.weekGoal ?? raw.week_goal ?? 5);
 
   return {
     totalAnswered,
@@ -74,7 +71,6 @@ function normalizeStats(raw: any): DailyStats {
     weekGoal,
   };
 }
-
 
 export default function StudentDashboardPage() {
   const navigate = useNavigate();
@@ -165,21 +161,19 @@ export default function StudentDashboardPage() {
         console.error("Kunde inte hämta /daily/stats:", error);
         setStatsErr(error?.message ?? "Kunde inte hämta progress.");
       }
-
     })();
   }, []);
 
-
-        async function refreshDailyStats() {
-          try {
-            const serverResponse = await DailyApi.getStats(); // GET /api/daily/stats
-            const normalizedStats = normalizeStats(serverResponse); // PascalCase → camelCase
-            setStats(normalizedStats);
-          } catch (error: any) {
-            console.error("Kunde inte hämta /daily/stats:", error);
-            setStatsErr(error?.message ?? "Kunde inte hämta progress.");
-          }
-        }
+  async function refreshDailyStats() {
+    try {
+      const serverResponse = await DailyApi.getStats(); // GET /api/daily/stats
+      const normalizedStats = normalizeStats(serverResponse); // PascalCase → camelCase
+      setStats(normalizedStats);
+    } catch (error: any) {
+      console.error("Kunde inte hämta /daily/stats:", error);
+      setStatsErr(error?.message ?? "Kunde inte hämta progress.");
+    }
+  }
 
   return (
     <div className="bg-[#080923] text-white">
