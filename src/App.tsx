@@ -93,7 +93,7 @@ export default function App() {
 
         <Route path="mypage" element={<MyPagePage />} />
         <Route path="teachertopic" element={<TeacherQuizÄmne />} />
-
+        <Route path="Api-test" element={<ApiPlayground />} />
         <Route element={<PublicOnlyOutlet />}>
           <Route index element={<HomePage />} />
         </Route>

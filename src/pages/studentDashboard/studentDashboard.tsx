@@ -157,16 +157,16 @@ export default function StudentDashboardPage() {
   }, []);
 
 
-        async function refreshDailyStats() {
-          try {
-            const serverResponse = await DailyApi.getStats(); // GET /api/daily/stats
-            const normalizedStats = normalizeStats(serverResponse); // PascalCase → camelCase
-            setStats(normalizedStats);
-          } catch (error: any) {
-            console.error("Kunde inte hämta /daily/stats:", error);
-            setStatsErr(error?.message ?? "Kunde inte hämta progress.");
-          }
-        }
+  async function refreshDailyStats() {
+    try {
+      const serverResponse = await DailyApi.getStats(); // GET /api/daily/stats
+      const normalizedStats = normalizeStats(serverResponse); // PascalCase → camelCase
+      setStats(normalizedStats);
+    } catch (error: any) {
+      console.error("Kunde inte hämta /daily/stats:", error);
+      setStatsErr(error?.message ?? "Kunde inte hämta progress.");
+    }
+  }
 
   return (
     <div className="bg-[#080923] text-white">

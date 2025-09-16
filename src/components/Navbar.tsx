@@ -138,7 +138,6 @@ export default function Navbar() {
               FrågeFejden
             </span>
           </Link>
-
           <div className="ml-auto flex items-center pr-3 md:pr-4">
             <ul className="hidden items-center gap-6 md:flex">
               {NAV_ITEMS.filter(
@@ -179,7 +178,6 @@ export default function Navbar() {
                 </li>
               )}
             </ul>
-
             <button
               onClick={() => setOpen((v) => !v)}
               className="inline-flex h-9 w-9 items-center justify-center rounded-md text-white/95 hover:bg-white/10 active:scale-[0.98] md:hidden focus-visible:outline-none"
@@ -194,8 +192,6 @@ export default function Navbar() {
           </div>
         </nav>
       </div>
-
-      {/* Mobile nav */}
       <div
         id="mobile-nav"
         className={[
