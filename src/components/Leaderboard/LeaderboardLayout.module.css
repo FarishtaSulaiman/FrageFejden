@@ -1,0 +1,18 @@
+.titleImage {
+  display: block;
+  margin: 0 auto;
+  max-width: 600px;
+  margin-bottom: 2rem;
+}
+
+.wrapper {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+  padding: 2rem;
+}
+
+.box {
+  flex: 0 0 325px; /* matchar dina kvadrater */
+}

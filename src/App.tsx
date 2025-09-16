@@ -15,13 +15,17 @@ import DuelRoom from "./pages/DuelPage/DuelRoom";
 import JoinClassPage from "./pages/JoinClass/JoinClass";
 import SkapaQuizPage from "./pages/SkapaQuizPage/SkapaQuizPage";
 import TeacherKlassVy from "./pages/TeacherKlassVy/TeacherKlassVy";
-import TeacherKlassVyDemo from "./pages/TeacherKlassVy/TeacherKlassVyDemo";
 import DuelInvitePage from "./pages/DuelPage/DuelInvitePage";
 import TopicList from "./pages/TopicList/TopicList";
 import { PublicOnlyOutlet } from "./auth/PublicOnly";
 import MyPagePage from "./pages/MypagePage/MyPagePage";
 import QuizStatsPage from "./pages/teacherQuizStatistics/teacherQuizStatistics";
+
 import RoleRoute from "./auth/RoleRoute"; 
+
+import Leaderboard from "./pages/Leaderboard/Leaderboard";
+import TeacherQuizÄmne from "./pages/TeacherQuizÄmne/TeacherQuizÄmne";
+
 
 function Home() {
   const [count, setCount] = useState(0);
@@ -78,10 +82,17 @@ export default function App() {
         <Route path="quizzes/start" element={<QuizPage />} /> {/* ⭐ NY RAD */}
 
         <Route path="quizDuel" element={<DuelRoom />} />
+        <Route path="leaderboard" element={<Leaderboard />} />
+
+
         <Route path="class/join/:joinCode" element={<JoinClassPage />} />
         <Route path="duel" element={<DuelRoom />} />
-        <Route path="klassvy" element={<TeacherKlassVyDemo />} />
+
+        <Route path="skapa-quiz" element={<SkapaQuizPage />} />
+        <Route path="klassvy" element={<TeacherKlassVy />} />
+
         <Route path="mypage" element={<MyPagePage />} />
+        <Route path="teachertopic" element={<TeacherQuizÄmne />} />
 
         <Route element={<PublicOnlyOutlet />}>
           <Route index element={<HomePage />} />
