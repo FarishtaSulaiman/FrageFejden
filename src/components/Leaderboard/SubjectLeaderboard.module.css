@@ -1,0 +1,63 @@
+.leaderboardContainer {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  background-color: #3D1C87;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.select {
+  width: 100%;
+  padding: 0.6rem;
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+    background-color: #080923;
+}
+
+.userList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.userItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid #eee;
+  font-size: 1rem;
+}
+
+.rank {
+  width: 40px;
+  text-align: left;
+}
+
+.userId {
+  flex: 1;
+  margin-left: 0.5rem;
+  font-weight: 600;
+}
+
+.score {
+  font-weight: 500;
+  color: #333;
+}
+
+.empty {
+  text-align: center;
+  color: #888;
+  padding: 1rem 0;
+}
+
+.loading {
+  text-align: center;
+  font-size: 1rem;
+  color: #666;
+  padding: 2rem;
+}

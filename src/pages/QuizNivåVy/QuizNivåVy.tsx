@@ -8,6 +8,8 @@ import frageTitle from "../../assets/images/titles/frageFejden-title-pic.png";
 import avatar from "../../assets/images/avatar/avatar3.png";
 import globe from "../../assets/images/icons/geografy-icon.png";
 import bulb from "../../assets/images/pictures/fun-fact-pic.png";
+import { QuizzesApi } from "../../Api/QuizApi/Quizzes";
+
 
 import {
   topicApi,
@@ -89,6 +91,7 @@ export default function QuizNivåVy(): React.ReactElement {
     [progress]
   );
 
+
   // Load study + read status for active level (API-only, no placeholders)
   useEffect(() => {
     if (!topicId || !activeLevel) {
@@ -133,6 +136,7 @@ export default function QuizNivåVy(): React.ReactElement {
       alert(e?.message ?? "Kunde inte starta quiz.");
     }
   };
+
 
   // Mark study as read (backend only)
   const markReadAndClose = async () => {

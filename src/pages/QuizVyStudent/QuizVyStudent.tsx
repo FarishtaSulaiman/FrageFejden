@@ -1,4 +1,4 @@
-// src/pages/QuizVyStudent/QuizVyStudent.tsx
+//Src/pages/QuizVyStudent/QuizVyStudent.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthApi, Classes, SubjectsApi } from "../../Api/index";
@@ -8,7 +8,7 @@ import rankingIcon from "../../assets/images/icons/ranking-icon.png";
 import scoreIcon from "../../assets/images/icons/score-icon.png";
 import avatarImg from "../../assets/images/avatar/avatar1.png";
 
-/** UI-subject (normaliserad) */
+
 type UINormalizedSubject = {
   id: string;
   name: string;
@@ -147,7 +147,7 @@ export default function QuizVyStudent(): React.ReactElement {
   const subjectCards = useMemo(() => {
     if (!subjects.length) return [];
     return subjects.map((s) => {
-      // välj en trevlig undertext
+      // välj en undertext
       const sub =
         typeof s.levelsCount === "number" && s.levelsCount > 0
           ? `${s.levelsCount} nivåer`
