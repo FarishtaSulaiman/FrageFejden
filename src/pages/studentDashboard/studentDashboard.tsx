@@ -24,6 +24,8 @@ type DailyStats = {
   currentStreak: number;
   longestStreak: number;
   lastAnsweredDate: string | null;
+  weekAnswered: number;
+  weekGoal: number;
 };
 
 function normalizeStats(raw: any): DailyStats {
@@ -33,6 +35,8 @@ function normalizeStats(raw: any): DailyStats {
       currentStreak: 0,
       longestStreak: 0,
       lastAnsweredDate: null,
+      weekAnswered: 0,
+      weekGoal: 5,
     };
   }
 
@@ -54,11 +58,20 @@ function normalizeStats(raw: any): DailyStats {
     raw.last_answered_date ??
     null;
 
+      const weekAnswered = Number(
+        raw.WeekAnswered ?? raw.weekAnswered ?? raw.week_answered ?? 0
+      );
+      const weekGoal = Number(
+        raw.WeekGoal ?? raw.weekGoal ?? raw.week_goal ?? 5
+      );
+
   return {
     totalAnswered,
     currentStreak,
     longestStreak,
     lastAnsweredDate: lastAnsweredDate ? String(lastAnsweredDate) : null,
+    weekAnswered,
+    weekGoal,
   };
 }
 
@@ -157,16 +170,16 @@ export default function StudentDashboardPage() {
   }, []);
 
 
-  async function refreshDailyStats() {
-    try {
-      const serverResponse = await DailyApi.getStats(); // GET /api/daily/stats
-      const normalizedStats = normalizeStats(serverResponse); // PascalCase → camelCase
-      setStats(normalizedStats);
-    } catch (error: any) {
-      console.error("Kunde inte hämta /daily/stats:", error);
-      setStatsErr(error?.message ?? "Kunde inte hämta progress.");
-    }
-  }
+        async function refreshDailyStats() {
+          try {
+            const serverResponse = await DailyApi.getStats(); // GET /api/daily/stats
+            const normalizedStats = normalizeStats(serverResponse); // PascalCase → camelCase
+            setStats(normalizedStats);
+          } catch (error: any) {
+            console.error("Kunde inte hämta /daily/stats:", error);
+            setStatsErr(error?.message ?? "Kunde inte hämta progress.");
+          }
+        }
 
   return (
     <div className="bg-[#080923] text-white">
@@ -184,10 +197,10 @@ export default function StudentDashboardPage() {
               {/* <span className="block text-xs opacity-70">{email}</span> */}
             </div>
 
-            {/* <input
+            <input
               placeholder="Sök…."
               className="w-full rounded-full bg-black/30 px-4 py-2 text-sm placeholder:text-white/60 md:max-w-md"
-            /> */}
+            />
 
             <div className="flex items-center gap-6 text-sm">
               <div className="flex items-center gap-2">
@@ -225,14 +238,7 @@ export default function StudentDashboardPage() {
               </button>
 
               <button
-                onClick={() => navigate("/min-klass")} // sida ej skapad
-                className="w-full rounded-2xl bg-[#5827C6] px-5 py-4 text-left text-lg font-bold text-white"
-              >
-                Min klass
-              </button>
-
-              <button
-                onClick={() => navigate("/prestationer")} // navigera till leaderboard?
+                onClick={() => navigate("/leaderboard")}
                 className="flex w-full items-center gap-3 rounded-2xl bg-[#DA6410] px-5 py-4 text-lg font-bold text-white"
               >
                 <img src={trophy} alt="Trophy" className="h-8 w-6" />
@@ -280,7 +286,7 @@ export default function StudentDashboardPage() {
 
               {/* Svara på dagens quiz knapp */}
               <button
-                onClick={() => setOpenDaily(true)} // <-- öppnar modalen
+                onClick={() => setOpenDaily(true)} //  öppnar modalen
                 className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-1/2 rounded-xl bg-[#5827C6] px-6 py-3 font-semibold text-white shadow"
               >
                 Svara på dagens Quiz
@@ -350,13 +356,19 @@ export default function StudentDashboardPage() {
                   <div className="mt-3 rounded-xl bg-black/20 p-3">
                     <div className="text-sm font-semibold">Veckomål</div>
                     <div className="text-xs text-white/80">
-                      Quiz genomförda: {stats.totalAnswered % 7}/7
+                      Quiz genomförda:{" "}
+                      {Math.min(stats.weekAnswered, stats.weekGoal)}/
+                      {stats.weekGoal}
                     </div>
                     <div className="mt-2 h-3 w-full rounded-full bg-black/40">
                       <div
                         className="h-3 rounded-full bg-[#3BCC52]"
                         style={{
-                          width: `${((stats.totalAnswered % 7) / 7) * 100}%`,
+                          width: `${
+                            (Math.min(stats.weekAnswered, stats.weekGoal) /
+                              stats.weekGoal) *
+                            100
+                          }%`,
                         }}
                       />
                     </div>
