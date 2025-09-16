@@ -18,9 +18,11 @@ import TeacherKlassVy from "./pages/TeacherKlassVy/TeacherKlassVy";
 import DuelInvitePage from "./pages/DuelPage/DuelInvitePage";
 import TopicList from "./pages/TopicList/TopicList";
 import { PublicOnlyOutlet } from "./auth/PublicOnly";
-import MyPageModal from "./components/MyPageModal";
 import MyPagePage from "./pages/MypagePage/MyPagePage";
 import QuizStatsPage from "./pages/teacherQuizStatistics/teacherQuizStatistics";
+
+import RoleRoute from "./auth/RoleRoute"; 
+
 import Leaderboard from "./pages/Leaderboard/Leaderboard";
 import TeacherQuizÄmne from "./pages/TeacherQuizÄmne/TeacherQuizÄmne";
 
@@ -43,9 +45,7 @@ function Home() {
           count is {count}
         </button>
         <p className="mt-3 text-sm text-white/80">
-          Edit{" "}
-          <code className="rounded bg-black/30 px-1 py-0.5">src/App.tsx</code>{" "}
-          and save to test HMR
+          Edit <code className="rounded bg-black/30 px-1 py-0.5">src/App.tsx</code> and save to test HMR
         </p>
         <p className="mt-3">
           <button
@@ -76,15 +76,21 @@ export default function App() {
   return (
     <Routes>
       <Route element={<AppLayout />}>
-        <Route path="quiz" element={<QuizPage />} />
+
+        {/* QUIZ routes */}
+        <Route path="quizzes/:quizId/questions" element={<QuizPage />} />
+        <Route path="quizzes/start" element={<QuizPage />} /> {/* ⭐ NY RAD */}
+
         <Route path="quizDuel" element={<DuelRoom />} />
         <Route path="leaderboard" element={<Leaderboard />} />
 
 
         <Route path="class/join/:joinCode" element={<JoinClassPage />} />
         <Route path="duel" element={<DuelRoom />} />
+
         <Route path="skapa-quiz" element={<SkapaQuizPage />} />
         <Route path="klassvy" element={<TeacherKlassVy />} />
+
         <Route path="mypage" element={<MyPagePage />} />
         <Route path="teachertopic" element={<TeacherQuizÄmne />} />
 
@@ -92,27 +98,33 @@ export default function App() {
           <Route index element={<HomePage />} />
         </Route>
 
-        <Route path="teacherQuizStatistics" element={<QuizStatsPage />} />
+        {/* Teacher-routes */}
+        <Route element={<RoleRoute allowedRoles={["Lärare"]} />}>
+          <Route path="skapa-quiz" element={<SkapaQuizPage />} />
+          <Route path="teacher/klassvy" element={<TeacherKlassVy />} />
+          <Route path="teacherQuizStatistics" element={<QuizStatsPage />} />
+        </Route>
 
-        <Route element={<ProtectedOutlet />}>
-          <Route path="app" element={<Home />} />
-          <Route path="app/current-user" element={<CurrentUser />} />
+        {/* Student-routes */}
+        <Route element={<RoleRoute allowedRoles={["Student"]} />}>
           <Route path="studentDashboard" element={<StudentDashboardPage />} />
-
-          {/* Användarens "Ämnen / subjects" i sin klass */}
           <Route path="QuizVyStudent" element={<QuizVyStudent />} />
+          <Route path="subjects/:subjectId/topics" element={<TopicList />} />
+          <Route path="topics/:topicId" element={<QuizNivåVy />} />
+        </Route>
 
-          {/* Användarens "Användarens topics i ämnet" */}
-          <Route path="/subjects/:subjectId/topics" element={<TopicList />} />
-
-          {/* Användarens page för att studera på quizzes */}
-          <Route path="/topics/:topicId" element={<QuizNivåVy />} />
-
-          <Route path="duelinvite" element={<DuelInvitePage />} />
-
-          {/* Test Saker */}
+        {/* Admin-routes */}
+        <Route element={<RoleRoute allowedRoles={["Admin"]} />}>
+          <Route path="app/current-user" element={<CurrentUser />} />
           <Route path="Api-test" element={<ApiPlayground />} />
         </Route>
+
+        {/* Skyddade för alla inloggade */}
+        <Route element={<ProtectedOutlet />}>
+          <Route path="app" element={<Home />} />
+          <Route path="duelinvite" element={<DuelInvitePage />} />
+        </Route>
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

@@ -1,8 +1,9 @@
+// src/Api/QuizApi/Quizzes.ts
 import { http } from "../../lib/http";
 
-//Typedefinitioner
+// Typdefinitioner
 
-//Hämtar alla quizzar med filter
+// Hämtar alla quizzar med filter
 export type Quiz = {
   id: string;
   title: string;
@@ -23,11 +24,10 @@ export type QuizListRes = {
   TotalCount: number;
   PageNumber: number;
   PageSize: number;
-  Items: Quiz[];
+  items: Quiz[];
 };
 
-//Skapa quiz
-
+// Skapa quiz
 export type QuizCreateDto = {
   applicationUserId: string;
   title: string;
@@ -36,14 +36,13 @@ export type QuizCreateDto = {
   isPublished: boolean;
 };
 
-//Hämtar publicerade quizzar med filter
-
+// Hämtar publicerade quizzar med filter
 export type PublishedQuizFilter = {
-  SubjectId?: string;
-  LevelId?: string;
+  topicId?: string;   
+  levelId?: string;   
 };
 
-//Uppdaterar quiz baserat på id
+// Uppdaterar quiz baserat på id
 export type QuizUpdateDto = {
   id: string;
   title?: string;
@@ -53,7 +52,7 @@ export type QuizUpdateDto = {
   levelId: string;
 };
 
-//Hämta frågor med svar baserat på quiz id
+// Hämta frågor med svar baserat på quiz id
 export type Question = {
   id: string;
   text: string;
@@ -64,54 +63,53 @@ export type Question = {
   correctAnswerId: string;
 };
 
-//Uppdaterar ordningen i ett quiz
+// Uppdaterar ordningen i ett quiz
 export type QuestionOrderUpdateDto = {
   questions: string[];
 };
 
-//API-Metoder
-
-//Hämtar alla quizzar med filter
+// API-Metoder
 export const QuizzesApi = {
+  // Hämtar alla quizzar med filter
   async getFiltered(filters: QuizFilter): Promise<QuizListRes> {
     const res = await http.get("/quizzes", {
-      params: filters
+      params: filters,
     });
     return res.data;
   },
 
-  //Skapar ett nytt quiz
+  // Skapar ett nytt quiz
   async create(data: QuizCreateDto): Promise<Quiz> {
     const res = await http.post("/quizzes", data);
     return res.data;
   },
 
-  //Hämtar publicerade quizzar med filter
-  async getPublished(filters: PublishedQuizFilter): Promise<QuizListRes> {
+  // Hämtar publicerade quizzar med filter (topicId + levelId)
+  async getPublished(filters: PublishedQuizFilter): Promise<Quiz[]> {
     const res = await http.get("/quizzes/published", {
-      params: filters
+      params: filters,
     });
     return res.data;
   },
 
-  //Hämtar quiz baserat på id
+  // Hämtar quiz baserat på id
   async getById(id: string): Promise<Quiz> {
     const res = await http.get(`/quizzes/${id}`);
     return res.data;
   },
 
-  //Uppdaterar quiz baserat på id
+  // Uppdaterar quiz baserat på id
   async update(id: string, data: QuizUpdateDto): Promise<Quiz> {
     const res = await http.put(`/quizzes/${id}`, data);
     return res.data;
   },
 
-  //Tar bort quiz baserat på id
+  // Tar bort quiz baserat på id
   async deleteById(id: string): Promise<void> {
     await http.delete(`/quizzes/${id}`);
   },
 
-  //kollar om quiz existerar baserat på id
+  // Kollar om quiz existerar baserat på id
   async exists(id: string): Promise<boolean> {
     try {
       await http.head(`/quizzes/${id}`);
@@ -122,7 +120,7 @@ export const QuizzesApi = {
     }
   },
 
-  //Hämta quiz med frågor baserat på id
+  // Hämta quiz med frågor baserat på id
   async getQuestions(id: string, includeAnswers = false): Promise<Question[]> {
     const res = await http.get(`/quizzes/${id}/questions`, {
       params: { includeAnswers },
@@ -130,28 +128,35 @@ export const QuizzesApi = {
     return res.data;
   },
 
-  //Uppdaterar ordningen av frågor i ett quiz
-  async updateQuestionOrder(quizId: string, data: QuestionOrderUpdateDto): Promise<void> {
+  // Uppdaterar ordningen av frågor i ett quiz
+  async updateQuestionOrder(
+    quizId: string,
+    data: QuestionOrderUpdateDto
+  ): Promise<void> {
     await http.put(`/quizzes/${quizId}/questions`, data);
   },
 
-  //publicerar eller avpublicerar ett quiz
-  async setPublishedStatus(quizId: string, isPublished: boolean): Promise<void> {
+  // Publicerar eller avpublicerar ett quiz
+  async setPublishedStatus(
+    quizId: string,
+    isPublished: boolean
+  ): Promise<void> {
     await http.patch(`/quizzes/${quizId}/publish`, { isPublished });
   },
 
-  //Hämtar statistik för ett quiz baserat på id
+  // Hämtar statistik för ett quiz baserat på id
   async getStatistics(quizId: string): Promise<any> {
     const res = await http.get(`/quizzes/${quizId}/statistics`);
     return res.data;
   },
 
-  //Hätmar alla quiz skapade av den inloggade användaren
+  // Hämtar alla quiz skapade av den inloggade användaren
   async getMyQuizzes(): Promise<Quiz[]> {
     const res = await http.get("/quizzes/my");
     return res.data;
   },
 
+  // Kollar om man har access till quiz
   async canAccess(quizId: string): Promise<boolean> {
     try {
       await http.get(`/quizzes/${quizId}/access`);
@@ -160,6 +165,13 @@ export const QuizzesApi = {
       if ((error as any).response?.status === 403) return false;
       throw error;
     }
-  }
+  },
 
+  // Hämtar alla quiz för ett topic
+  async getForTopic(topicId: string, onlyPublished = true): Promise<Quiz[]> {
+    const res = await http.get(`/topics/${topicId}/quizzes`, {
+      params: { onlyPublished },
+    });
+    return res.data;
+  },
 };
