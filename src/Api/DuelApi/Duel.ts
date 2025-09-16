@@ -22,10 +22,11 @@ export interface DuelActionRequest {
   duelId: UUID;
 }
 
+
 export interface SubmitDuelAnswerRequest {
   duelId: UUID;
-  questionId: UUID;
-  selectedOptionId?: UUID | null;
+  roundId: UUID;
+  selectedIndex: number;
   timeMs: number;
 }
 
@@ -119,6 +120,7 @@ export interface DuelStatsDto {
 }
 
 const basePath = "/duel";
+
 export const DuelApi = {
   /** Skapar en duel */
   async createDuel(payload: CreateDuelRequest): Promise<DuelDto> {
@@ -150,7 +152,7 @@ export const DuelApi = {
     return data;
   },
 
-  /** Skicka ett svar */
+  /** ✅ Skicka ett svar (med roundId + selectedIndex) */
   async submitAnswer(payload: SubmitDuelAnswerRequest): Promise<{ message: string }> {
     const { data } = await http.post<{ message: string }>(`${basePath}/answer`, payload);
     return data;

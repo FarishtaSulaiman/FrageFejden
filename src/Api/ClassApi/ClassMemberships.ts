@@ -9,6 +9,8 @@ export const ClassMemberShips = {
         return res.data.items;
     },
 
+
+
     //lägger till en medlem i en klass
     async AddMember(classId: string, userId: string,): Promise<void> {
         await http.post(`/Class/${userId}/members`);

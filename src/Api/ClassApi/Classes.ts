@@ -1,6 +1,12 @@
 // src/Api/ClassApi/Classes.ts
 import { http } from "../../lib/http";
 
+export type VisibleMemberDto = {
+  id: string;
+  fullName: string;
+  avatarUrl?: string | null;
+};
+
 // Funktion för ranking: 1,1,3,4... (lika poäng => samma plats)
 function addCompetitionRank(rows: any[]) {
   const sorted = [...rows].sort((a, b) => b.score - a.score);
@@ -115,6 +121,11 @@ export const Classes = {
     // 3) Hitta min rad och returnera min plats
     const me = ranked.find((r) => r.userId === userId);
     return me?.rank ?? null;
+  },
+
+  async GetClassMembersVisible(classId: string): Promise<VisibleMemberDto[]> {
+    const res = await http.get(`/Class/${classId}/members/visible`);
+    return res.data;
   },
 };
 

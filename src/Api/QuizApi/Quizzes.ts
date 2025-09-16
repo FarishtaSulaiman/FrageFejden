@@ -69,7 +69,7 @@ export type QuestionOrderUpdateDto = {
   questions: string[];
 };
 
-//API-Metoder
+
 
 //Hämtar alla quizzar med filter
 export const QuizzesApi = {
