@@ -53,7 +53,7 @@ export default function Navbar() {
     }
   };
 
-// backendroller
+  // backendroller
   const roleLabel =
     user?.roles.includes("Admin")
       ? "Admin"
@@ -305,27 +305,33 @@ export default function Navbar() {
 
             {roleLabel === "Lärare" && (
               <nav className="flex-1 p-4 space-y-2">
-                <NavLink
-                  to="/teacher/klassvy"
-                  onClick={() => setSidebarOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/10"
+                <button
+                  onClick={() => {
+                    setSidebarOpen(false);
+                    navigate("/teacher/klassvy");
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/10 w-full text-left"
                 >
                   <HiOutlineTrophy className="h-5 w-5" /> Klass vy
-                </NavLink>
-                <NavLink
-                  to="/teacherQuizStatistics"
-                  onClick={() => setSidebarOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/10"
+                </button>
+                <button
+                  onClick={() => {
+                    setSidebarOpen(false);
+                    navigate("/teacherQuizStatistics");
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/10 w-full text-left"
                 >
                   <HiOutlineChartBar className="h-5 w-5" /> Quiz Statistik
-                </NavLink>
-                <NavLink
-                  to="/skapa-quiz"
-                  onClick={() => setSidebarOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/10"
+                </button>
+                <button
+                  onClick={() => {
+                    setSidebarOpen(false);
+                    navigate("/skapa-quiz");
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/10 w-full text-left"
                 >
                   <HiOutlineUser className="h-5 w-5" /> Skapa Quiz
-                </NavLink>
+                </button>
                 <button
                   onClick={() => {
                     setSidebarOpen(false);
@@ -340,10 +346,10 @@ export default function Navbar() {
 
             <div className="p-4 border-t border-white/20">
               <button
-                onClick={() => {
-                  logout();
+                onClick={async () => {
+                  await logout(); //  vänta klart innan redirect
                   setSidebarOpen(false);
-                  navigate("/");
+                  navigate("/");  // alltid hem
                 }}
                 className="w-full px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-sm"
               >

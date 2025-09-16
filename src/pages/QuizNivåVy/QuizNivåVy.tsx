@@ -5,6 +5,8 @@ import frageTitle from "../../assets/images/titles/frageFejden-title-pic.png";
 import avatar from "../../assets/images/avatar/avatar3.png";
 import globe from "../../assets/images/icons/geografy-icon.png";
 import bulb from "../../assets/images/pictures/fun-fact-pic.png";
+import { QuizzesApi } from "../../Api/QuizApi/Quizzes";
+
 
 // ✔ API: uses your working topics API (adjust import path if you re-export in Api/index)
 import { topicApi, type TopicLevelStatusDto, type TopicProgressDto } from "../../Api/TopicsApi/topics";
@@ -128,9 +130,13 @@ export default function QuizNivåVy(): React.ReactElement {
   const activeLevelNumber = activeLevel?.levelNumber ?? 1;
 
 
-  const startQuiz = (lvl: TopicLevelStatusDto) => {
+const startQuiz = async (lvl: TopicLevelStatusDto) => {
+  try {
     navigate(`/quizzes/start?topicId=${topicId}&levelId=${lvl.levelId}`);
-  };
+  } catch (err) {
+    console.error("Fel vid startQuiz:", err);
+  }
+};
 
 
   const activeBlocks = useMemo(() => getReadingForLevel(activeLevelNumber), [activeLevelNumber]);

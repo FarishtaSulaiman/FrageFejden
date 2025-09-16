@@ -72,7 +72,11 @@ export default function App() {
   return (
     <Routes>
       <Route element={<AppLayout />}>
-        <Route path="quiz" element={<QuizPage />} />
+
+        {/* QUIZ routes */}
+        <Route path="quizzes/:quizId/questions" element={<QuizPage />} />
+        <Route path="quizzes/start" element={<QuizPage />} /> {/* ⭐ NY RAD */}
+
         <Route path="quizDuel" element={<DuelRoom />} />
         <Route path="class/join/:joinCode" element={<JoinClassPage />} />
         <Route path="duel" element={<DuelRoom />} />
