@@ -1,7 +1,7 @@
 import { http } from "../../lib/http";
 
 export const TeacherClasses = {
-  // Hämtar lärarens egna klasser (skapade av mig)
+  // Hämtar lärarens egna klasser (skapade av läraren)
   async GetCreatedClasses(): Promise<any[]> {
     const res = await http.get(`/teacher/created-classes`);
     return res.data;
