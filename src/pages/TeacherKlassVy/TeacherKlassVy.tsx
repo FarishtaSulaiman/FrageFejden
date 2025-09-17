@@ -1,29 +1,29 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import avatar1 from "../../assets/images/avatar/avatar1.png";
+import { AuthApi, MeResp } from "../../Api/AuthApi/auth";
+import { Classes, SubjectsApi, SubjectDto } from "../../Api";
 
+// typdefinition för användare
 type User = {
-  name: string;
-  username: string;
+  id: string;
+  fullName: string;
+  userName: string;
   level?: number;
   avgScore?: number;
 };
 
+//typdefinition för ett quiz
 type Quiz = {
   id: string;
   title: string;
   questions: number;
 };
 
-type SubjectStat = {
-  name: string;
-  unitsRead: number;
-  unitsTotal: number;
-  avgScore: number;
-};
-
+//typdefinition för en klass med statistik
 type ClassStat = {
   id: string;
+  name?: string;
   students: number;
   avgScore: number;
   readingCompliance: number;
@@ -31,12 +31,13 @@ type ClassStat = {
   levelAvg: number;
   weeklyActivity: number[];
   streakDays: number;
-  subjects: SubjectStat[];
+  subjects: SubjectDto[];
   topStudents: User[];
   users: User[];
   quizzes: Quiz[];
 };
 
+//typdefinition för en aktivitet som visas i listan
 type Activity = {
   time: string;
   klass: string;
@@ -44,159 +45,118 @@ type Activity = {
   badge?: string;
 };
 
-const ALL_CLASSES: ClassStat[] = [
-  {
-    id: "8A",
-    students: 5,
-    avgScore: 74,
-    readingCompliance: 81,
-    quizzesThisWeek: 4,
-    levelAvg: 2.9,
-    weeklyActivity: [2, 5, 3, 6, 4, 2, 1],
-    streakDays: 6,
-    subjects: [
-      { name: "Svenska", unitsRead: 19, unitsTotal: 24, avgScore: 76 },
-      { name: "Engelska", unitsRead: 17, unitsTotal: 24, avgScore: 72 },
-    ],
-    topStudents: [
-      { name: "Sara Olsson", username: "sara_o", level: 4, avgScore: 88 },
-      { name: "Lukas Berg", username: "l_berg", level: 3, avgScore: 84 },
-    ],
-    users: [
-      { name: "Sara Olsson", username: "sara_o", level: 4, avgScore: 88 },
-      { name: "Lukas Berg", username: "l_berg", level: 3, avgScore: 84 },
-      { name: "Mei Chen", username: "mei_chen", level: 4, avgScore: 83 },
-      { name: "Ali Hassan", username: "ali_h", level: 3, avgScore: 80 },
-      { name: "Nils Ek", username: "nils_ek", level: 2, avgScore: 76 },
-    ],
-    quizzes: [
-      { id: "q1", title: "Svenska Kungahuset", questions: 5 },
-      { id: "q2", title: "Engelska Veckans ord", questions: 6 },
-    ],
-  },
-  {
-    id: "8C",
-    students: 6,
-    avgScore: 81,
-    readingCompliance: 88,
-    quizzesThisWeek: 6,
-    levelAvg: 3.2,
-    weeklyActivity: [4, 7, 3, 6, 6, 4, 3],
-    streakDays: 13,
-    subjects: [
-      { name: "Svenska", unitsRead: 21, unitsTotal: 24, avgScore: 83 },
-      { name: "Engelska", unitsRead: 19, unitsTotal: 24, avgScore: 80 },
-    ],
-    topStudents: [
-      { name: "Lina Larsson", username: "Lina4ever", level: 4, avgScore: 90 },
-      { name: "Kalle Svensson", username: "Kokokalle", level: 3, avgScore: 85 },
-    ],
-    users: [
-      { name: "Lina Larsson", username: "Lina4ever", level: 4, avgScore: 90 },
-      { name: "Kalle Svensson", username: "Kokokalle", level: 3, avgScore: 85 },
-      { name: "Amina Ali", username: "amina", level: 3, avgScore: 82 },
-      { name: "Oskar Lund", username: "oskarl", level: 3, avgScore: 81 },
-      { name: "Sofia Nguyen", username: "sofiann", level: 3, avgScore: 83 },
-      { name: "Hanna Persson", username: "hannap", level: 4, avgScore: 91 },
-    ],
-    quizzes: [
-      { id: "q3", title: "Svenska Grammatik", questions: 7 },
-      { id: "q4", title: "Engelska Grammatik", questions: 8 },
-    ],
-  },
-  {
-    id: "9B",
-    students: 4,
-    avgScore: 79,
-    readingCompliance: 87,
-    quizzesThisWeek: 5,
-    levelAvg: 3.2,
-    weeklyActivity: [3, 5, 4, 5, 6, 3, 2],
-    streakDays: 8,
-    subjects: [
-      { name: "Svenska", unitsRead: 20, unitsTotal: 24, avgScore: 81 },
-      { name: "Engelska", unitsRead: 19, unitsTotal: 24, avgScore: 80 },
-    ],
-    topStudents: [
-      { name: "Jonas Pettersson", username: "jonas_p", level: 3, avgScore: 87 },
-      { name: "Leah Ahmad", username: "leah", level: 3, avgScore: 84 },
-    ],
-    users: [
-      { name: "Jonas Pettersson", username: "jonas_p", level: 3, avgScore: 87 },
-      { name: "Leah Ahmad", username: "leah", level: 3, avgScore: 84 },
-      { name: "Victor Yi", username: "victory", level: 3, avgScore: 84 },
-      { name: "Ali Hassan", username: "ali_h", level: 3, avgScore: 80 },
-    ],
-    quizzes: [
-      { id: "q5", title: "Svenska Litteratur", questions: 5 },
-      { id: "q6", title: "Engelska Glosor", questions: 6 },
-    ],
-  },
-];
-
-const RECENT_ACTIVITY: Activity[] = [
-  {
-    time: "Idag 10:24",
-    klass: "8C",
-    message: "Lina slutförde läsnivå 3 i Svenska 📘",
-    badge: "+10 XP",
-  },
-  {
-    time: "Idag 09:55",
-    klass: "9B",
-    message: "Leah fick 9/10 på NO-quiz 🧪",
-    badge: "+1 nivå",
-  },
-  {
-    time: "Igår 16:12",
-    klass: "8A",
-    message: "Mei höjde snitt till 83%",
-    badge: "⭐",
-  },
-  {
-    time: "Igår 12:03",
-    klass: "8C",
-    message: "Ali klarade Eng. Unit 5",
-    badge: "+8 XP",
-  },
-];
-
 const TeacherKlassVy: React.FC = () => {
-  const navigate = useNavigate();
-  const [className, setClassName] = useState("8C");
+  const navigate = useNavigate(); // navigering mellan sidor
+
+  //state för olika saker vi behöver spara
+  const [currentUser, setCurrentUser] = useState<MeResp | null>(null); // inloggad användare
+  const [classes, setClasses] = useState<ClassStat[]>([]); // alla klasser
+  const [className, setClassName] = useState<string>(""); // den klass som är vald
+  const [subjects, setSubjects] = useState<SubjectDto[]>([]); // ämnen för vald klass
+  const [recentActivity, setRecentActivity] = useState<Activity[]>([]); // senaste aktivitet
+  const [loading, setLoading] = useState<boolean>(false); //laddar-data indikator
+  const [error, setError] = useState<string | null>(null); //felmeddelande
+
+  //state för modaler som tar bort användare eller quiz
   const [deleteUser, setDeleteUser] = useState<User | null>(null);
   const [deleteQuiz, setDeleteQuiz] = useState<Quiz | null>(null);
 
+  // hitta den aktuella klassen baserat på className
   const current = useMemo(
-    () => ALL_CLASSES.find((c) => c.id === className) ?? ALL_CLASSES[0],
-    [className]
+    () => classes.find((c) => c.id === className) ?? classes[0] ?? null,
+    [className, classes]
   );
 
+  // ladda inloggad användare och deras klasser vid första render
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setLoading(true);
+        const user = await AuthApi.getMe(); // hämtar info om inloggad användare
+        setCurrentUser(user);
+
+        // hämtar alla klasser läraren har
+        const teacherClasses = await Classes.GetUsersClasses();
+        const mappedClasses: ClassStat[] = teacherClasses.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          students: c.students ?? 0,
+          avgScore: c.avgScore ?? 0,
+          readingCompliance: c.readingCompliance ?? 0,
+          quizzesThisWeek: c.quizzesThisWeek ?? 0,
+          levelAvg: c.levelAvg ?? 0,
+          weeklyActivity: c.weeklyActivity ?? [],
+          streakDays: c.streakDays ?? 0,
+          subjects: [],
+          topStudents: c.topStudents ?? [],
+          users: c.users ?? [],
+          quizzes: c.quizzes ?? [],
+        }));
+        setClasses(mappedClasses);
+        setClassName(mappedClasses[0]?.id ?? ""); //välj första klassen som standard
+      } catch (err) {
+        console.error(err);
+        setError("Kunde inte ladda data"); // visar felmeddelande
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, []);
+
+  //laddar ämnen för den valda klassen när className ändras
+  useEffect(() => {
+    async function loadSubjects() {
+      if (!className) return;
+      try {
+        const subjectsForClass = await SubjectsApi.getForClass(className);
+        setSubjects(subjectsForClass);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    loadSubjects();
+  }, [className]);
+
+  //öppna modal för att ta bort en elev
   const openDeleteUserModal = (user: User) => setDeleteUser(user);
+
+  //öppna modal för att ta bort ett quiz
   const openDeleteQuizModal = (quiz: Quiz) => setDeleteQuiz(quiz);
+
+  //stäng alla modaler
   const closeModals = () => {
     setDeleteUser(null);
     setDeleteQuiz(null);
   };
+
+  //bekräfta borttagning av elev
   const confirmDeleteUser = () => {
-    if (deleteUser) {
-      current.users = current.users.filter(
-        (u) => u.username !== deleteUser.username
-      );
+    if (deleteUser && current) {
+      current.users = current.users.filter((u) => u.id !== deleteUser.id);
       current.students = current.users.length;
     }
     closeModals();
   };
+
+  //bekräfta borttagning av quiz
   const confirmDeleteQuiz = () => {
-    if (deleteQuiz) {
+    if (deleteQuiz && current) {
       current.quizzes = current.quizzes.filter((q) => q.id !== deleteQuiz.id);
     }
     closeModals();
   };
 
+  //visa laddning eller felmeddelande om behövs
+  if (loading) return <div>Laddar...</div>;
+  if (error) return <div>{error}</div>;
+  if (!current) return <div>Ingen klass vald</div>;
+
   return (
     <div className="h-screen bg-[#0A0F1F] text-white flex flex-col">
-      {/* Header */}
+      {/* header med titel och avatar */}
       <header className="h-16 flex items-center justify-between px-6 border-b border-white/10 shrink-0">
         <div className="flex items-center gap-3">
           <span className="text-xl font-extrabold tracking-tight text-yellow-400">
@@ -206,15 +166,16 @@ const TeacherKlassVy: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           <img
-            src={avatar1}
+            src={currentUser?.avatarUrl ?? avatar1}
             className="w-9 h-9 rounded-full ring-1 ring-white/20"
             alt="Admin"
           />
         </div>
       </header>
 
+      {/* huvudområde */}
       <main className="flex-1 flex flex-col gap-6 px-6 py-4 min-h-0">
-        {/* Klassval + Skapa quiz */}
+        {/* välj klass och knapp för nytt quiz */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <label className="text-sm text-white/70">Välj klass</label>
@@ -223,14 +184,13 @@ const TeacherKlassVy: React.FC = () => {
               onChange={(e) => setClassName(e.target.value)}
               className="px-4 py-2 rounded-md bg-white text-black font-semibold"
             >
-              {ALL_CLASSES.map((c) => (
+              {classes.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.id}
+                  {c.name ?? c.id}
                 </option>
               ))}
             </select>
           </div>
-
           <button
             onClick={() => navigate("/teachertopic")}
             className="bg-green-500 hover:bg-green-600 px-4 py-2 rounded text-white font-semibold"
@@ -239,7 +199,7 @@ const TeacherKlassVy: React.FC = () => {
           </button>
         </div>
 
-        {/* Statistikkort */}
+        {/* statistikkort */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard
             label="Elever"
@@ -266,16 +226,17 @@ const TeacherKlassVy: React.FC = () => {
           />
         </div>
 
-        {/* Huvudsektion */}
+        {/* huvudsektion med topp-elever, aktivitet, elevlista och quizlista */}
         <div className="flex flex-col md:flex-row gap-6 flex-1 overflow-hidden">
+          {/* topp-elever och senaste händelser */}
           <div className="flex-1 flex flex-col gap-6 overflow-auto">
-            {/* Topp-elever */}
+            {/* topp-elever */}
             <div className="bg-white/5 rounded-2xl p-6 ring-1 ring-white/10 overflow-auto max-h-80">
               <h3 className="text-lg font-bold mb-4">Topp-elever</h3>
               <ul className="space-y-3">
                 {current.topStudents.map((s, i) => (
                   <li
-                    key={s.username}
+                    key={s.id}
                     className="flex items-center justify-between bg-white/5 rounded-xl p-3 ring-1 ring-white/10"
                   >
                     <div className="flex items-center gap-3">
@@ -283,9 +244,11 @@ const TeacherKlassVy: React.FC = () => {
                         {i + 1}
                       </div>
                       <div className="min-w-0">
-                        <div className="font-semibold truncate">{s.name}</div>
+                        <div className="font-semibold truncate">
+                          {s.fullName}
+                        </div>
                         <div className="text-xs text-white/60 truncate">
-                          @{s.username}
+                          @{s.userName}
                         </div>
                       </div>
                     </div>
@@ -302,11 +265,11 @@ const TeacherKlassVy: React.FC = () => {
               </ul>
             </div>
 
-            {/* Senaste händelser */}
+            {/* senaste händelser */}
             <div className="bg-white/5 rounded-2xl p-6 ring-1 ring-white/10 overflow-auto max-h-80">
               <h3 className="text-lg font-bold mb-4">Senaste händelser</h3>
               <ul className="space-y-3">
-                {RECENT_ACTIVITY.map((a, idx) => (
+                {recentActivity.map((a, idx) => (
                   <li
                     key={idx}
                     className="flex items-center justify-between bg-white/5 rounded-xl p-3 ring-1 ring-white/10"
@@ -328,28 +291,31 @@ const TeacherKlassVy: React.FC = () => {
             </div>
           </div>
 
+          {/* elevlista och quizlista */}
           <div className="flex-1 flex flex-col gap-6 overflow-auto">
-            {/* Elevlista */}
+            {/* elevlista */}
             <div className="bg-white/5 rounded-2xl p-6 ring-1 ring-white/10 overflow-auto max-h-80">
-              <h3 className="text-lg font-bold mb-4">Elever – {current.id}</h3>
+              <h3 className="text-lg font-bold mb-4">
+                Elever – {current.name ?? current.id}
+              </h3>
               <ul className="divide-y divide-white/10">
                 {current.users.map((u) => (
                   <li
-                    key={u.username}
+                    key={u.id}
                     className="flex items-center justify-between p-2"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-sm">
-                        {u.name
+                        {u.fullName
                           .split(" ")
                           .map((x) => x[0])
                           .join("")
                           .slice(0, 2)}
                       </div>
                       <div>
-                        <div className="font-semibold">{u.name}</div>
+                        <div className="font-semibold">{u.fullName}</div>
                         <div className="text-xs text-white/60">
-                          @{u.username}
+                          @{u.userName}
                         </div>
                       </div>
                     </div>
@@ -364,9 +330,11 @@ const TeacherKlassVy: React.FC = () => {
               </ul>
             </div>
 
-            {/* Quizlista */}
+            {/* quizlista */}
             <div className="bg-white/5 rounded-2xl p-6 ring-1 ring-white/10 overflow-auto max-h-80">
-              <h3 className="text-lg font-bold mb-4">Quiz – {current.id}</h3>
+              <h3 className="text-lg font-bold mb-4">
+                Quiz – {current.name ?? current.id}
+              </h3>
               <ul className="divide-y divide-white/10">
                 {current.quizzes.map((q) => (
                   <li
@@ -403,7 +371,7 @@ const TeacherKlassVy: React.FC = () => {
         </div>
       </main>
 
-      {/* Modaler */}
+      {/* modaler för borttagning */}
       {(deleteUser || deleteQuiz) && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <div className="bg-white text-black rounded-xl p-6 w-full max-w-sm shadow-2xl">
@@ -437,7 +405,7 @@ const TeacherKlassVy: React.FC = () => {
   );
 };
 
-// StatCard component
+// StatCard component - visar ett litet statistikkort
 function StatCard({
   label,
   value,
