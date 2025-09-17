@@ -10,22 +10,23 @@ interface LoginModalProps {
 type RoleLabel = "Admin" | "Lärare" | "Student";
 
 type TestAccount = {
-    id: string;               // unique key (we'll use the email)
+    id: string;
     email: string;
-    password: string;         // seeded password
+    password: string;
     name: string;
     role: RoleLabel;
-    className?: "8A" | "9B" | "9C" | "10D"; // only for students
+    classes?: string[]; // ← includes teachers’ classes; students have their single class here too
 };
 
 const TEST_ACCOUNTS: TestAccount[] = [
-    // Admin
+    // Admin (no specific class)
     {
         id: "admin@school.edu",
         email: "admin@school.edu",
         password: "Password123!",
         name: "Admin Användare",
         role: "Admin",
+        classes: ["—"],
     },
 
     // Lärare
@@ -35,6 +36,7 @@ const TEST_ACCOUNTS: TestAccount[] = [
         password: "Password123!",
         name: "Tina Larsson",
         role: "Lärare",
+        classes: ["8A"], // teaches 8A
     },
     {
         id: "olof.teacher@school.edu",
@@ -42,6 +44,7 @@ const TEST_ACCOUNTS: TestAccount[] = [
         password: "Password123!",
         name: "Olof Berg",
         role: "Lärare",
+        classes: ["9B", "9C"], // teaches 9B & 9C
     },
     {
         id: "maria.teacher@school.edu",
@@ -49,114 +52,31 @@ const TEST_ACCOUNTS: TestAccount[] = [
         password: "Password123!",
         name: "Maria Sund",
         role: "Lärare",
+        classes: ["10D"], // teaches 10D
     },
 
     // Elever – 8A
-    {
-        id: "eva.8a@school.edu",
-        email: "eva.8a@school.edu",
-        password: "Password123!",
-        name: "Eva Karlsson",
-        role: "Student",
-        className: "8A",
-    },
-    {
-        id: "ahmed.8a@school.edu",
-        email: "ahmed.8a@school.edu",
-        password: "Password123!",
-        name: "Ahmed Ali",
-        role: "Student",
-        className: "8A",
-    },
-    {
-        id: "lisa.8a@school.edu",
-        email: "lisa.8a@school.edu",
-        password: "Password123!",
-        name: "Lisa Norén",
-        role: "Student",
-        className: "8A",
-    },
+    { id: "eva.8a@school.edu", email: "eva.8a@school.edu", password: "Password123!", name: "Eva Karlsson", role: "Student", classes: ["8A"] },
+    { id: "ahmed.8a@school.edu", email: "ahmed.8a@school.edu", password: "Password123!", name: "Ahmed Ali", role: "Student", classes: ["8A"] },
+    { id: "lisa.8a@school.edu", email: "lisa.8a@school.edu", password: "Password123!", name: "Lisa Norén", role: "Student", classes: ["8A"] },
 
     // Elever – 9B
-    {
-        id: "jon.9b@school.edu",
-        email: "jon.9b@school.edu",
-        password: "Password123!",
-        name: "Jon Persson",
-        role: "Student",
-        className: "9B",
-    },
-    {
-        id: "mia.9b@school.edu",
-        email: "mia.9b@school.edu",
-        password: "Password123!",
-        name: "Mia Östberg",
-        role: "Student",
-        className: "9B",
-    },
-    {
-        id: "leo.9b@school.edu",
-        email: "leo.9b@school.edu",
-        password: "Password123!",
-        name: "Leo Olsson",
-        role: "Student",
-        className: "9B",
-    },
+    { id: "jon.9b@school.edu", email: "jon.9b@school.edu", password: "Password123!", name: "Jon Persson", role: "Student", classes: ["9B"] },
+    { id: "mia.9b@school.edu", email: "mia.9b@school.edu", password: "Password123!", name: "Mia Östberg", role: "Student", classes: ["9B"] },
+    { id: "leo.9b@school.edu", email: "leo.9b@school.edu", password: "Password123!", name: "Leo Olsson", role: "Student", classes: ["9B"] },
 
     // Elever – 9C
-    {
-        id: "nina.9c@school.edu",
-        email: "nina.9c@school.edu",
-        password: "Password123!",
-        name: "Nina Holm",
-        role: "Student",
-        className: "9C",
-    },
-    {
-        id: "vik.9c@school.edu",
-        email: "vik.9c@school.edu",
-        password: "Password123!",
-        name: "Viktor Pettersson",
-        role: "Student",
-        className: "9C",
-    },
-    {
-        id: "sam.9c@school.edu",
-        email: "sam.9c@school.edu",
-        password: "Password123!",
-        name: "Sam Tran",
-        role: "Student",
-        className: "9C",
-    },
+    { id: "nina.9c@school.edu", email: "nina.9c@school.edu", password: "Password123!", name: "Nina Holm", role: "Student", classes: ["9C"] },
+    { id: "vik.9c@school.edu", email: "vik.9c@school.edu", password: "Password123!", name: "Viktor Pettersson", role: "Student", classes: ["9C"] },
+    { id: "sam.9c@school.edu", email: "sam.9c@school.edu", password: "Password123!", name: "Sam Tran", role: "Student", classes: ["9C"] },
 
     // Elever – 10D
-    {
-        id: "edvin.10d@school.edu",
-        email: "edvin.10d@school.edu",
-        password: "Password123!",
-        name: "Edvin Åkesson",
-        role: "Student",
-        className: "10D",
-    },
-    {
-        id: "sofia.10d@school.edu",
-        email: "sofia.10d@school.edu",
-        password: "Password123!",
-        name: "Sofia Bergström",
-        role: "Student",
-        className: "10D",
-    },
-    {
-        id: "maya.10d@school.edu",
-        email: "maya.10d@school.edu",
-        password: "Password123!",
-        name: "Maya Widell",
-        role: "Student",
-        className: "10D",
-    },
+    { id: "edvin.10d@school.edu", email: "edvin.10d@school.edu", password: "Password123!", name: "Edvin Åkesson", role: "Student", classes: ["10D"] },
+    { id: "sofia.10d@school.edu", email: "sofia.10d@school.edu", password: "Password123!", name: "Sofia Bergström", role: "Student", classes: ["10D"] },
+    { id: "maya.10d@school.edu", email: "maya.10d@school.edu", password: "Password123!", name: "Maya Widell", role: "Student", classes: ["10D"] },
 ];
 
-const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess }) => {
+export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginModalProps) {
     const { login } = useAuth();
     const [formData, setFormData] = useState({ emailOrUserName: "", password: "" });
     const [selectedAccountId, setSelectedAccountId] = useState<string>("");
@@ -164,26 +84,26 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
 
-    // Build option groups for the dropdown
+    // Group options for quick scanning
     const groups = useMemo(
         () => [
             { label: "Admin", accounts: TEST_ACCOUNTS.filter(a => a.role === "Admin") },
-            { label: "Lärare", accounts: TEST_ACCOUNTS.filter(a => a.role === "Lärare") },
-            { label: "Klass 8A (Elever)", accounts: TEST_ACCOUNTS.filter(a => a.className === "8A") },
-            { label: "Klass 9B (Elever)", accounts: TEST_ACCOUNTS.filter(a => a.className === "9B") },
-            { label: "Klass 9C (Elever)", accounts: TEST_ACCOUNTS.filter(a => a.className === "9C") },
-            { label: "Klass 10D (Elever)", accounts: TEST_ACCOUNTS.filter(a => a.className === "10D") },
+            { label: "Lärare (med klasser)", accounts: TEST_ACCOUNTS.filter(a => a.role === "Lärare") },
+            { label: "Klass 8A (Elever)", accounts: TEST_ACCOUNTS.filter(a => a.role === "Student" && a.classes?.includes("8A")) },
+            { label: "Klass 9B (Elever)", accounts: TEST_ACCOUNTS.filter(a => a.role === "Student" && a.classes?.includes("9B")) },
+            { label: "Klass 9C (Elever)", accounts: TEST_ACCOUNTS.filter(a => a.role === "Student" && a.classes?.includes("9C")) },
+            { label: "Klass 10D (Elever)", accounts: TEST_ACCOUNTS.filter(a => a.role === "Student" && a.classes?.includes("10D")) },
         ],
         []
     );
 
-    // Pick a sane default (e.g., first student in 9B or Mary if you had her)
+    // Default pick: a common student (e.g., Mia 9B) or first entry
     useEffect(() => {
-        const defaultAcc =
+        const def =
             TEST_ACCOUNTS.find(a => a.email === "mia.9b@school.edu") || TEST_ACCOUNTS[0];
-        if (defaultAcc) {
-            setSelectedAccountId(defaultAcc.id);
-            setFormData({ emailOrUserName: defaultAcc.email, password: defaultAcc.password });
+        if (def) {
+            setSelectedAccountId(def.id);
+            setFormData({ emailOrUserName: def.email, password: def.password });
         }
     }, []);
 
@@ -214,8 +134,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
             onLoginSuccess?.();
             onClose();
         } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : "Inloggning misslyckades";
-            setError(errorMessage);
+            const msg = err instanceof Error ? err.message : "Inloggning misslyckades";
+            setError(msg);
         } finally {
             setIsLoading(false);
         }
@@ -248,9 +168,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
 
                         {/* Snabbval */}
                         <div>
-                            <label className="block text-sm text-white/80 mb-1">Snabbval (namn – roll – klass)</label>
+                            <label className="block text-sm text-white/80 mb-1">Snabbval (namn — roll — klass/er)</label>
                             <select
-                                aria-label="something"
                                 value={selectedAccountId}
                                 onChange={handleSelectChange}
                                 className="w-full px-3 py-2 rounded-lg bg-gray-200 text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
@@ -259,18 +178,17 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
                                     <optgroup key={group.label} label={group.label}>
                                         {group.accounts.map(a => (
                                             <option key={a.id} value={a.id}>
-                                                {a.name} — {a.role}{a.className ? ` — ${a.className}` : ""}
+                                                {a.name} — {a.role}{a.classes?.length ? ` — ${a.classes.join(", ")}` : ""}
                                             </option>
                                         ))}
                                     </optgroup>
                                 ))}
                             </select>
                             <p className="mt-1 text-xs text-white/60">
-                                Välj en testanvändare så fylls fälten i automatiskt.
+                                Välj en testanvändare så fylls fälten i automatiskt (lösenord: <code>Password123!</code>).
                             </p>
                         </div>
 
-                        {/* Användarnamn/e-post */}
                         <input
                             type="text"
                             name="emailOrUserName"
@@ -281,7 +199,6 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
                             className="w-full px-4 py-3 rounded-lg bg-gray-200 text-gray-700 placeholder-gray-500 border-none focus:outline-none focus:ring-2 focus:ring-purple-400"
                         />
 
-                        {/* Lösenord */}
                         <input
                             type={showPassword ? "text" : "password"}
                             name="password"
@@ -319,6 +236,4 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess
             </div>
         </div>
     );
-};
-
-export default LoginModal;
+}
