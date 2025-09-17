@@ -3,7 +3,7 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import logo from "../assets/images/logo/fragefejden-brain-logo.png";
 import LoginModal from "../components/LoginModal";
 import RegisterModal from "../components/RegisterModal";
-import MyPageModal from "../components/MyPageModal"; 
+import MyPageModal from "../components/MyPageModal";
 import { useAuth } from "../auth/AuthContext";
 import { AuthApi, Classes } from "../Api/index";
 import {
@@ -58,10 +58,10 @@ export default function Navbar() {
     user?.roles.includes("Admin")
       ? "Admin"
       : user?.roles.includes("Lärare")
-      ? "Lärare"
-      : user?.roles.includes("Student")
-      ? "Student"
-      : "Användare";
+        ? "Lärare"
+        : user?.roles.includes("Student")
+          ? "Student"
+          : "Användare";
 
   useEffect(() => {
     let alive = true;
@@ -230,7 +230,7 @@ export default function Navbar() {
       {/* Modals */}
       <LoginModal isOpen={showLogin} onClose={() => setShowLogin(false)} />
       <RegisterModal isOpen={showRegister} onClose={() => setShowRegister(false)} />
-      <MyPageModal isOpen={showMyPage} onClose={() => setShowMyPage(false)} /> 
+      <MyPageModal isOpen={showMyPage} onClose={() => setShowMyPage(false)} />
 
       {/* Sidebar */}
       {sidebarOpen && user && (
