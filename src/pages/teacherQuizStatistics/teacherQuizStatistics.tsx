@@ -25,6 +25,9 @@ export default function QuizStatsPage() {
   // Elever i vald klass
   const [students, setStudents] = useState<any[]>([]);
 
+  // Hämta lärarens id
+  const [userId, setUserId] = useState<string | null>(null);
+
   // Enkla flaggor
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,18 +36,21 @@ export default function QuizStatsPage() {
   const showClassColumn = selectedClassId === ALL_CLASSES;
 
   // useEffect för fullName
-  useEffect(() => {
-    (async () => {
-      try {
-        const me = await AuthApi.getMe(); // hämtar inloggad + id
-        const name = me?.fullName ?? "";
-        setDisplayName(name);
-      } catch (e) {
-        console.error("Kunde inte hämta profil:", e);
-        setDisplayName("Användare");
-      }
-    })();
-  }, []);
+useEffect(() => {
+  (async () => {
+    try {
+      const me = await AuthApi.getMe(); // hämtar inloggad + id
+      const name = me?.fullName ?? "";
+      setDisplayName(name);
+
+      // spara lärarens id i state
+      setUserId(me?.id ?? null);
+    } catch (e) {
+      console.error("Kunde inte hämta profil:", e);
+      setDisplayName("Användare");
+    }
+  })();
+}, []);
 
   // Hämta lärarens klasser när sidan laddar. Sätter även "Alla klasser" som default-val om det finns klasser.
   useEffect(() => {
@@ -76,66 +82,99 @@ export default function QuizStatsPage() {
   //    - Vid Alla klasser hämtas klasslistor för varje klass parallellt och
   //      lägger på _classId/_className så vi kan visa kolumnen Klass.
   //    - Vid en enskild klass hämtas bara den klassens klasslista.
-  useEffect(() => {
-    if (!selectedClassId) return; // ingen klass vald ännu
+useEffect(() => {
+  // Vi måste veta vilken klass som är vald OCH ha lärarens userId
+  if (!selectedClassId || !userId) return;
 
-    (async () => {
-      try {
-        setLoading(true);
-        setError(null);
+  (async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-        // “Alla klasser” hämtar alla klasslistor parallellt
-        if (selectedClassId === ALL_CLASSES) {
-          if (!classes.length) {
-            setStudents([]);
-            return;
-          }
-
-          // id + namn för varje klass
-          const meta = classes.map((c: any) => ({
-            id: c.id ?? c.classId ?? c.Id,
-            name: c.name ?? c.className ?? "Namnlös klass",
-          }));
-
-          // Parallellt API-anrop för alla klasser
-          const results = await Promise.all(
-            meta.map(async (m) => {
-              const classList = await TeacherClasses.GetClassStudents(m.id);
-              return (Array.isArray(classList) ? classList : []).map((s) => ({
-                ...s,
-                _classId: m.id,
-                _className: m.name,
-              }));
-            })
-          );
-
-          setStudents(results.flat());
+      // Alla klasser: hämta klasslistor + leaderboard för varje klass parallellt
+      if (selectedClassId === ALL_CLASSES) {
+        if (!classes.length) {
+          setStudents([]);
           return;
         }
 
-        // En enskild klass
-        const classList = await TeacherClasses.GetClassStudents(selectedClassId);
-        const className =
-          classes.find(
-            (c: any) => (c.id ?? c.classId ?? c.Id) === selectedClassId
-          )?.name ?? "Klass";
-
-        const withMeta = (Array.isArray(classList) ? classList : []).map((s) => ({
-          ...s,
-          _classId: selectedClassId,
-          _className: className,
+        const meta = classes.map((c: any) => ({
+          id: c.id ?? c.classId ?? c.Id,
+          name: c.name ?? c.className ?? "Namnlös klass",
         }));
 
-        setStudents(withMeta);
-      } catch (e: any) {
-        console.error("Kunde inte hämta elever i klassen:", e);
-        setError(e?.message ?? "Kunde inte hämta elever i klassen.");
-        setStudents([]);
-      } finally {
-        setLoading(false);
+        const results = await Promise.all(
+          meta.map(async (m) => {
+            const [classList, lb] = await Promise.all([
+              TeacherClasses.GetClassStudents(m.id),
+              Classes.GetClassLeaderboard(m.id, userId!), // kräver userId för API:et
+            ]);
+
+            // Indexera leaderboard på userId för snabb join
+            const byUser = new Map(
+              (lb?.leaderboard ?? []).map((row: any) => [row.userId, row])
+            );
+
+            return (Array.isArray(classList) ? classList : []).map((s: any) => {
+              const key = s.id ?? s.userId;
+              const lbRow = key ? byUser.get(key) : null;
+
+              return {
+                ...s,
+                _classId: m.id,
+                _className: m.name,
+                _score: lbRow?.score ?? 0, //  elevernas poäng
+                _rank: lbRow?.rank ?? null, // visar plats efter rank
+              };
+            });
+          })
+        );
+
+        setStudents(results.flat());
+        return;
       }
-    })();
-  }, [selectedClassId, classes]);
+
+      // En enskild klass: hämta klasslista + leaderboard för just den klassen
+      const [classList, lb] = await Promise.all([
+        TeacherClasses.GetClassStudents(selectedClassId),
+        Classes.GetClassLeaderboard(selectedClassId, userId!),
+      ]);
+
+      const byUser = new Map(
+        (lb?.leaderboard ?? []).map((row: any) => [row.userId, row])
+      );
+
+      const className =
+        classes.find(
+          (c: any) => (c.id ?? c.classId ?? c.Id) === selectedClassId
+        )?.name ?? "Klass";
+
+      const withMeta = (Array.isArray(classList) ? classList : []).map(
+        (s: any) => {
+          const key = s.id ?? s.userId;
+          const lbRow = key ? byUser.get(key) : null;
+
+          return {
+            ...s,
+            _classId: selectedClassId,
+            _className: className,
+            _score: lbRow?.score ?? 0,
+            _rank: lbRow?.rank ?? null,
+          };
+        }
+      );
+
+      setStudents(withMeta);
+    } catch (e: any) {
+      console.error("Kunde inte hämta elever/poäng:", e);
+      setError(e?.message ?? "Kunde inte hämta elever/poäng.");
+      setStudents([]);
+    } finally {
+      setLoading(false);
+    }
+  })();
+}, [selectedClassId, classes, userId]);
+
 
   return (
     <div className="bg-[#080923] text-white w-full">
@@ -312,7 +351,7 @@ export default function QuizStatsPage() {
               <tr className="bg-[#3D1C87] text-left text-sm">
                 <th className="px-4 py-3">Användarnamn</th>
                 {showClassColumn && <th className="px-4 py-3">Klass</th>}
-                <th className="px-4 py-3">Genomförda quiz</th>
+                <th className="px-4 py-3">Poäng</th>
                 <th className="px-4 py-3">Rätt %</th>
                 <th className="px-4 py-3">Tidsgenomsnitt</th>
               </tr>
@@ -330,9 +369,19 @@ export default function QuizStatsPage() {
                 </tr>
               )}
 
-              {!loading && students.length === 0 && (
+              {!loading && error && (
                 <tr>
-                  {/* ✅ uppdatera colSpan här också */}
+                  <td
+                    className="px-4 py-3 text-red-300"
+                    colSpan={showClassColumn ? 5 : 4}
+                  >
+                    {error}
+                  </td>
+                </tr>
+              )}
+
+              {!loading && !error && students.length === 0 && (
+                <tr>
                   <td
                     className="px-4 py-3 text-white/70"
                     colSpan={showClassColumn ? 5 : 4}
@@ -343,31 +392,41 @@ export default function QuizStatsPage() {
               )}
 
               {!loading &&
-                students.map((s: any) => {
-                  const name =
-                    (s.fullName ?? "").trim() ||
-                    (s.name ?? "").trim() ||
-                    (s.userName ?? "").split("@")[0] ||
-                    "Okänd";
+                !error &&
+                [...students]
+                  .sort((a: any, b: any) => (b._score ?? 0) - (a._score ?? 0))
+                  .map((s: any) => {
+                    const name =
+                      (s.fullName ?? "").trim() ||
+                      (s.name ?? "").trim() ||
+                      (s.userName ?? "").split("@")[0] ||
+                      "Okänd";
 
-                  return (
-                    <tr
-                      key={s.id ?? s.userId ?? s.email ?? name}
-                      className="border-t border-white/10 hover:bg-white/5 transition"
-                    >
-                      <td className="px-4 py-3">{name}</td>
+                    // om du senare har procentsats/tid i datat kan du byta ut '—'
+                    const rightPct =
+                      typeof s.correctPct === "number"
+                        ? `${Math.round(s.correctPct)}%`
+                        : "—";
+                    const avgTime =
+                      s.avgSeconds != null ? `${s.avgSeconds}s` : "—";
 
-                      {/* ✅ visa klass-cellen bara när “Alla klasser” är valt */}
-                      {showClassColumn && (
-                        <td className="px-4 py-3">{s._className ?? "—"}</td>
-                      )}
+                    return (
+                      <tr
+                        key={s.id ?? s.userId ?? s.email ?? name}
+                        className="border-t border-white/10 hover:bg-white/5 transition"
+                      >
+                        <td className="px-4 py-3">{name}</td>
 
-                      <td className="px-4 py-3">—</td>
-                      <td className="px-4 py-3">—</td>
-                      <td className="px-4 py-3">—</td>
-                    </tr>
-                  );
-                })}
+                        {showClassColumn && (
+                          <td className="px-4 py-3">{s._className ?? "—"}</td>
+                        )}
+
+                        <td className="px-4 py-3">{s._score ?? 0}</td>
+                        <td className="px-4 py-3">{rightPct}</td>
+                        <td className="px-4 py-3">{avgTime}</td>
+                      </tr>
+                    );
+                  })}
             </tbody>
           </table>
         </div>
