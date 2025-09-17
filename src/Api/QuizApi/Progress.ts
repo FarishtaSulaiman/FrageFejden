@@ -66,30 +66,25 @@ export type PathLevelDto = {
 };
 
 export const ProgressApi = {
-    // Get overall progress overview for current user
     async getProgressOverview(): Promise<UserProgressOverviewDto> {
         const res = await http.get<UserProgressOverviewDto>("/progress/overview");
         return res.data;
     },
 
-    // Get progress for a specific level
     async getLevelProgress(levelId: UUID): Promise<LevelProgressDto> {
         const res = await http.get<LevelProgressDto>(`/progress/level/${levelId}`);
         return res.data;
     },
 
-    // Get learning path for a topic (all levels in order with progress)
     async getLearningPath(topicId: UUID): Promise<LearningPathDto> {
         const res = await http.get<LearningPathDto>(`/progress/topic/${topicId}/path`);
         return res.data;
     },
 
-    // Mark study text as read for a level
     async markStudyTextAsRead(levelId: UUID): Promise<void> {
         await http.post(`/progress/mark-study-text/${levelId}`);
     },
 
-    // Utility methods
     async canAccessLevel(levelId: UUID): Promise<boolean> {
         try {
             const progress = await this.getLevelProgress(levelId);

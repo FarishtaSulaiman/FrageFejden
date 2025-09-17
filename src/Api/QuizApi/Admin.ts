@@ -41,30 +41,25 @@ export type SetRetryRequest = {
 };
 
 export const AdminApi = {
-    // Get all progress for a specific user
     async getUserProgress(userId: UUID): Promise<AdminUserProgressDto[]> {
         const res = await http.get<AdminUserProgressDto[]>(`/api/admin/users/${userId}/progress`);
         return res.data;
     },
 
-    // Reset a user's progress for a specific level
     async resetUserProgress(userId: UUID, levelId: UUID): Promise<void> {
         await http.post(`/admin/users/${userId}/progress/${levelId}/reset`);
     },
 
-    // Allow or deny retry permission for a user on a level
     async setUserRetryPermission(userId: UUID, levelId: UUID, canRetry: boolean): Promise<void> {
         const request: SetRetryRequest = { canRetry };
         await http.post(`/admin/users/${userId}/progress/${levelId}/allow-retry`, request);
     },
 
-    // Get overall progress statistics
     async getProgressStats(): Promise<AdminProgressStatsDto> {
         const res = await http.get<AdminProgressStatsDto>("/admin/progress/stats");
         return res.data;
     },
 
-    // Delete a user's attempt
     async deleteUserAttempt(userId: UUID, attemptId: UUID): Promise<void> {
         await http.delete(`/admin/users/${userId}/attempts/${attemptId}`);
     },

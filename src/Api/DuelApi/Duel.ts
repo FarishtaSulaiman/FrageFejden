@@ -9,7 +9,7 @@ export type DuelResult = "win" | "lose" | "draw";
 export type QuestionType = "single" | "multi" | "truefalse";
 export type Difficulty = "easy" | "medium" | "hard";
 
-/* ----------------------------- Request DTOs ----------------------------- */
+
 export interface CreateDuelRequest {
   subjectId: UUID;
   levelId?: UUID | null;
@@ -32,7 +32,7 @@ export interface SubmitDuelAnswerRequest {
   timeMs: number;
 }
 
-/* ----------------------------- Response DTOs ---------------------------- */
+
 export interface SubjectDto {
   id: UUID;
   name: string;
@@ -117,13 +117,12 @@ export interface DuelStatsDto {
   wins: number;
   losses: number;
   draws: number;
-  winRate: number;       // 0..1
+  winRate: number;
   currentStreak: number;
   bestStreak: number;
 }
 
-/* -------------------------------- Client -------------------------------- */
-// NOTE: If your http client does NOT prefix '/api', change basePath to '/api/duel'.
+// Api
 const basePath = "/duel";
 
 export const DuelApi = {

@@ -1,4 +1,3 @@
-// src/App.tsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Routes, Route, Outlet, Navigate, useNavigate } from "react-router-dom";
 import { ProtectedOutlet } from "./auth/Protected";
@@ -26,7 +25,7 @@ import TeacherQuizÄmne from "./pages/TeacherQuizÄmne/TeacherQuizÄmne";
 import WsLab from "./pages/WsLab/WsLab";
 import { AuthApi } from "./Api";
 
-// ---------- small helper + types ----------
+
 type InviteToastData = {
   duelId: string;
   subject?: string;
@@ -41,13 +40,13 @@ function getWsUrl(): string {
       const scheme = location.protocol === "https:" ? "wss" : "ws";
       return `${scheme}://${location.host}${env}`;
     }
-    return env; // absolute ws:// or wss://
+    return env;
   }
   const scheme = location.protocol === "https:" ? "wss" : "ws";
   return `${scheme}://${location.hostname}:3001`;
 }
 
-// ---------- simple toast UI shown globally ----------
+// bjud in toast
 function InviteToast({
   data,
   onClose,
@@ -91,7 +90,7 @@ function InviteToast({
   );
 }
 
-// ---------- demo Home ----------
+
 function Home() {
   const [count, setCount] = useState(0);
   const { user, logout } = useAuth();
@@ -125,16 +124,14 @@ function Home() {
   );
 }
 
-// ---------- AppLayout with global WS + toast ----------
 function AppLayout() {
   const wsRef = useRef<WebSocket | null>(null);
   const [toast, setToast] = useState<InviteToastData | null>(null);
 
-  // connect globally once and listen for INVITED events
+  // Öppna en websocket för inbjudna användaren och skicka en notis
   useEffect(() => {
     let mounted = true;
     (async () => {
-      // get current user; if not logged in, skip
       let me: any = null;
       try {
         me = await AuthApi.getMe();
@@ -147,7 +144,7 @@ function AppLayout() {
       wsRef.current = ws;
 
       ws.onopen = () => {
-        // register user (no rooms needed)
+
         ws.send(
           JSON.stringify({
             type: "HELLO_USER",
@@ -159,7 +156,6 @@ function AppLayout() {
       ws.onmessage = (ev) => {
         try {
           const msg = JSON.parse(String(ev.data));
-          // Expecting: { type:"INVITED", toUserId, payload:{ duelId, subject, bestOf, fromName } }
           if (msg?.type === "INVITED" && msg?.payload?.duelId) {
             setToast({
               duelId: String(msg.payload.duelId),
@@ -198,18 +194,18 @@ function AppLayout() {
       </main>
       <Footer />
 
-      {/* global toast */}
+      {/* Global toast notifikation */}
       <InviteToast data={toast} onClose={() => setToast(null)} />
     </div>
   );
 }
 
-// ---------- routes ----------
+
 export default function App() {
   return (
     <Routes>
       <Route element={<AppLayout />}>
-        {/* QUIZ routes */}
+
         <Route path="quizzes/:quizId/questions" element={<QuizPage />} />
         <Route path="quizzes/start" element={<QuizPage />} />
 
@@ -257,7 +253,7 @@ export default function App() {
           <Route path="duel/:duelId" element={<DuelRoom />} />
         </Route>
 
-        {/* <Route path="*" element={<Navigate to="/" replace />} /> */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
   );

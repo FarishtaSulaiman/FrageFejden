@@ -205,7 +205,6 @@ export type AllowRetryRequest = {
 
 // API
 export const QuizzesApi = {
-  // Quiz CRUD operations
   async getQuizzes(filter?: QuizFilter): Promise<QuizSummaryDto[]> {
     const res = await http.get<QuizSummaryDto[]>("/quizzes", { params: filter });
     return res.data;
@@ -275,7 +274,7 @@ export const QuizzesApi = {
     await http.post(`/quizzes/${id}/allow-retry`, request);
   },
 
-  // Legacy methods for backward compatibility
+
   async getQuestions(quizId: UUID, includeAnswers = false): Promise<Question[]> {
     const dto = await this.getQuizWithQuestions(quizId, includeAnswers);
     return dto.questions.map(q => ({

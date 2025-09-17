@@ -492,6 +492,7 @@ export default function QuizVyStudent(): React.ReactElement {
               <div>
                 <label className="block text-xs text-white/70 mb-1">Ämne</label>
                 <select
+                  aria-label="Create Invite"
                   className="w-full h-11 rounded-lg bg-white/10 px-3 text-[14px] outline-none ring-1 ring-white/10 focus:ring-white/30"
                   value={inviteSubjectId}
                   onChange={(e) => {
@@ -515,6 +516,7 @@ export default function QuizVyStudent(): React.ReactElement {
               <div>
                 <label className="block text-xs text-white/70 mb-1">Best of</label>
                 <input
+                  aria-label="InviteBestof"
                   type="number"
                   min={1}
                   max={15}
@@ -561,6 +563,7 @@ export default function QuizVyStudent(): React.ReactElement {
                     <label className="block text-xs text-white/70 mb-1">Inbjudningslänk</label>
                     <div className="flex gap-2">
                       <input
+                        aria-label="Cope Invite"
                         readOnly
                         value={inviteUrl}
                         className="flex-1 rounded-lg bg-white/10 px-3 py-2 text-white outline-none ring-1 ring-white/10"

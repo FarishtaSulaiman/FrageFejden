@@ -207,6 +207,7 @@ export default function ApiPlayground() {
             <div className="grid gap-4 rounded-2xl border p-4 shadow-sm">
                 <div className="flex flex-col md:flex-row gap-3">
                     <select
+                        aria-label="Test"
                         value={method}
                         onChange={(e) => setMethod(e.target.value)}
                         className="w-full md:w-40 rounded-xl border px-3 py-2"
