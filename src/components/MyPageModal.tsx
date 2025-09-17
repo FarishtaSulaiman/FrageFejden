@@ -101,7 +101,7 @@ const MyPageModal: React.FC<MyPageModalProps> = ({ isOpen, onClose }) => {
         CurrentPassword: "",
         NewPassword: "",
         Email: email,
-        AvatarUrl: `/assets/images/avatar/avatar${avatar}.png`,
+        AvatarUrl: `src/assets/images/avatar/avatar${avatar}.png`,
       };
 
       await AuthApiUser.editUser(dto);
