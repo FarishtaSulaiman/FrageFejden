@@ -34,7 +34,7 @@ export const UserCard: React.FC<UserCardProps> = ({ classId }) => {
 
     return (
         <div className={styles.userCard}>
-            <h2>Mina resultat</h2>
+            <h1>MINA RESULTAT</h1>
             <img src={userResult.avatarUrl} alt="Avatar" className={styles.avatar} />
     <div className={styles.username}>{userResult.username}</div>
     <div className={styles.score}>Poäng: {userResult.score}</div>
