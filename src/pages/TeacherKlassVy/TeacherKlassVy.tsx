@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import avatar1 from "../../assets/images/avatar/avatar1.png";
+import avatar from "../../assets/images/avatar/default-avatar.png";
 import { AuthApi, MeResp } from "../../Api/AuthApi/auth";
-import { Classes, SubjectsApi, SubjectDto } from "../../Api";
+import { TeacherClasses, SubjectsApi, SubjectDto } from "../../Api";
 
 // typdefinition för användare
 type User = {
@@ -37,7 +37,7 @@ type ClassStat = {
   quizzes: Quiz[];
 };
 
-//typdefinition för en aktivitet som visas i listan
+//typdefinition för en aktivitet
 type Activity = {
   time: string;
   klass: string;
@@ -46,57 +46,62 @@ type Activity = {
 };
 
 const TeacherKlassVy: React.FC = () => {
-  const navigate = useNavigate(); // navigering mellan sidor
+  const navigate = useNavigate();
 
-  //state för olika saker vi behöver spara
-  const [currentUser, setCurrentUser] = useState<MeResp | null>(null); // inloggad användare
-  const [classes, setClasses] = useState<ClassStat[]>([]); // alla klasser
-  const [className, setClassName] = useState<string>(""); // den klass som är vald
-  const [subjects, setSubjects] = useState<SubjectDto[]>([]); // ämnen för vald klass
-  const [recentActivity, setRecentActivity] = useState<Activity[]>([]); // senaste aktivitet
-  const [loading, setLoading] = useState<boolean>(false); //laddar-data indikator
-  const [error, setError] = useState<string | null>(null); //felmeddelande
+  const [currentUser, setCurrentUser] = useState<MeResp | null>(null);
+  const [classes, setClasses] = useState<ClassStat[]>([]);
+  const [className, setClassName] = useState<string>("");
+  const [subjects, setSubjects] = useState<SubjectDto[]>([]);
+  const [recentActivity, setRecentActivity] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
-  //state för modaler som tar bort användare eller quiz
   const [deleteUser, setDeleteUser] = useState<User | null>(null);
   const [deleteQuiz, setDeleteQuiz] = useState<Quiz | null>(null);
 
-  // hitta den aktuella klassen baserat på className
   const current = useMemo(
     () => classes.find((c) => c.id === className) ?? classes[0] ?? null,
     [className, classes]
   );
 
-  // ladda inloggad användare och deras klasser vid första render
   useEffect(() => {
     async function loadData() {
       try {
         setLoading(true);
-        const user = await AuthApi.getMe(); // hämtar info om inloggad användare
+        const user = await AuthApi.getMe();
         setCurrentUser(user);
 
-        // hämtar alla klasser läraren har
-        const teacherClasses = await Classes.GetUsersClasses();
-        const mappedClasses: ClassStat[] = teacherClasses.map((c: any) => ({
-          id: c.id,
-          name: c.name,
-          students: c.students ?? 0,
-          avgScore: c.avgScore ?? 0,
-          readingCompliance: c.readingCompliance ?? 0,
-          quizzesThisWeek: c.quizzesThisWeek ?? 0,
-          levelAvg: c.levelAvg ?? 0,
-          weeklyActivity: c.weeklyActivity ?? [],
-          streakDays: c.streakDays ?? 0,
-          subjects: [],
-          topStudents: c.topStudents ?? [],
-          users: c.users ?? [],
-          quizzes: c.quizzes ?? [],
-        }));
+        const teacherClasses = await TeacherClasses.GetCreatedClasses();
+        console.log("Created classes:", teacherClasses);
+
+        // Hämta elever för varje klass
+        const mappedClasses: ClassStat[] = await Promise.all(
+          teacherClasses.map(async (c: any) => {
+            const students = await TeacherClasses.GetClassStudents(c.id);
+
+            return {
+              id: c.id,
+              name: c.name,
+              students: students.length,
+              avgScore: c.avgScore ?? 0,
+              readingCompliance: c.readingCompliance ?? 0,
+              quizzesThisWeek: c.quizzesThisWeek ?? 0,
+              levelAvg: c.levelAvg ?? 0,
+              weeklyActivity: c.weeklyActivity ?? [],
+              streakDays: c.streakDays ?? 0,
+              subjects: [],
+              topStudents: c.topStudents ?? [],
+              users: students,
+              quizzes: c.quizzes ?? [],
+            };
+          })
+        );
+
         setClasses(mappedClasses);
-        setClassName(mappedClasses[0]?.id ?? ""); //välj första klassen som standard
+        setClassName(mappedClasses[0]?.id ?? "");
       } catch (err) {
         console.error(err);
-        setError("Kunde inte ladda data"); // visar felmeddelande
+        setError("Kunde inte ladda data");
       } finally {
         setLoading(false);
       }
@@ -105,7 +110,6 @@ const TeacherKlassVy: React.FC = () => {
     loadData();
   }, []);
 
-  //laddar ämnen för den valda klassen när className ändras
   useEffect(() => {
     async function loadSubjects() {
       if (!className) return;
@@ -166,9 +170,9 @@ const TeacherKlassVy: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           <img
-            src={currentUser?.avatarUrl ?? avatar1}
+            src={currentUser?.avatarUrl ?? avatar}
             className="w-9 h-9 rounded-full ring-1 ring-white/20"
-            alt="Admin"
+            alt="Avatar"
           />
         </div>
       </header>
