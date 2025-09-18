@@ -116,5 +116,34 @@ export const Classes = {
     const me = ranked.find((r) => r.userId === userId);
     return me?.rank ?? null;
   },
+
+  async GetClassMembersVisible(classId: string): Promise<
+    Array<{
+      id: string;
+      userId?: string;
+      fullName?: string;
+      name?: string;
+      avatarUrl?: string | null;
+      photoUrl?: string | null;
+    }>
+  > {
+    try {
+      const res = await http.get(`/Class/${classId}/members/visible`);
+      const data = res.data;
+      if (Array.isArray(data)) return data;
+      if (Array.isArray(data?.items)) return data.items;
+      return [];
+    } catch (err: any) {
+      // Fallback om visible-endpoint saknas
+      if (err?.response?.status === 404) {
+        const res = await http.get(`/Class/${classId}/members`);
+        const data = res.data;
+        if (Array.isArray(data)) return data;
+        if (Array.isArray(data?.items)) return data.items;
+        return [];
+      }
+      throw err;
+    }
+  },
 };
 
