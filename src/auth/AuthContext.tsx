@@ -6,177 +6,232 @@ import { AuthApi } from "../Api/index";
 type Role = string;
 
 export type Me = {
-    id: string;
-    email?: string;
-    userName?: string;
-    roles: Role[];
-    exp?: number;
-    expiresAtMs?: number;
+  id: string;
+  email?: string;
+  userName?: string;
+  fullName?: string;
+  roles: Role[];
+  exp?: number;
+  expiresAtMs?: number;
 };
 
 type AuthState = {
-    user: Me | null;
-    login: (id: string, pw: string) => Promise<void>;
-    register: (email: string, userName: string, pw: string, fullName?: string) => Promise<void>;
-    logout: () => Promise<void>;
-    hasRole: (...roles: Role[]) => boolean;
-    refresh: () => Promise<void>;
+  user: Me | null;
+  login: (id: string, pw: string) => Promise<Me>; // ✅ returnerar Me
+  register: (email: string, userName: string, pw: string, fullName?: string) => Promise<Me>; // ✅ returnerar Me
+  logout: () => Promise<void>;
+  hasRole: (...roles: Role[]) => boolean;
+  refresh: () => Promise<void>;
+  loadingUser: boolean;
 };
 
 const Ctx = createContext<AuthState | null>(null);
 
-
-
 type AnyPayload = Record<string, unknown>;
 
 const isLikelyJwt = (s: unknown): s is string =>
-    typeof s === "string" && s.split(".").length === 3;
+  typeof s === "string" && s.split(".").length === 3;
 
 function firstString(obj: AnyPayload, ...keys: string[]): string | undefined {
-    for (const k of keys) {
-        const v = obj[k];
-        if (typeof v === "string" && v.trim() !== "") return v;
-    }
-    return undefined;
+  for (const k of keys) {
+    const v = obj[k];
+    if (typeof v === "string" && v.trim() !== "") return v;
+  }
+  return undefined;
 }
 
 function readRoles(p: AnyPayload): string[] {
-    const candidates = [
-        p["role"],
-        p["roles"],
-        p["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"],
-    ];
-    for (const c of candidates) {
-        if (!c) continue;
-        if (Array.isArray(c)) return c.filter((x): x is string => typeof x === "string");
-        if (typeof c === "string" && c.trim()) return [c];
-    }
-    return [];
+  const candidates = [
+    p["role"],
+    p["roles"],
+    p["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"],
+  ];
+  for (const c of candidates) {
+    if (!c) continue;
+    if (Array.isArray(c)) return c.filter((x): x is string => typeof x === "string");
+    if (typeof c === "string" && c.trim()) return [c];
+  }
+  return [];
 }
 
-/** Robustly decode token -> Me (UI hints only). */
+/** Decode token -> Me */
 function decodeTokenToMe(token: string): Me {
-    const p = jwtDecode<AnyPayload>(token) as AnyPayload;
+  const p = jwtDecode<AnyPayload>(token) as AnyPayload;
 
-    const id =
-        firstString(
-            p,
-            "sub",
-            "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
-        ) ?? "";
+  const id =
+    firstString(
+      p,
+      "sub",
+      "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
+    ) ?? "";
 
-    const email = firstString(
-        p,
-        "email",
-        "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"
-    );
+  const email = firstString(
+    p,
+    "email",
+    "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"
+  );
 
-    const userName = firstString(
-        p,
-        "unique_name",
-        "name",
-        "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"
-    );
+  const userName = firstString(
+    p,
+    "unique_name",
+    "name",
+    "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"
+  );
 
-    const roles = readRoles(p);
+  const fullName = firstString(p, "fullName", "name", "unique_name");
 
+  const roles = readRoles(p);
 
-    const xpRaw = (p["xp"] ?? p["experience"] ?? p["exp_points"]) as unknown;
-    const exp = typeof xpRaw === "number" ? xpRaw : undefined;
+  const jwtExp = p["exp"];
+  const expiresAtMs = typeof jwtExp === "number" ? jwtExp * 1000 : undefined;
 
-
-    const jwtExp = p["exp"];
-    const expiresAtMs = typeof jwtExp === "number" ? jwtExp * 1000 : undefined;
-
-    return { id, email, userName, roles, exp, expiresAtMs };
+  return { id, email, userName, fullName, roles, expiresAtMs };
 }
 
 export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
-
-    const [user, setUser] = useState<Me | null>(() => {
-        const t = tokenStorage.get();
-        if (!isLikelyJwt(t)) {
-            tokenStorage.clear();
-            return null;
-        }
-        try {
-            const me = decodeTokenToMe(t);
-
-            if (me.expiresAtMs && me.expiresAtMs <= Date.now()) {
-                tokenStorage.clear();
-                return null;
-            }
-            return me;
-        } catch {
-            tokenStorage.clear();
-            return null;
-        }
-    });
-
-
-    useEffect(() => {
-        if (!user?.expiresAtMs) return;
-        const ms = user.expiresAtMs - Date.now();
-        if (ms <= 0) {
-            void logout();
-            return;
-        }
-        const id = setTimeout(() => void logout(), ms);
-        return () => clearTimeout(id);
-    }, [user?.expiresAtMs]);
-
-    const login = async (id: string, pw: string) => {
-        const token = await AuthApi.login({ emailOrUserName: id, password: pw });
-        if (!isLikelyJwt(token)) throw new Error("Server returned an invalid token");
-        tokenStorage.set(token);
-        setUser(decodeTokenToMe(token));
-    };
-
-    const register = async (email: string, userName: string, password: string, fullName?: string) => {
-        const token = await AuthApi.register({ email: email.trim(), userName: userName.trim(), password, fullName });
-        if (!isLikelyJwt(token)) throw new Error("Server returned an invalid token");
-        tokenStorage.set(token);
-        setUser(decodeTokenToMe(token));
-    };
-
-    const logout = async () => {
-        try {
-            await AuthApi.logout();
-        } catch { }
+  const [user, setUser] = useState<Me | null>(() => {
+    const t = tokenStorage.get();
+    if (!isLikelyJwt(t)) {
+      tokenStorage.clear();
+      return null;
+    }
+    try {
+      const me = decodeTokenToMe(t);
+      if (me.expiresAtMs && me.expiresAtMs <= Date.now()) {
         tokenStorage.clear();
-        setUser(null);
-    };
+        return null;
+      }
+      return me;
+    } catch {
+      tokenStorage.clear();
+      return null;
+    }
+  });
 
-    const hasRole = (...roles: Role[]) => !!user && roles.some((r) => user.roles.includes(r));
+  const [loadingUser, setLoadingUser] = useState(false);
 
+  // auto-refresh vid mount
+  useEffect(() => {
+    (async () => {
+      if (!user) return;
+      setLoadingUser(true);
+      try {
+        const me = await AuthApi.getMe();
+        setUser((u): Me | null => {
+          if (!u) return u;
+          const next: Me = { ...u };
+          if (me.id) next.id = me.id;
+          if (me.userName) next.userName = me.userName;
+          if (me.fullName) next.fullName = me.fullName;
+          if (Array.isArray(me.roles)) next.roles = me.roles;
+          if (typeof me.exp === "number") next.exp = me.exp;
+          return next;
+        });
+      } catch {}
+      setLoadingUser(false);
+    })();
+  }, []);
 
-    const refresh = async () => {
-        try {
-            const me = await AuthApi.getMe(); // MeResp
-            setUser((u): Me | null => {
-                if (!u) return u;
+  useEffect(() => {
+    if (!user?.expiresAtMs) return;
+    const ms = user.expiresAtMs - Date.now();
+    if (ms <= 0) {
+      void logout();
+      return;
+    }
+    const id = setTimeout(() => void logout(), ms);
+    return () => clearTimeout(id);
+  }, [user?.expiresAtMs]);
 
-                const next: Me = { ...u };
-                if (me.id) next.id = me.id;
-                if (me.userName) next.userName = me.userName;
-                if (Array.isArray(me.roles)) next.roles = me.roles;
-                if (typeof me.exp === "number") next.exp = me.exp;
+  const login = async (id: string, pw: string): Promise<Me> => {
+    setLoadingUser(true);
+    const token = await AuthApi.login({ emailOrUserName: id, password: pw });
+    if (!isLikelyJwt(token)) throw new Error("Server returned an invalid token");
+    tokenStorage.set(token);
 
+    let me: Me;
+    try {
+      me = await AuthApi.getMe(); // hämta från backend
+      setUser(me);
+    } catch {
+      me = decodeTokenToMe(token); // fallback
+      setUser(me);
+    }
 
+    setLoadingUser(false);
+    return me; // ✅ returnerar Me direkt
+  };
 
-                return next;
-            });
-        } catch (e) {
-        }
-    };
+  const register = async (
+    email: string,
+    userName: string,
+    password: string,
+    fullName?: string
+  ): Promise<Me> => {
+    setLoadingUser(true);
+    const token = await AuthApi.register({
+      email: email.trim(),
+      userName: userName.trim(),
+      password,
+      fullName,
+    });
+    if (!isLikelyJwt(token)) throw new Error("Server returned an invalid token");
+    tokenStorage.set(token);
 
-    const value = useMemo<AuthState>(() => ({ user, login, register, logout, hasRole, refresh }), [user]);
+    let me: Me;
+    try {
+      me = await AuthApi.getMe();
+      setUser(me);
+    } catch {
+      me = decodeTokenToMe(token);
+      setUser(me);
+    }
 
-    return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+    setLoadingUser(false);
+    return me; // ✅ returnerar Me direkt
+  };
+
+  const logout = async () => {
+    setLoadingUser(true);
+    try {
+      await AuthApi.logout();
+    } catch {}
+    tokenStorage.clear();
+    setUser(null);
+    setLoadingUser(false);
+  };
+
+  const hasRole = (...roles: Role[]) =>
+    !!user && roles.some((r) => user.roles.includes(r));
+
+  const refresh = async () => {
+    setLoadingUser(true);
+    try {
+      const me = await AuthApi.getMe();
+      setUser((u): Me | null => {
+        if (!u) return u;
+        const next: Me = { ...u };
+        if (me.id) next.id = me.id;
+        if (me.userName) next.userName = me.userName;
+        if (me.fullName) next.fullName = me.fullName;
+        if (Array.isArray(me.roles)) next.roles = me.roles;
+        if (typeof me.exp === "number") next.exp = me.exp;
+        return next;
+      });
+    } catch {}
+    setLoadingUser(false);
+  };
+
+  const value = useMemo<AuthState>(
+    () => ({ user, login, register, logout, hasRole, refresh, loadingUser }),
+    [user, loadingUser]
+  );
+
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 };
 
 export const useAuth = () => {
-    const v = useContext(Ctx);
-    if (!v) throw new Error("useAuth must be used within AuthProvider");
-    return v;
+  const v = useContext(Ctx);
+  if (!v) throw new Error("useAuth must be used within AuthProvider");
+  return v;
 };
