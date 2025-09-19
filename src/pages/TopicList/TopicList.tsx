@@ -47,7 +47,7 @@ export default function QuizVyStudent(): React.ReactElement {
     const [loading, setLoading] = useState(true);
 
     // Vald topic
-    const [selected, setSelected] = useState<{ id: string; name: string } | null>(null);
+    const [selected, setSelected] = useState<UINormalizedTopic | null>(null);
 
     // 1) Boot: user, score, first class, rank  (runs once)
     useEffect(() => {
@@ -194,8 +194,9 @@ export default function QuizVyStudent(): React.ReactElement {
     function handleConfirm() {
         if (!selected) return;
         const cid = classId ?? "";
+        const sid = selected.subjectId;
         // till nivå-/progressvyn för topic
-        navigate(`/topics/${selected.id}?classId=${cid}`);
+        navigate(`/topics/${selected.id}?classId=${cid}&subjectId=${sid}`);
     }
 
     return (
@@ -262,34 +263,36 @@ export default function QuizVyStudent(): React.ReactElement {
             {/* Topic-kort */}
             <section className="mx-auto max-w-[1100px] px-4 pt-6">
                 <div className="grid grid-cols-1 place-items-center gap-x-16 gap-y-10 sm:grid-cols-2">
-                    {topicCards.map((t) => {
-                        const isSelected = selected?.id === t.id;
-                        return (
-                            <button
-                                key={t.id}
-                                type="button"
-                                onClick={() => setSelected({ id: t.id, name: t.label })}
-                                aria-pressed={isSelected}
-                                className="relative w-full max-w-[460px] text-left"
-                                disabled={loading}
-                            >
-                                {isSelected && (
-                                    <div className="pointer-events-none absolute -inset-[6px] rounded-[26px] ring-2 ring-white/95 shadow-[0_0_0_6px_rgba(255,255,255,0.08)]" />
-                                )}
-                                <article className="relative h-[140px] w-full rounded-[26px] border border-[#1E2A49] bg-[#0E1629] px-7 py-6 shadow-[0_22px_48px_rgba(0,0,0,0.5)]">
-                                    <div className="flex h-full items-center gap-6">
-                                        <div className="flex h-[84px] w-[84px] items-center justify-center rounded-2xl bg-gradient-to-b from-[#0E1A34] to-[#0B152A] ring-1 ring-white/5 shadow-[0_12px_28px_rgba(0,0,0,0.45)]">
-                                            <img src={t.icon} alt={t.label} className="h-[56px] w-[56px]" />
-                                        </div>
-                                        <div className="translate-y-[-2px]">
-                                            <h3 className="text-[20px] font-semibold">{t.label}</h3>
-                                            <p className="mt-1 text-[13px] text-white/65">{t.sub}</p>
-                                        </div>
-                                    </div>
-                                </article>
-                            </button>
-                        );
-                    })}
+                    {topics.map((t) => {
+  const isSelected = selected?.id === t.id;
+  return (
+    <button
+      key={t.id}
+      type="button"
+      onClick={() => setSelected(t)} // ✅ Nu är t av rätt typ
+      aria-pressed={isSelected}
+      className="relative w-full max-w-[460px] text-left"
+      disabled={loading}
+    >
+      {isSelected && (
+        <div className="pointer-events-none absolute -inset-[6px] rounded-[26px] ring-2 ring-white/95 shadow-[0_0_0_6px_rgba(255,255,255,0.08)]" />
+      )}
+      <article className="relative h-[140px] w-full rounded-[26px] border border-[#1E2A49] bg-[#0E1629] px-7 py-6 shadow-[0_22px_48px_rgba(0,0,0,0.5)]">
+        <div className="flex h-full items-center gap-6">
+          <div className="flex h-[84px] w-[84px] items-center justify-center rounded-2xl bg-gradient-to-b from-[#0E1A34] to-[#0B152A] ring-1 ring-white/5 shadow-[0_12px_28px_rgba(0,0,0,0.45)]">
+            <img src={subjectIconFor(t.subjectName)} alt={t.name} className="h-[56px] w-[56px]" />
+          </div>
+          <div className="translate-y-[-2px]">
+            <h3 className="text-[20px] font-semibold">{t.name}</h3>
+            <p className="mt-1 text-[13px] text-white/65">
+              {t.levelCount > 0 ? `${t.levelCount} nivåer` : "Inga nivåer ännu"}
+            </p>
+          </div>
+        </div>
+      </article>
+    </button>
+  );
+})}
 
                     {!loading && topicCards.length === 0 && (
                         <div className="col-span-full text-center text-white/75 text-sm">
