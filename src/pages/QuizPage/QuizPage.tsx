@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import globe from "../../assets/images/icons/geografy-icon.png";
 import { QuizzesApi, type Question, type UUID } from "../../Api/QuizApi/Quizzes";
 import { AttemptsApi } from "../../Api/QuizApi/Attempts";
+import { http } from "../../lib/http";
 
 const DEV_BYPASS_LOCK = true;
 const PASS_PCT = 70;
@@ -320,6 +321,21 @@ export default function QuizPage(): React.ReactElement {
           passed: r.passed,
           nextLevelId: r.nextLevelId ?? undefined,
         });
+
+        //Lägg till poäng till användaren i ämnet baserat på quizet
+      const subjectId = search.get("subjectId");
+      if (subjectId) {
+        try {
+          const {data : user } = await http.get('Auth/me');
+          await http.post(`/Subject/${subjectId}/user/${user.id}/entries`, {
+            exp: r.score,
+          });
+        console.log('Score tillagt:', r.score);
+        } catch (err) {
+          console.error('Kunde inte lägga till score:', err);
+        }
+      }
+
         setAttemptId(null);
       } catch (err) {
         console.error("finishAttempt error", err);
