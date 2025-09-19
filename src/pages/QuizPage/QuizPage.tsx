@@ -192,10 +192,7 @@ export default function QuizPage(): React.ReactElement {
                 <div className="text-3xl font-extrabold">{(result.durationMs / 1000).toFixed(0)}s</div>
                 <div className="text-xs text-white/70 mt-1">Tid</div>
               </div>
-              <div>
-                <div className="text-3xl font-extrabold">+{result.xpEarned}</div>
-                <div className="text-xs text-white/70 mt-1">XP</div>
-              </div>
+           
             </div>
 
             {passed ? (
