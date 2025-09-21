@@ -5,22 +5,6 @@ interface RoleRouteProps {
   allowedRoles: string[];
 }
 
-
-function normalizeRole(role: string): string {
-  switch (role.toLowerCase()) {
-    case "lärare":
-    case "teacher":
-      return "Teacher";
-    case "elev":
-    case "student":
-      return "Student";
-    case "admin":
-      return "Admin";
-    default:
-      return role;
-  }
-}
-
 export default function RoleRoute({ allowedRoles }: RoleRouteProps) {
   const { user } = useAuth();
 
@@ -28,19 +12,32 @@ export default function RoleRoute({ allowedRoles }: RoleRouteProps) {
     return <Navigate to="/" replace />;
   }
 
-  const normalizedRoles = user.roles?.map(normalizeRole) ?? [];
+  const userRoles = user.roles ?? [];
 
-  if (normalizedRoles.includes("Admin")) {
-    return <Outlet />;
+  // Admin → admin dashboard
+  if (userRoles.includes("admin")) {
+    if (allowedRoles.includes("admin")) {
+      return <Outlet />;
+    }
+    return <Navigate to="/admin" replace />;
   }
 
-  const hasAccess = normalizedRoles.some((role) =>
-    allowedRoles.map(normalizeRole).includes(role)
-  );
-
-  if (!hasAccess) {
-    return <Navigate to="/not-authorized" replace />;
+  // Teacher → TeacherKlassVy (landing page)
+  if (userRoles.includes("teacher")) {
+    if (allowedRoles.includes("teacher")) {
+      return <Outlet />;
+    }
+    return <Navigate to="/teacher/klassvy" replace />;
   }
 
-  return <Outlet />;
+  // Student → StudentDashboard (landing page)
+  if (userRoles.includes("student")) {
+    if (allowedRoles.includes("student")) {
+      return <Outlet />;
+    }
+    return <Navigate to="/studentdashboard" replace />;
+  }
+
+  // Fallback
+  return <Navigate to="/not-authorized" replace />;
 }

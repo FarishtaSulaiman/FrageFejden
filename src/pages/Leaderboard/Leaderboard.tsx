@@ -14,7 +14,7 @@ export const Leaderboard = () => {
     const fetchClass = async () => {
       const classes = await Classes.GetUsersClasses();
       if (classes.length > 0) {
-        setClassId(classes[0].id); // Välj första klass, eller filtrera efter roll
+        setClassId(classes[0].id); 
       }
     };
     fetchClass();
