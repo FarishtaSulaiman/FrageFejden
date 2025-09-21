@@ -25,7 +25,7 @@ export default function WsLab(): React.ReactElement {
 
     const me = React.useMemo(() => ({ id: myId, name: name.trim() || "Player" }), [myId, name]);
     const { connected, users, logs, sendPing, sendLeave } = useWsPresence(room.trim(), me);
-
+    
     return (
         <div className="min-h-screen bg-[#0A0F1F] text-white">
             <div className="mx-auto max-w-3xl p-6 space-y-6">
