@@ -1,6 +1,10 @@
+//src/Api/TopicsApi/topics.ts
 import { http } from "../../lib/http";
 
 /* ===== DTO:er som matchar TopicsController ===== */
+
+export type LevelCompleteResponse = TopicProgressDto;
+
 
 export type TopicSummaryDto = {
     topicId: string;
@@ -73,6 +77,24 @@ export type TopicProgressDto = {
     levels: TopicLevelStatusDto[];
 };
 
+export type LevelStudyDto = {
+    levelId: string;
+    topicId: string;
+    levelNumber: number;
+    title?: string | null;
+    minXpUnlock: number;
+    studyText?: string | null;
+};
+
+export type LevelStudyUpdateDto = {
+    studyText?: string | null;
+};
+
+export type LevelStudyReadStatusDto = {
+    hasReadStudyText: boolean;
+    readAt?: string | null;
+};
+
 /* =======================
  * Topics API (frontend)
  * ======================= */
@@ -136,4 +158,31 @@ export const topicApi = {
         const res = await http.get<TopicProgressDto>(`/topics/${topicId}/progress`);
         return res.data;
     },
+
+    async getLevelStudy(topicId: string, levelId: string): Promise<LevelStudyDto> {
+        const res = await http.get<LevelStudyDto>(`/topics/${topicId}/levels/${levelId}/study`);
+        return res.data;
+    },
+
+    // Uppdatera/ersätt studietext (admin/teacher)
+    async updateLevelStudy(topicId: string, levelId: string, body: LevelStudyUpdateDto): Promise<void> {
+        await http.put(`/topics/${topicId}/levels/${levelId}/study`, body);
+    },
+
+    // Markera studietext som läst för aktuell användare
+    async markStudyRead(topicId: string, levelId: string): Promise<LevelStudyReadStatusDto> {
+        const res = await http.post<LevelStudyReadStatusDto>(`/topics/${topicId}/levels/${levelId}/study/read`, {});
+        return res.data;
+    },
+
+    // Hämta lässtatus för aktuell användare
+    async getStudyReadStatus(topicId: string, levelId: string): Promise<LevelStudyReadStatusDto> {
+        const res = await http.get<LevelStudyReadStatusDto>(`/topics/${topicId}/levels/${levelId}/study/read`);
+        return res.data;
+    },
+
+    async completeLevel(topicId: string, levelId: string): Promise<LevelCompleteResponse> {
+        const res = await http.post<LevelCompleteResponse>(`/topics/${topicId}/levels/${levelId}/complete`, {});
+        return res.data;
+    }
 };

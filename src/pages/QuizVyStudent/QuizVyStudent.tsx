@@ -1,19 +1,68 @@
 // src/pages/QuizVyStudent/QuizVyStudent.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AuthApi, Classes, SubjectsApi, QuizzesApi, ClassMemberShips } from "../../Api/index";
+import { AuthApi, Classes, SubjectsApi } from "../../Api/index";
+import { DuelApi, type DuelDto } from "../../Api/DuelApi/Duel";
 
 import titleImg from "../../assets/images/titles/frageFejden-title-pic.png";
 import rankingIcon from "../../assets/images/icons/ranking-icon.png";
 import scoreIcon from "../../assets/images/icons/score-icon.png";
 import avatarImg from "../../assets/images/avatar/avatar1.png";
 
+function getWsUrl(): string {
+  // mirrors useWsPresence URL resolution
+  const env = (import.meta as any)?.env?.VITE_DUEL_WS_URL as string | undefined;
+  if (env) {
+    if (env.startsWith("/")) {
+      const scheme = location.protocol === "https:" ? "wss" : "ws";
+      return `${scheme}://${location.host}${env}`;
+    }
+    return env; // absolute ws(s)://...
+  }
+  const scheme = location.protocol === "https:" ? "wss" : "ws";
+  return `${scheme}://${location.hostname}:3001`;
+}
+
+
+
+async function sendInviteNotification(toUserId: string, payload: any) {
+  return new Promise<void>((resolve) => {
+    try {
+      const ws = new WebSocket(getWsUrl());
+      let done = false;
+
+      const finish = () => {
+        if (done) return;
+        done = true;
+        try { ws.close(); } catch { }
+        resolve();
+      };
+
+      ws.onopen = () => {
+        // no need to join a room — just emit NOTIFY
+        ws.send(JSON.stringify({
+          type: "NOTIFY",
+          toUserId,
+          event: "INVITED",
+          payload,
+        }));
+        // give the socket a brief moment to flush then close
+        setTimeout(finish, 150);
+      };
+
+      ws.onerror = finish;
+      ws.onclose = finish;
+    } catch {
+      resolve();
+    }
+  });
+}
+
 /** UI-subject (normaliserad) */
 type UINormalizedSubject = {
   id: string;
   name: string;
   iconUrl?: string | null;
-  // valfri metadata att visa under titeln
   levelsCount?: number;
   topicsCount?: number;
 };
@@ -23,12 +72,6 @@ type UIMember = {
   id: string;
   name: string;
   avatarUrl?: string | null;
-};
-
-/** Publicerade quiz (subset) för dropdown */
-type UIQuiz = {
-  id: string;
-  title: string;
 };
 
 /** Försök hitta ikon-URL på olika fältnamn + fallback till lokal ikon */
@@ -41,9 +84,16 @@ function resolveIconUrl(s: any): string {
 /** Liten hjälpmetod för id */
 const genId = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
+/** ensure odd bestOf (server also normalizes, but UX feels better) */
+const ensureOdd = (n: number) => {
+  const v = Math.max(1, Math.floor(Number.isFinite(n) ? n : 5));
+  return v % 2 === 0 ? v + 1 : v;
+};
+
 export default function QuizVyStudent(): React.ReactElement {
   const navigate = useNavigate();
 
+  const [meId, setMeId] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState("Användare");
   const [className, setClassName] = useState("—");
   const [classId, setClassId] = useState<string | null>(null);
@@ -58,25 +108,25 @@ export default function QuizVyStudent(): React.ReactElement {
   const [members, setMembers] = useState<UIMember[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
 
-  // 📣 Inbjudan (öppnas via högerpanelen)
+  // 📣 Inbjudan
   const [inviteOpen, setInviteOpen] = useState(false);
   const [invitee, setInvitee] = useState<UIMember | null>(null);
-  const [inviteRoomId, setInviteRoomId] = useState<string>("");
   const [inviteSubjectId, setInviteSubjectId] = useState<string>("");
-  const [subjectQuizzes, setSubjectQuizzes] = useState<UIQuiz[]>([]);
-  const [quizzesLoading, setQuizzesLoading] = useState(false);
-  const [inviteQuizId, setInviteQuizId] = useState<string>("");
+  const [inviteBestOf, setInviteBestOf] = useState<number>(5);
 
+  // Skapad duel
+  const [createdDuel, setCreatedDuel] = useState<DuelDto | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  // Bygg delbar länk efter att en duel skapats
   const inviteUrl = useMemo(() => {
-    if (!inviteRoomId || !inviteSubjectId || !inviteQuizId) return "";
-    const url = new URL(window.location.origin + "/duel");
-    url.searchParams.set("room", inviteRoomId);
-    url.searchParams.set("subjectId", inviteSubjectId);
-    url.searchParams.set("quizId", inviteQuizId);
-    if (invitee?.id) url.searchParams.set("opponentId", invitee.id);
-    return url.toString();
-  }, [inviteRoomId, inviteSubjectId, inviteQuizId, invitee]);
+    if (!createdDuel?.id) return "";
+    return `${window.location.origin}/quizDuel?duelId=${createdDuel.id}`;
+  }, [createdDuel]);
 
+  // ──────────────────────────────────────────────────────────────────────────
+  // INIT: hämta användare, klass, ranking, ämnen
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -87,8 +137,10 @@ export default function QuizVyStudent(): React.ReactElement {
       try {
         me = await AuthApi.getMe();
         if (!alive) return;
+        setMeId(me?.id ?? null);
         setDisplayName(me?.fullName?.trim() || "Användare");
       } catch {
+        setMeId(null);
         setDisplayName("Användare");
       }
 
@@ -172,11 +224,13 @@ export default function QuizVyStudent(): React.ReactElement {
         if (!alive) return;
 
         const list = Array.isArray(res) ? res : [];
-        const normalized: UIMember[] = list.map((m: any) => ({
-          id: m.id ?? m.userId ?? genId(),
-          name: m.fullName ?? m.name ?? "Elev",
-          avatarUrl: m.avatarUrl ?? m.photoUrl ?? null,
-        }));
+        const normalized: UIMember[] = list
+          .map((m: any) => ({
+            id: m.id ?? m.userId ?? genId(),
+            name: m.fullName ?? m.name ?? "Elev",
+            avatarUrl: m.avatarUrl ?? m.photoUrl ?? null,
+          }))
+          .filter((m) => !meId || m.id !== meId); // filtrera bort mig själv
         setMembers(normalized);
       } catch (e) {
         console.warn("Kunde inte hämta klassmedlemmar – visar tom lista.", e);
@@ -188,38 +242,7 @@ export default function QuizVyStudent(): React.ReactElement {
     return () => {
       alive = false;
     };
-  }, [classId]);
-
-
-  // När modalens subject ändras → hämta publicerade quiz
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      if (!inviteSubjectId) {
-        setSubjectQuizzes([]);
-        setInviteQuizId("");
-        return;
-      }
-      try {
-        setQuizzesLoading(true);
-        const res = await QuizzesApi.getPublished({ SubjectId: inviteSubjectId });
-        if (!alive) return;
-        const items = Array.isArray(res?.Items) ? res.Items : [];
-        const quizzes: UIQuiz[] = items.map((q: any) => ({ id: q.id, title: q.title }));
-        setSubjectQuizzes(quizzes);
-        setInviteQuizId(quizzes[0]?.id ?? "");
-      } catch (e) {
-        console.error("Kunde inte hämta publicerade quiz:", e);
-        setSubjectQuizzes([]);
-        setInviteQuizId("");
-      } finally {
-        if (alive) setQuizzesLoading(false);
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [inviteSubjectId]);
+  }, [classId, meId]);
 
   // Ämneskort (vänsterspalt)
   const subjectCards = useMemo(() => {
@@ -244,10 +267,13 @@ export default function QuizVyStudent(): React.ReactElement {
   // Högerpanel: öppna inbjudan
   function openInviteFor(member: UIMember) {
     setInvitee(member);
-    setInviteRoomId(genId());
     // Förifyll ämne om det bara finns ett, annars tomt → låt användaren välja
     if (subjects.length === 1) setInviteSubjectId(subjects[0].id);
     else setInviteSubjectId("");
+    // återställ state för skapad duel
+    setInviteBestOf(5);
+    setCreatedDuel(null);
+    setCreateError(null);
     setInviteOpen(true);
   }
 
@@ -261,10 +287,60 @@ export default function QuizVyStudent(): React.ReactElement {
     }
   }
 
-  function startDuelNow() {
-    if (!inviteUrl) return;
-    navigate(`/duel?room=${encodeURIComponent(inviteRoomId)}&subjectId=${encodeURIComponent(inviteSubjectId)}&quizId=${encodeURIComponent(inviteQuizId)}${invitee?.id ? `&opponentId=${encodeURIComponent(invitee.id)}` : ""}`);
+  // ⬇️ INVITE IMPLEMENTATION (create duel + invite) — fixed/robust
+  async function createAndInvite() {
+    if (!invitee?.id) {
+      setCreateError("Välj en mottagare.");
+      return;
+    }
+    if (!inviteSubjectId) {
+      setCreateError("Välj ett ämne.");
+      return;
+    }
+
+    setCreating(true);
+    setCreateError(null);
+    try {
+      // 1) Skapa duell
+      const duel = await DuelApi.createDuel({
+        subjectId: inviteSubjectId,
+        levelId: null,
+        bestOf: ensureOdd(inviteBestOf),
+      });
+
+      // 2) Bjud in klasskompis (backend records invite)
+      await DuelApi.invite({
+        duelId: duel.id,
+        inviteeId: invitee.id,
+      });
+
+      // 3) Fire-and-forget WS notification to invitee (no rooms needed)
+      const subjectName = subjects.find(s => s.id === inviteSubjectId)?.name ?? "Ämne";
+      await sendInviteNotification(invitee.id, {
+        duelId: duel.id,
+        subject: subjectName,
+        bestOf: ensureOdd(inviteBestOf),
+        fromName: displayName,   // you already have this in state
+      });
+
+      setCreatedDuel(duel);
+    } catch (e: any) {
+      const backendMsg =
+        e?.response?.data?.message ||
+        e?.response?.data ||
+        e?.message ||
+        "Ett fel uppstod när duellen skulle skapas eller inbjudan skickas.";
+      setCreateError(typeof backendMsg === "string" ? backendMsg : "Något gick fel.");
+    } finally {
+      setCreating(false);
+    }
   }
+
+  function startDuelNow() {
+    if (!createdDuel?.id) return;
+    navigate(`/duel/${createdDuel.id}`);
+  }
+
 
   return (
     <div className="min-h-screen bg-[#0A0F1F] text-white">
@@ -334,7 +410,9 @@ export default function QuizVyStudent(): React.ReactElement {
                           src={s.iconUrl || "/icons/open-book.png"}
                           alt={s.label}
                           className="h-[56px] w-[56px] object-contain"
-                          onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/icons/open-book.png"; }}
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src = "/icons/open-book.png";
+                          }}
                         />
                       </div>
                       <div className="translate-y-[-2px]">
@@ -347,7 +425,9 @@ export default function QuizVyStudent(): React.ReactElement {
               ))}
 
               {!loading && subjectCards.length === 0 && (
-                <div className="col-span-full text-center text-white/75 text-sm">Du har inga kurser inlagda ännu.</div>
+                <div className="col-span-full text-center text-white/75 text-sm">
+                  Du har inga kurser inlagda ännu.
+                </div>
               )}
             </div>
           </div>
@@ -358,13 +438,22 @@ export default function QuizVyStudent(): React.ReactElement {
               <h3 className="text-[16px] font-semibold">Klassmedlemmar</h3>
               {membersLoading && <span className="text-xs text-white/60">Laddar…</span>}
             </div>
-            <p className="mt-1 text-[12px] text-white/70">Bjud in någon till en snabb duell i ett valfritt ämne.</p>
+            <p className="mt-1 text-[12px] text-white/70">
+              Bjud in någon till en snabb duell i ett valfritt ämne.
+            </p>
 
             <div className="mt-4 space-y-2 max-h-[520px] overflow-auto pr-1">
               {members.map((m) => (
-                <div key={m.id} className="flex items-center justify-between rounded-xl bg-[#0F1728] px-3 py-2 ring-1 ring-white/10">
+                <div
+                  key={m.id}
+                  className="flex items-center justify-between rounded-xl bg-[#0F1728] px-3 py-2 ring-1 ring-white/10"
+                >
                   <div className="flex items-center gap-3">
-                    <img src={m.avatarUrl || avatarImg} alt={m.name} className="h-8 w-8 rounded-full ring-1 ring-white/10 object-cover" />
+                    <img
+                      src={m.avatarUrl || avatarImg}
+                      alt={m.name}
+                      className="h-8 w-8 rounded-full ring-1 ring-white/10 object-cover"
+                    />
                     <span className="text-sm">{m.name}</span>
                   </div>
                   <button
@@ -378,7 +467,9 @@ export default function QuizVyStudent(): React.ReactElement {
               ))}
 
               {!membersLoading && members.length === 0 && (
-                <div className="text-center text-xs text-white/60">Inga klasskamrater hittades.</div>
+                <div className="text-center text-xs text-white/60">
+                  Inga klasskamrater hittades.
+                </div>
               )}
             </div>
           </aside>
@@ -389,54 +480,131 @@ export default function QuizVyStudent(): React.ReactElement {
       {inviteOpen && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
           <div className="w-full max-w-[560px] rounded-2xl bg-[#0F1728] p-6 ring-1 ring-white/10">
-            <h3 className="text-center text-2xl font-extrabold">Bjud in {invitee?.name?.split(" ")[0] || "elev"}</h3>
-            <p className="mt-1 text-center text-white/80 text-sm">Välj ämne och quiz för duellen. Länken kan delas direkt.</p>
+            <h3 className="text-center text-2xl font-extrabold">
+              Bjud in {invitee?.name?.split(" ")[0] || "elev"}
+            </h3>
+            <p className="mt-1 text-center text-white/80 text-sm">
+              Välj ämne och antal rundor (best of). Länken visas efter att inbjudan skickats.
+            </p>
 
             <div className="mt-5 grid gap-4">
+              {/* Ämne */}
               <div>
                 <label className="block text-xs text-white/70 mb-1">Ämne</label>
                 <select
+                  aria-label="Create Invite"
                   className="w-full h-11 rounded-lg bg-white/10 px-3 text-[14px] outline-none ring-1 ring-white/10 focus:ring-white/30"
                   value={inviteSubjectId}
-                  onChange={(e) => setInviteSubjectId(e.target.value)}
+                  onChange={(e) => {
+                    setInviteSubjectId(e.target.value);
+                    setCreatedDuel(null);
+                    setCreateError(null);
+                  }}
                 >
-                  <option value="" disabled>Välj ämne…</option>
+                  <option value="" disabled>
+                    Välj ämne…
+                  </option>
                   {subjects.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
                   ))}
                 </select>
               </div>
 
+              {/* Best of */}
               <div>
-                <label className="block text-xs text-white/70 mb-1">Quiz</label>
-                <select
-                  className="w-full h-11 rounded-lg bg-white/10 px-3 text-[14px] outline-none ring-1 ring-white/10 focus:ring-white/30 disabled:opacity-60"
-                  disabled={!inviteSubjectId || quizzesLoading || subjectQuizzes.length === 0}
-                  value={inviteQuizId}
-                  onChange={(e) => setInviteQuizId(e.target.value)}
-                >
-                  {!inviteSubjectId && <option value="">Välj ämne först</option>}
-                  {inviteSubjectId && quizzesLoading && <option value="">Laddar quiz…</option>}
-                  {inviteSubjectId && !quizzesLoading && subjectQuizzes.length === 0 && <option value="">Inga publicerade quiz</option>}
-                  {subjectQuizzes.map((q) => (
-                    <option key={q.id} value={q.id}>{q.title}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs text-white/70 mb-1">Länk</label>
-                <div className="flex gap-2">
-                  <input readOnly value={inviteUrl} className="flex-1 rounded-lg bg-white/10 px-3 py-2 text-white outline-none ring-1 ring-white/10" />
-                  <button type="button" onClick={copyInvite} className="rounded-lg bg-[#6B6F8A] px-4 text-sm font-semibold text-white hover:brightness-110">Kopiera</button>
+                <label className="block text-xs text-white/70 mb-1">Best of</label>
+                <input
+                  aria-label="InviteBestof"
+                  type="number"
+                  min={1}
+                  max={15}
+                  step={2}
+                  value={inviteBestOf}
+                  onChange={(e) => setInviteBestOf(Math.max(1, Math.min(15, Number(e.target.value) || 5)))}
+                  className="w-full h-11 rounded-lg bg-white/10 px-3 text-[14px] outline-none ring-1 ring-white/10 focus:ring-white/30"
+                />
+                <div className="mt-1 text-xs text-white/60">
+                  Udda tal rekommenderas (3, 5, 7...) så att det inte blir lika.
                 </div>
-                <div className="mt-1 text-xs text-white/60">Öppna länken i en annan flik för att testa som spelare 2.</div>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <button type="button" onClick={() => setInviteOpen(false)} className="h-11 rounded-lg bg-[#6B6F8A] px-5 text-sm font-semibold text-white hover:brightness-110">Stäng</button>
-                <button type="button" disabled={!inviteUrl} onClick={startDuelNow} className="h-11 rounded-lg bg-emerald-600 px-5 text-sm font-semibold text-white hover:brightness-110 disabled:opacity-50">Gå till duellrummet</button>
-              </div>
+              {/* Skapa + bjud in */}
+              {!createdDuel && (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    disabled={creating}
+                    onClick={() => {
+                      setInviteOpen(false);
+                      setCreatedDuel(null);
+                      setCreateError(null);
+                    }}
+                    className="h-11 rounded-lg bg-[#6B6F8A] px-5 text-sm font-semibold text-white hover:brightness-110 disabled:opacity-60"
+                  >
+                    Stäng
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!inviteSubjectId || creating}
+                    onClick={createAndInvite}
+                    className="h-11 rounded-lg bg-emerald-600 px-5 text-sm font-semibold text-white hover:brightness-110 disabled:opacity-50"
+                  >
+                    {creating ? "Skapar…" : "Skapa & bjud in"}
+                  </button>
+                </div>
+              )}
+
+              {/* Efter skapad duel: visa länk + actions */}
+              {createdDuel && (
+                <>
+                  <div>
+                    <label className="block text-xs text-white/70 mb-1">Inbjudningslänk</label>
+                    <div className="flex gap-2">
+                      <input
+                        aria-label="Cope Invite"
+                        readOnly
+                        value={inviteUrl}
+                        className="flex-1 rounded-lg bg-white/10 px-3 py-2 text-white outline-none ring-1 ring-white/10"
+                      />
+                      <button
+                        type="button"
+                        onClick={copyInvite}
+                        className="rounded-lg bg-[#6B6F8A] px-4 text-sm font-semibold text-white hover:brightness-110"
+                      >
+                        Kopiera
+                      </button>
+                    </div>
+                    <div className="mt-1 text-xs text-white/60">
+                      Skicka länken till {invitee?.name?.split(" ")[0] || "din klasskamrat"}.
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => setInviteOpen(false)}
+                      className="h-11 rounded-lg bg-[#6B6F8A] px-5 text-sm font-semibold text-white hover:brightness-110"
+                    >
+                      Stäng
+                    </button>
+                    <button
+                      type="button"
+                      onClick={startDuelNow}
+                      className="h-11 rounded-lg bg-emerald-600 px-5 text-sm font-semibold text-white hover:brightness-110"
+                    >
+                      Gå till duellrummet
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {createError && (
+                <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200">
+                  {createError}
+                </div>
+              )}
             </div>
           </div>
         </div>

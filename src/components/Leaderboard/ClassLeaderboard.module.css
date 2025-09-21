@@ -1,0 +1,60 @@
+.userList {
+  list-style: none;
+  max-width: 600px;
+  padding: 0;
+  margin: 0;
+  background-color: #3D1C87;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 1rem;
+}
+
+.userList h1 {
+  text-align: center;
+  margin-bottom: 1rem;
+  font-size: 2rem;
+  color: #ffffff;
+}
+
+.userItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid #fdfcfc;
+  font-size: 1rem;
+}
+
+.rank {
+  width: 40px;
+  text-align: left;
+}
+
+.userId {
+  flex: 1;
+  margin-left: 0.5rem;
+  font-weight: 600;
+}
+
+.score {
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.pagination button {
+  background-color: #5A31B4;
+  color: white;
+  border: none;
+  padding: 0.5rem 0.5rem;
+  margin: 0 0.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+}

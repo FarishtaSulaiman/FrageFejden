@@ -2,10 +2,13 @@ import { http } from "../../lib/http";
 
 export type UUID = string;
 
-export type DuelStatus = string;
-export type DuelResult = string;
-export type QuestionType = string;
-export type Difficulty = string;
+
+
+export type DuelStatus = "pending" | "active" | "completed";
+export type DuelResult = "win" | "lose" | "draw";
+export type QuestionType = "single" | "multi" | "truefalse";
+export type Difficulty = "easy" | "medium" | "hard";
+
 
 export interface CreateDuelRequest {
   subjectId: UUID;
@@ -30,6 +33,7 @@ export interface SubmitDuelAnswerRequest {
   timeMs: number;
 }
 
+
 export interface SubjectDto {
   id: UUID;
   name: string;
@@ -53,6 +57,7 @@ export interface QuestionOptionDto {
   id: UUID;
   optionText: string;
   sortOrder: number;
+
 }
 
 export interface QuestionDto {
@@ -119,10 +124,11 @@ export interface DuelStatsDto {
   bestStreak: number;
 }
 
+// Api
 const basePath = "/duel";
 
 export const DuelApi = {
-  /** Skapar en duel */
+  /** Skapa en duell */
   async createDuel(payload: CreateDuelRequest): Promise<DuelDto> {
     const { data } = await http.post<DuelDto>(`${basePath}`, payload);
     return data;
@@ -146,7 +152,7 @@ export const DuelApi = {
     return data;
   },
 
-  /** Starta en redo duel */
+  /** Starta en redo duell */
   async start(duelId: UUID): Promise<{ message: string }> {
     const { data } = await http.post<{ message: string }>(`${basePath}/${duelId}/start`, {});
     return data;
@@ -158,7 +164,7 @@ export const DuelApi = {
     return data;
   },
 
-  /** Hämta specifik duel */
+  /** Hämta en specifik duell */
   async getById(duelId: UUID): Promise<DuelDto> {
     const { data } = await http.get<DuelDto>(`${basePath}/${duelId}`);
     return data;
@@ -182,14 +188,14 @@ export const DuelApi = {
     return data;
   },
 
-  /** Statistik */
+  /** Statistik (globalt eller per ämne) */
   async stats(subjectId?: UUID): Promise<DuelStatsDto> {
     const params = subjectId ? { subjectId } : undefined;
     const { data } = await http.get<DuelStatsDto>(`${basePath}/stats`, { params });
     return data;
   },
 
-  /** Markera som klar (admin/system) */
+  /** Markera duell som klar (admin/system) */
   async complete(duelId: UUID): Promise<{ message: string }> {
     const { data } = await http.post<{ message: string }>(`${basePath}/${duelId}/complete`, {});
     return data;

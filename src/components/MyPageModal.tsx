@@ -16,7 +16,7 @@ import avatar10 from "../assets/images/avatar/avatar10.png";
 import avatar11 from "../assets/images/avatar/avatar11.png";
 import avatar12 from "../assets/images/avatar/avatar12.png";
 
-// lägg bilderna i en lista så vi kan loopa över dem
+// lägger bilderna i en lista så vi kan loopa över dem
 const avatars = [
   avatar1,
   avatar2,
@@ -44,6 +44,11 @@ const MyPageModal: React.FC<MyPageModalProps> = ({ isOpen, onClose }) => {
   const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState("");
   const [avatar, setAvatar] = useState<number | null>(null);
+
+  // lösenordsfält
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   // felmeddelande + laddning
   const [error, setError] = useState("");
@@ -88,23 +93,40 @@ const MyPageModal: React.FC<MyPageModalProps> = ({ isOpen, onClose }) => {
   // spara ändringar
   const handleSave = async () => {
     try {
+      setError(""); // nollställ tidigare fel
+
       if (!avatar) {
         setError("Du måste välja en avatar");
         return;
       }
 
+      // lösenordsvalidering
+      if (newPassword || confirmPassword) {
+        if (!currentPassword) {
+          setError(
+            "Du måste ange ditt nuvarande lösenord för att ändra lösenordet"
+          );
+          return;
+        }
+        if (newPassword !== confirmPassword) {
+          setError("Nytt lösenord och bekräftelse matchar inte");
+          return;
+        }
+      }
+
       setLoading(true);
 
-      // skickar till backend
+      // skapa DTO som skickas till backend
       const dto: EditUserDto = {
         UserName: username,
-        CurrentPassword: "",
-        NewPassword: "",
         Email: email,
-        AvatarUrl: `/assets/images/avatar/avatar${avatar}.png`,
+        AvatarUrl: `src/assets/images/avatar/avatar${avatar}.png`,
+        CurrentPassword: currentPassword || "",
+        NewPassword: newPassword || "",
       };
 
-      await AuthApiUser.editUser(dto);
+      await AuthApiUser.editUser(dto); // skicka ändringar till backend
+      window.location.reload(); // så sidan uppdateras efter man sparat
 
       onClose(); // stäng modalen efter sparat
     } catch {
@@ -137,41 +159,40 @@ const MyPageModal: React.FC<MyPageModalProps> = ({ isOpen, onClose }) => {
           {error && <div className="bg-red-500 p-3 rounded">{error}</div>}
           {loading && <div className="text-center">Laddar...</div>}
 
+          {/* fullständigt namn (låst) */}
+          <div>
+            <label className="block text-sm font-semibold mb-1">Namn</label>
+            <input
+              type="text"
+              value={`${firstName} ${lastName}`}
+              readOnly
+              className="w-full px-4 py-3 rounded bg-gray-400 text-black cursor-not-allowed"
+            />
+          </div>
+
           {/* email */}
-          <input
-            type="email"
-            value={email}
-            placeholder="Email"
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-3 rounded bg-gray-200 text-black"
-          />
-
-          {/* förnamn */}
-          <input
-            type="text"
-            value={firstName}
-            placeholder="Förnamn"
-            onChange={(e) => setFirstName(e.target.value)}
-            className="w-full px-4 py-3 rounded bg-gray-200 text-black"
-          />
-
-          {/* efternamn */}
-          <input
-            type="text"
-            value={lastName}
-            placeholder="Efternamn"
-            onChange={(e) => setLastName(e.target.value)}
-            className="w-full px-4 py-3 rounded bg-gray-200 text-black"
-          />
+          <div>
+            <label className="block text-sm font-semibold mb-1">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-3 rounded bg-gray-200 text-black"
+            />
+          </div>
 
           {/* användarnamn */}
-          <input
-            type="text"
-            value={username}
-            placeholder="Användarnamn"
-            onChange={(e) => setUsername(e.target.value)}
-            className="w-full px-4 py-3 rounded bg-gray-200 text-black"
-          />
+          <div>
+            <label className="block text-sm font-semibold mb-1">
+              Användarnamn
+            </label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full px-4 py-3 rounded bg-gray-200 text-black"
+            />
+          </div>
 
           {/* avatarer */}
           <div>
@@ -191,6 +212,45 @@ const MyPageModal: React.FC<MyPageModalProps> = ({ isOpen, onClose }) => {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* nuvarande lösenord */}
+          <div>
+            <label className="block text-sm font-semibold mb-1">
+              Nuvarande lösenord
+            </label>
+            <input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className="w-full px-4 py-3 rounded bg-gray-200 text-black"
+            />
+          </div>
+
+          {/* nytt lösenord */}
+          <div>
+            <label className="block text-sm font-semibold mb-1">
+              Nytt lösenord
+            </label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full px-4 py-3 rounded bg-gray-200 text-black"
+            />
+          </div>
+
+          {/* bekräfta nytt lösenord */}
+          <div>
+            <label className="block text-sm font-semibold mb-1">
+              Bekräfta nytt lösenord
+            </label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full px-4 py-3 rounded bg-gray-200 text-black"
+            />
           </div>
 
           {/* spara-knapp */}

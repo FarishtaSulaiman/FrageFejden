@@ -1,165 +1,306 @@
+// src/Api/QuizApi/Quizzes.ts
 import { http } from "../../lib/http";
 
-//Typedefinitioner
+// Types
+export type UUID = string;
 
-//Hämtar alla quizzar med filter
 export type Quiz = {
-  id: string;
+  id: UUID;
   title: string;
+  description?: string | null;
+  subjectId: UUID;
+  subjectName?: string | null;
+  levelId?: UUID | null;
+  levelTitle?: string | null;
+  levelNumber?: number | null;
+  classId?: UUID | null;
+  className?: string | null;
   isPublished: boolean;
+  createdById: UUID;
+  createdByName?: string | null;
+  questionCount: number;
+  attemptCount: number;
+  averageScore?: number | null;
   createdAt: string;
 };
 
 export type QuizFilter = {
-  SubjectId?: string;
-  LevelId?: string;
-  IsPublished?: boolean;
-  SearchTerm?: string;
-  PageNumber?: number;
-  PageSize?: number;
+  subjectId?: UUID;
+  levelId?: UUID;
+  classId?: UUID;
+  isPublished?: boolean;
+  searchTerm?: string;
+  pageNumber?: number;
+  pageSize?: number;
 };
 
-export type QuizListRes = {
-  TotalCount: number;
-  PageNumber: number;
-  PageSize: number;
-  Items: Quiz[];
-};
-
-//Skapa quiz
-
-export type QuizCreateDto = {
-  applicationUserId: string;
+export type CreateQuizDto = {
+  topicId: UUID;
+  subjectId?: UUID; // Optional, will be derived from topic
+  levelId?: UUID | null;
+  classId?: UUID | null;
   title: string;
-  subjectId: string;
-  levelId: string;
+  description?: string;
+  isPublished: boolean;
+  questionIds?: UUID[];
+};
+
+export type UpdateQuizDto = {
+  title: string;
+  description?: string;
+  isPublished: boolean;
+  levelId?: UUID | null;
+  classId?: UUID | null;
+};
+
+export type PublishQuizDto = {
   isPublished: boolean;
 };
 
-//Hämtar publicerade quizzar med filter
-
-export type PublishedQuizFilter = {
-  SubjectId?: string;
-  LevelId?: string;
-};
-
-//Uppdaterar quiz baserat på id
-export type QuizUpdateDto = {
-  id: string;
-  title?: string;
-  isPublished: boolean;
-  createdAt: string;
-  subjectId: string;
-  levelId: string;
-};
-
-//Hämta frågor med svar baserat på quiz id
-export type Question = {
-  id: string;
-  text: string;
-  answers: {
-    id: string;
-    text: string;
+export type UpdateQuizQuestionsDto = {
+  questions: {
+    questionId: UUID;
+    sortOrder: number;
   }[];
-  correctAnswerId: string;
 };
 
-//Uppdaterar ordningen i ett quiz
-export type QuestionOrderUpdateDto = {
-  questions: string[];
+export type QuizSummaryDto = {
+  id: UUID;
+  title: string;
+  description?: string | null;
+  subjectName?: string | null;
+  levelTitle?: string | null;
+  levelNumber?: number | null;
+  className?: string | null;
+  isPublished: boolean;
+  questionCount: number;
+  attemptCount: number;
+  createdAt: string;
 };
 
+export type QuizWithQuestionsDto = {
+  id: UUID;
+  subjectId: UUID;
+  subjectName: string;
+  levelId?: UUID | null;
+  levelTitle?: string | null;
+  levelNumber?: number | null;
+  classId?: UUID | null;
+  className?: string | null;
+  title: string;
+  description?: string | null;
+  isPublished: boolean;
+  createdById: UUID;
+  createdByName?: string | null;
+  createdAt: string;
+  questionCount: number;
+  attemptCount: number;
+  averageScore: number;
+  questions: QuizQuestionDto[];
+};
 
+export type QuizQuestionDto = {
+  id: UUID;
+  questionId: UUID;
+  sortOrder: number;
+  questionStem: string;
+  questionType: string;
+  difficulty: string;
+  options: QuestionOptionDto[];
+  correctOptionId?: UUID | null; // Only present when includeAnswers=true
+};
 
-//Hämtar alla quizzar med filter
+export type QuestionOptionDto = {
+  id: UUID;
+  optionText: string;
+  sortOrder: number;
+};
+
+export type QuizStatsDto = {
+  id: UUID;
+  title: string;
+  totalAttempts: number;
+  averageScore: number;
+  highestScore?: number | null;
+  lowestScore?: number | null;
+  passRate: number;
+  lastAttempt?: string | null;
+  recentAttempts: QuizAttemptSummaryDto[];
+};
+
+export type QuizAttemptSummaryDto = {
+  id: UUID;
+  userName: string;
+  startedAt: string;
+  completedAt?: string | null;
+  score?: number | null;
+  xpEarned: number;
+};
+
+// Legacy Question type for backward compatibility
+export type Question = {
+  id: UUID;
+  text: string;
+  answers: { id: UUID; text: string }[];
+  correctAnswerId?: UUID;
+};
+
+// Attempt types
+export type StartAttemptRequest = {
+  bypassLock?: boolean;
+};
+
+export type StartAttemptResponse = {
+  attemptId: UUID;
+};
+
+export type SubmitAnswerRequest = {
+  questionId: UUID;
+  selectedOptionId: UUID;
+  timeMs: number;
+};
+
+export type SubmitAnswerResponse = {
+  isCorrect: boolean;
+  correctOptionId?: UUID | null;
+};
+
+export type FinishAttemptResponse = {
+  score: number;
+  correctCount: number;
+  totalQuestions: number;
+  durationMs: number;
+  xpEarned: number;
+  passed: boolean;
+  nextLevelId?: UUID | null;
+};
+
+export type QuizStatusResponse = {
+  canAccess: boolean;
+  reason: string;
+  requiresUnlock: boolean;
+  canRetry: boolean;
+  hasCompleted: boolean;
+  bestScore?: number | null;
+  isLevelCompleted: boolean;
+  lastAttemptAt?: string | null;
+};
+
+export type UserQuizStatusDto = {
+  quizId: UUID;
+  canAccess: boolean;
+  hasCompleted: boolean;
+  bestScore?: number | null;
+  isLevelCompleted: boolean;
+  canRetry: boolean;
+  retryCount: number;
+  lastAttemptAt?: string | null;
+  xpEarned: number;
+};
+
+export type AllowRetryRequest = {
+  userId: UUID;
+  canRetry: boolean;
+};
+
+// API
 export const QuizzesApi = {
-  async getFiltered(filters: QuizFilter): Promise<QuizListRes> {
-    const res = await http.get("/quizzes", {
-      params: filters
+  async getQuizzes(filter?: QuizFilter): Promise<QuizSummaryDto[]> {
+    const res = await http.get<QuizSummaryDto[]>("/quizzes", { params: filter });
+    return res.data;
+  },
+
+  async getPublishedQuizzes(subjectId?: UUID, topicId?: UUID, levelId?: UUID): Promise<QuizSummaryDto[]> {
+    const params = { subjectId, topicId, levelId };
+    const res = await http.get<QuizSummaryDto[]>("/quizzes/published", { params });
+    return res.data;
+  },
+
+  async getQuiz(id: UUID): Promise<Quiz> {
+    const res = await http.get<Quiz>(`/quizzes/${id}`);
+    return res.data;
+  },
+
+  async getQuizWithQuestions(id: UUID, includeAnswers = false): Promise<QuizWithQuestionsDto> {
+    const res = await http.get<QuizWithQuestionsDto>(`/quizzes/${id}/questions`, {
+      params: { includeAnswers }
     });
     return res.data;
   },
 
-  //Skapar ett nytt quiz
-  async create(data: QuizCreateDto): Promise<Quiz> {
-    const res = await http.post("/quizzes", data);
+  async createQuiz(createDto: CreateQuizDto): Promise<Quiz> {
+    const res = await http.post<Quiz>("/quizzes", createDto);
     return res.data;
   },
 
-  //Hämtar publicerade quizzar med filter
-  async getPublished(filters: PublishedQuizFilter): Promise<QuizListRes> {
-    const res = await http.get("/quizzes/published", {
-      params: filters
-    });
+  async updateQuiz(id: UUID, updateDto: UpdateQuizDto): Promise<Quiz> {
+    const res = await http.put<Quiz>(`/quizzes/${id}`, updateDto);
     return res.data;
   },
 
-  //Hämtar quiz baserat på id
-  async getById(id: string): Promise<Quiz> {
-    const res = await http.get(`/quizzes/${id}`);
-    return res.data;
-  },
-
-  //Uppdaterar quiz baserat på id
-  async update(id: string, data: QuizUpdateDto): Promise<Quiz> {
-    const res = await http.put(`/quizzes/${id}`, data);
-    return res.data;
-  },
-
-  //Tar bort quiz baserat på id
-  async deleteById(id: string): Promise<void> {
+  async deleteQuiz(id: UUID): Promise<void> {
     await http.delete(`/quizzes/${id}`);
   },
 
-  //kollar om quiz existerar baserat på id
-  async exists(id: string): Promise<boolean> {
+  async publishQuiz(id: UUID, publishDto: PublishQuizDto): Promise<void> {
+    await http.patch(`/quizzes/${id}/publish`, publishDto);
+  },
+
+  async updateQuizQuestions(id: UUID, updateDto: UpdateQuizQuestionsDto): Promise<void> {
+    await http.put(`/quizzes/${id}/questions`, updateDto);
+  },
+
+  async getQuizStats(id: UUID): Promise<QuizStatsDto> {
+    const res = await http.get<QuizStatsDto>(`/quizzes/${id}/stats`);
+    return res.data;
+  },
+
+  async checkQuizAccess(id: UUID): Promise<boolean> {
     try {
-      await http.head(`/quizzes/${id}`);
+      await http.get(`/quizzes/${id}/access`);
       return true;
-    } catch (error) {
-      if ((error as any).response?.status === 404) return false;
+    } catch (error: any) {
+      if (error?.response?.status === 403) return false;
       throw error;
     }
   },
 
-  //Hämta quiz med frågor baserat på id
-  async getQuestions(id: string, includeAnswers = false): Promise<Question[]> {
-    const res = await http.get(`/quizzes/${id}/questions`, {
-      params: { includeAnswers },
-    });
+  async getMyQuizStatus(id: UUID): Promise<UserQuizStatusDto> {
+    const res = await http.get<UserQuizStatusDto>(`/quizzes/${id}/my-status`);
     return res.data;
   },
 
-  //Uppdaterar ordningen av frågor i ett quiz
-  async updateQuestionOrder(quizId: string, data: QuestionOrderUpdateDto): Promise<void> {
-    await http.put(`/quizzes/${quizId}/questions`, data);
+  async allowRetry(id: UUID, request: AllowRetryRequest): Promise<void> {
+    await http.post(`/quizzes/${id}/allow-retry`, request);
   },
 
-  //publicerar eller avpublicerar ett quiz
-  async setPublishedStatus(quizId: string, isPublished: boolean): Promise<void> {
-    await http.patch(`/quizzes/${quizId}/publish`, { isPublished });
+
+  async getQuestions(quizId: UUID, includeAnswers = false): Promise<Question[]> {
+    const dto = await this.getQuizWithQuestions(quizId, includeAnswers);
+    return dto.questions.map(q => ({
+      id: q.questionId,
+      text: q.questionStem,
+      answers: q.options.map(o => ({ id: o.id, text: o.optionText })),
+      correctAnswerId: q.correctOptionId || undefined
+    }));
   },
 
-  //Hämtar statistik för ett quiz baserat på id
-  async getStatistics(quizId: string): Promise<any> {
-    const res = await http.get(`/quizzes/${quizId}/statistics`);
-    return res.data;
-  },
-
-  //Hätmar alla quiz skapade av den inloggade användaren
-  async getMyQuizzes(): Promise<Quiz[]> {
-    const res = await http.get("/quizzes/my");
-    return res.data;
-  },
-
-  async canAccess(quizId: string): Promise<boolean> {
+  async exists(id: UUID): Promise<boolean> {
     try {
-      await http.get(`/quizzes/${quizId}/access`);
+      await this.getQuiz(id);
       return true;
-    } catch (error) {
-      if ((error as any).response?.status === 403) return false;
+    } catch (error: any) {
+      if (error?.response?.status === 404) return false;
       throw error;
     }
+  },
+
+  async canAccess(quizId: UUID): Promise<boolean> {
+    return this.checkQuizAccess(quizId);
+  },
+
+  // Utility methods
+  async setPublishedStatus(quizId: UUID, isPublished: boolean): Promise<void> {
+    await this.publishQuiz(quizId, { isPublished });
   }
-
 };
