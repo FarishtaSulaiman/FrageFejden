@@ -1,49 +1,51 @@
 /**
  * server/ws-presence.cjs
- * Kör: node server/ws-presence.cjs
+ * Run: node server/ws-presence.cjs
  *
- * Meddelanden från klient:
- * - { type:"HELLO", room:"duel-<id>", user:{id,name} }          // gå med i ett duell-rum (närvaro)
- * - { type:"READY", ready:boolean }                              // slå på/av "redo" i aktuellt rum
- * - { type:"HELLO_USER", user:{id,name} }                        // anslut som användare utan rum (för globala notiser)
- * - { type:"NOTIFY", toUserId:"...", event:"INVITED", payload }  // skicka direkt-notis till en viss användare
- * - { type:"LEAVE" }                                             // lämna nuvarande rum (om något)
- * - { type:"PING" }                                              // håll-vid-liv (klienten pingar, servern svarar)
+ * Messages from client:
+ * - { type:"HELLO", room:"duel-<id>", user:{id,name} }          // join a duel room (presence)
+ * - { type:"READY", ready:boolean }                              // toggle "ready" in current room
+ * - { type:"HELLO_USER", user:{id,name} }                        // connect as user without room (for global notifications)
+ * - { type:"NOTIFY", toUserId:"...", event:"INVITED", payload }  // send direct notification to specific user
+ * - { type:"LEAVE" }                                             // leave current room (if any)
+ * - { type:"PING" }                                              // keep-alive (client pings, server responds)
+ * - Any other message with type field                            // custom game messages to broadcast
  *
- * Meddelanden från server:
- * - { type:"CONNECTED", ts }                        // skickas direkt vid anslutning
- * - { type:"ACK", room }                            // kvittens efter HELLO (rum)
- * - { type:"ACK_USER" }                             // kvittens efter HELLO_USER
- * - { type:"SNAPSHOT", room, users:[{id,name,ready}] }  // aktuell närvarolista för ett rum
- * - { type:"LEFT", room, userId }                   // info om att en spelare lämnat
- * - { type:"PONG" }                                 // svar på PING
- * - { type: <event>, payload }                      // direkthändelser (NOTIFY), t.ex. {type:"INVITED", payload:{...}}
+ * Messages from server:
+ * - { type:"CONNECTED", ts }                        // sent immediately on connection
+ * - { type:"ACK", room }                            // acknowledgment after HELLO (room)
+ * - { type:"ACK_USER" }                             // acknowledgment after HELLO_USER
+ * - { type:"SNAPSHOT", room, users:[{id,name,ready}] }  // current presence list for a room
+ * - { type:"LEFT", room, userId }                   // info that a player left
+ * - { type:"PONG" }                                 // response to PING
+ * - { type: <event>, payload }                      // direct events (NOTIFY), e.g. {type:"INVITED", payload:{...}}
+ * - Any custom message                              // relayed custom game messages
  */
 
 const http = require("http");
 const { WebSocketServer } = require("ws");
 
-// Port för websocket-servern
+// Port for websocket server
 const PORT = Number(process.env.PORT || 3001);
 
-// Skapa enkel HTTP-server (behövs för ws)
+// Create simple HTTP server (needed for ws)
 const server = http.createServer();
 
-// Starta WebSocketServer och låt den använda HTTP-servern
+// Start WebSocketServer and let it use the HTTP server
 const wss = new WebSocketServer({ server, clientTracking: true });
 
 /**
- * Datastrukturer:
- * - rooms: Map<roomId, Set<ws>> håller vilka websockets som är i vilket rum
+ * Data structures:
+ * - rooms: Map<roomId, Set<ws>> holds which websockets are in which room
  * - meta: WeakMap<ws, { room: string|null, user:{id,name}, ready:boolean }>
- *   hör ihop med varje anslutning och lagrar vem/vilket rum/redo-status
+ *   associated with each connection and stores who/which room/ready status
  */
 const rooms = new Map();
 const meta = new WeakMap();
 
 /**
- * Hämtar alla användare i ett visst rum, inklusive deras "ready"-flagga.
- * Returnerar [{id,name,ready}, ...].
+ * Get all users in a specific room, including their "ready" flag.
+ * Returns [{id,name,ready}, ...].
  */
 function getUsersInRoom(room) {
     const set = rooms.get(room);
@@ -57,7 +59,7 @@ function getUsersInRoom(room) {
 }
 
 /**
- * Låt en socket gå med i ett rum, och spara user + resetta ready=false.
+ * Let a socket join a room, and save user + reset ready=false.
  */
 function joinRoom(ws, room, user) {
     if (!rooms.has(room)) rooms.set(room, new Set());
@@ -66,8 +68,8 @@ function joinRoom(ws, room, user) {
 }
 
 /**
- * Låt en socket lämna sitt rum (om den var med i något) och ta bort från mappar.
- * Returnerar { room, userId } för loggning/utsändning.
+ * Let a socket leave its room (if it was in any) and remove from maps.
+ * Returns { room, userId } for logging/broadcasting.
  */
 function leaveRoom(ws) {
     const m = meta.get(ws);
@@ -78,30 +80,37 @@ function leaveRoom(ws) {
         if (set.size === 0) rooms.delete(m.room);
     }
     const info = { room: m.room, userId: m.user?.id };
-    // Vi tar bort meta helt (enklare och säkert)
+    // We remove meta completely (simpler and safe)
     meta.delete(ws);
     return info;
 }
 
 /**
- * Skicka ett meddelande till alla i ett rum.
- * - payload: valfritt JS-objekt som serialiseras till JSON
- * - except: skicka inte till denna socket (ex. avsändaren) om satt
+ * Send a message to everyone in a room.
+ * - payload: optional JS object that gets serialized to JSON
+ * - except: don't send to this socket (e.g. the sender) if set
  */
 function broadcast(room, payload, except = null) {
     const set = rooms.get(room);
     if (!set) return;
     const msg = JSON.stringify(payload);
+    let sentCount = 0;
     for (const ws of set) {
         if (ws !== except && ws.readyState === ws.OPEN) {
-            try { ws.send(msg); } catch { /* ignorera sändfel */ }
+            try {
+                ws.send(msg);
+                sentCount++;
+            } catch {
+                console.log(`Failed to send to client in room ${room}`);
+            }
         }
     }
+    console.log(`📢 Broadcast to ${room}: ${payload.type} (sent to ${sentCount} clients)`);
 }
 
 /**
- * Skicka ett direktmeddelande till en viss användare (oavsett rum).
- * Går igenom alla öppna klienter, läser meta och matchar på user.id.
+ * Send a direct message to a specific user (regardless of room).
+ * Goes through all open clients, reads meta and matches on user.id.
  */
 function sendToUser(userId, payload) {
     const msg = JSON.stringify(payload);
@@ -110,74 +119,81 @@ function sendToUser(userId, payload) {
             const m = meta.get(client);
             if (client.readyState === client.OPEN && m?.user?.id === userId) {
                 client.send(msg);
+                console.log(`📤 Direct message to ${userId}: ${payload.type}`);
             }
-        } catch { /* ignorera sändfel */ }
+        } catch { /* ignore send errors */ }
     }
 }
 
 /**
- * När en klient ansluter:
- * - sätt upp ping/pong för att känna av döda anslutningar
- * - skicka ett CONNECTED-meddelande
- * - lyssna på inkommande meddelanden (HELLO, READY, HELLO_USER, NOTIFY, LEAVE, PING)
- * - hantera stängning och fel
+ * When a client connects:
+ * - set up ping/pong to detect dead connections
+ * - send a CONNECTED message
+ * - listen for incoming messages (HELLO, READY, HELLO_USER, NOTIFY, LEAVE, PING, custom)
+ * - handle closure and errors
  */
 wss.on("connection", (ws, req) => {
     const ip = req.socket.remoteAddress;
-    console.log(`🔗 WS-anslutning från ${ip}`);
+    console.log(`🔗 WS connection from ${ip}`);
 
-    // En enkel isAlive-flagga som sätts på "pong"
+    // A simple isAlive flag that gets set on "pong"
     ws.isAlive = true;
     ws.on("pong", () => (ws.isAlive = true));
 
-    // Hälsa välkommen – klienten vet då att koppling finns
+    // Welcome - client knows connection exists
     try { ws.send(JSON.stringify({ type: "CONNECTED", ts: Date.now() })); } catch { }
 
     ws.on("message", (raw) => {
         let data;
-        try { data = JSON.parse(String(raw)); } catch { return; }
+        try { data = JSON.parse(String(raw)); } catch {
+            console.log("Invalid JSON received");
+            return;
+        }
         if (!data || typeof data !== "object") return;
 
-        // ==== Rum/presence: gå med i ett rum (HELLO) ====
+        console.log(`📥 Message from client: ${data.type}`);
+
+        // ==== Room/presence: join a room (HELLO) ====
         if (data.type === "HELLO" && typeof data.room === "string" && data.user?.id) {
             const user = { id: String(data.user.id), name: String(data.user.name || "User") };
             joinRoom(ws, data.room, user);
-            console.log(`👤 ${user.name} (${user.id}) gick med i ${data.room}`);
+            console.log(`👤 ${user.name} (${user.id}) joined ${data.room}`);
 
-            // Kvittens till den som gick med
+            // Acknowledgment to the one who joined
             try { ws.send(JSON.stringify({ type: "ACK", room: data.room })); } catch { }
 
-            // Skicka ut färsk snapshot till alla i rummet
+            // Send fresh snapshot to everyone in the room
             const users = getUsersInRoom(data.room);
             broadcast(data.room, { type: "SNAPSHOT", room: data.room, users });
             return;
         }
 
-        // ==== Byt "redo"-status i aktuellt rum ====
+        // ==== Change "ready" status in current room ====
         if (data.type === "READY" && typeof data.ready === "boolean") {
             const m = meta.get(ws);
             if (!m || !m.room) return;
             m.ready = !!data.ready;
-            // Ny snapshot till rummet
+            console.log(`⚡ ${m.user.name} ready status: ${m.ready} in ${m.room}`);
+            // New snapshot to the room
             const users = getUsersInRoom(m.room);
             broadcast(m.room, { type: "SNAPSHOT", room: m.room, users });
             return;
         }
 
-        // ==== Anslut som "global användare" utan rum (för att ta emot notiser överallt) ====
+        // ==== Connect as "global user" without room (to receive notifications everywhere) ====
         if (data.type === "HELLO_USER" && data.user?.id) {
             const user = { id: String(data.user.id), name: String(data.user.name || "User") };
             meta.set(ws, { room: null, user, ready: false });
-            console.log(`👤 ${user.name} (${user.id}) anslöt (HELLO_USER)`);
+            console.log(`👤 ${user.name} (${user.id}) connected (HELLO_USER)`);
             try { ws.send(JSON.stringify({ type: "ACK_USER" })); } catch { }
             return;
         }
 
         /**
-         * ==== Direkthändelse/Notis till viss användare (NOTIFY) ====
-         * Exempel:
+         * ==== Direct event/Notification to specific user (NOTIFY) ====
+         * Example:
          * { type:"NOTIFY", toUserId:"...", event:"INVITED", payload:{ duelId, subject, fromName } }
-         * Servern skickar vidare detta som { type: event, payload } till den användaren.
+         * Server forwards this as { type: event, payload } to that user.
          */
         if (data.type === "NOTIFY" && data.toUserId && data.event) {
             const to = String(data.toUserId);
@@ -188,11 +204,11 @@ wss.on("connection", (ws, req) => {
             return;
         }
 
-        // ==== Lämna nuvarande rum ====
+        // ==== Leave current room ====
         if (data.type === "LEAVE") {
             const res = leaveRoom(ws);
             if (res?.room) {
-                console.log(`👋 ${res.userId} lämnade ${res.room}`);
+                console.log(`👋 ${res.userId} left ${res.room}`);
                 broadcast(res.room, { type: "LEFT", room: res.room, userId: res.userId });
                 const users = getUsersInRoom(res.room);
                 broadcast(res.room, { type: "SNAPSHOT", room: res.room, users });
@@ -200,29 +216,43 @@ wss.on("connection", (ws, req) => {
             return;
         }
 
-        // ==== Ping/pong (klienten pingar, servern svarar) ====
+        // ==== Ping/pong (client pings, server responds) ====
         if (data.type === "PING") {
             try { ws.send(JSON.stringify({ type: "PONG" })); } catch { }
             return;
         }
+
+        // ==== Handle any other custom message types ====
+        // These get broadcast to all other clients in the same room
+        const m = meta.get(ws);
+        if (m?.room && data.type) {
+            console.log(`🎮 Custom message in ${m.room}: ${data.type}`);
+            // Broadcast to all other clients in the room (excluding sender)
+            broadcast(m.room, data, ws);
+            broadcast(m.room, data);
+            return;
+        }
+
+        console.log(`❓ Unhandled message type: ${data.type}`);
     });
 
-    // Stängning: ta bort från rum och uppdatera snapshot
+    // Closure: remove from room and update snapshot
     ws.on("close", () => {
         const res = leaveRoom(ws);
         if (res?.room) {
-            console.log(`🔌 stängd -> ${res.userId} lämnade ${res.room}`);
+            console.log(`🔌 closed -> ${res.userId} left ${res.room}`);
             broadcast(res.room, { type: "LEFT", room: res.room, userId: res.userId });
             const users = getUsersInRoom(res.room);
             broadcast(res.room, { type: "SNAPSHOT", room: res.room, users });
         }
     });
 
-    // Fel: behandla som stängning
-    ws.on("error", () => {
+    // Error: treat as closure
+    ws.on("error", (err) => {
+        console.log(`💥 WebSocket error:`, err.message);
         const res = leaveRoom(ws);
         if (res?.room) {
-            console.log(`💥 fel -> ${res.userId} lämnade ${res.room}`);
+            console.log(`💥 error -> ${res.userId} left ${res.room}`);
             broadcast(res.room, { type: "LEFT", room: res.room, userId: res.userId });
             const users = getUsersInRoom(res.room);
             broadcast(res.room, { type: "SNAPSHOT", room: res.room, users });
@@ -231,24 +261,47 @@ wss.on("connection", (ws, req) => {
 });
 
 /**
- * En enkel intervall som pingar alla anslutningar för att upptäcka trasiga
- * kopplingar. Om en klient inte svarar med "pong" så termineras den.
+ * A simple interval that pings all connections to detect broken
+ * connections. If a client doesn't respond with "pong" it gets terminated.
  */
 const interval = setInterval(() => {
-    for (const ws of wss.clients) {
+    wss.clients.forEach((ws) => {
         if (!ws.isAlive) {
             try { ws.terminate(); } catch { }
-            continue;
+            return;
         }
         ws.isAlive = false;
         try { ws.ping(); } catch { }
-    }
+    });
 }, 30000);
 
-// Städa när servern stängs
+// Clean up when server shuts down
 wss.on("close", () => clearInterval(interval));
 
-// Starta servern
+// Start server
 server.listen(PORT, () => {
-    console.log(`🚀 Presence-WS lyssnar på ws://localhost:${PORT}`);
+    console.log(`🚀 Presence-WS listening on ws://localhost:${PORT}`);
+});
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+    console.log('\n🛑 Shutting down WebSocket server...');
+    clearInterval(interval);
+    wss.close(() => {
+        server.close(() => {
+            console.log('✅ Server shut down gracefully');
+            process.exit(0);
+        });
+    });
+});
+
+process.on('SIGTERM', () => {
+    console.log('\n🛑 SIGTERM received, shutting down WebSocket server...');
+    clearInterval(interval);
+    wss.close(() => {
+        server.close(() => {
+            console.log('✅ Server shut down gracefully');
+            process.exit(0);
+        });
+    });
 });
