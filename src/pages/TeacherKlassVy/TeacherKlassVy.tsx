@@ -215,6 +215,7 @@ const TeacherKlassVy: React.FC = () => {
           <div className="flex items-center gap-4">
             <label className="text-sm text-white/70">Välj klass</label>
             <select
+              aria-label="SetClassName"
               value={className}
               onChange={(e) => setClassName(e.target.value)}
               className="px-4 py-2 rounded-md bg-white text-black font-semibold"
@@ -458,10 +459,10 @@ function StatCard({
     tone === "green"
       ? "from-emerald-500/20 to-emerald-500/0"
       : tone === "blue"
-      ? "from-sky-500/20 to-sky-500/0"
-      : tone === "yellow"
-      ? "from-yellow-500/20 to-yellow-500/0"
-      : "from-white/15 to-white/0";
+        ? "from-sky-500/20 to-sky-500/0"
+        : tone === "yellow"
+          ? "from-yellow-500/20 to-yellow-500/0"
+          : "from-white/15 to-white/0";
 
   return (
     <div className="relative overflow-hidden rounded-2xl p-4 ring-1 ring-white/10 bg-white/5">
