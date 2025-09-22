@@ -65,11 +65,8 @@ if (subjects.length > 0) {
   fetchLeaderboard();
 }, [subjectId]);
 
-<<<<<<< HEAD
-=======
   
 
->>>>>>> origin/main
   // Huvudkomponenten renderar en dropdown för att välja ämne och visar 
   // topplistan med sidnavigering
   return (

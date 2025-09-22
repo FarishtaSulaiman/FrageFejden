@@ -1,7 +1,7 @@
 export {};
 
 //beskriver vad testet gör
-describe('Login', () => {
+describe('Login as student', () => {
   it('should log in and redirect to the dashboard', () => {
     //sida att besöka
     cy.visit('http://localhost:5173/');
@@ -20,6 +20,6 @@ describe('Login', () => {
     cy.url().should('include', '/studentDashboard');
     //Verifierar att ett element med texten "Prestationer" finns på sidan
     cy.contains('Prestationer').should('be.visible');
-    
+
   });
 });
