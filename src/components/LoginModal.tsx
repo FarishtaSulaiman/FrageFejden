@@ -20,38 +20,10 @@ type TestAccount = {
 };
 
 const TEST_ACCOUNTS: TestAccount[] = [
-  {
-    id: "admin@school.edu",
-    email: "admin@school.edu",
-    password: "Password123!",
-    name: "Admin Användare",
-    role: "admin",
-    classes: ["—"],
-  },
-  {
-    id: "tina.teacher@school.edu",
-    email: "tina.teacher@school.edu",
-    password: "Password123!",
-    name: "Tina Larsson",
-    role: "teacher",
-    classes: ["8A"],
-  },
-  {
-    id: "olof.teacher@school.edu",
-    email: "olof.teacher@school.edu",
-    password: "Password123!",
-    name: "Olof Berg",
-    role: "teacher",
-    classes: ["9B", "9C"],
-  },
-  {
-    id: "maria.teacher@school.edu",
-    email: "maria.teacher@school.edu",
-    password: "Password123!",
-    name: "Maria Sund",
-    role: "teacher",
-    classes: ["10D"],
-  },
+  { id: "admin@school.edu", email: "admin@school.edu", password: "Password123!", name: "Admin Användare", role: "admin", classes: ["—"] },
+  { id: "tina.teacher@school.edu", email: "tina.teacher@school.edu", password: "Password123!", name: "Tina Larsson", role: "teacher", classes: ["8A"] },
+  { id: "olof.teacher@school.edu", email: "olof.teacher@school.edu", password: "Password123!", name: "Olof Berg", role: "teacher", classes: ["9B", "9C"] },
+  { id: "maria.teacher@school.edu", email: "maria.teacher@school.edu", password: "Password123!", name: "Maria Sund", role: "teacher", classes: ["10D"] },
   { id: "eva.8a@school.edu", email: "eva.8a@school.edu", password: "Password123!", name: "Eva Karlsson", role: "student", classes: ["8A"] },
   { id: "ahmed.8a@school.edu", email: "ahmed.8a@school.edu", password: "Password123!", name: "Ahmed Ali", role: "student", classes: ["8A"] },
   { id: "lisa.8a@school.edu", email: "lisa.8a@school.edu", password: "Password123!", name: "Lisa Norén", role: "student", classes: ["8A"] },
@@ -67,7 +39,7 @@ const TEST_ACCOUNTS: TestAccount[] = [
 ];
 
 export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginModalProps) {
-  const { login, refresh } = useAuth(); // ✅ lägg till refresh
+  const { login, refresh } = useAuth();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({ emailOrUserName: "", password: "" });
@@ -89,12 +61,12 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
   );
 
   useEffect(() => {
-    const def = TEST_ACCOUNTS.find(a => a.email === "mia.9b@school.edu") || TEST_ACCOUNTS[0];
-    if (def) {
-      setSelectedAccountId(def.id);
-      setFormData({ emailOrUserName: def.email, password: def.password });
+    if (isOpen) {
+      setFormData({ emailOrUserName: "", password: "" });
+      setSelectedAccountId("");
+      setError("");
     }
-  }, []);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -120,23 +92,21 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
     setError("");
     try {
       const me = await login(formData.emailOrUserName, formData.password);
-      await refresh(); // ✅ tvinga uppdatering så Navbar/Sidebar får rätt user direkt
+      await refresh();
 
       const roles = me.roles.map(r => r.toLowerCase());
-      if (roles.includes("admin")) {
-        navigate("/admin");
-      } else if (roles.includes("teacher")) {
-        navigate("/teacher/klassvy"); // ✅ Teacher landingpage
-      } else if (roles.includes("student")) {
-        navigate("/studentDashboard");
-      } else {
-        navigate("/");
-      }
+      if (roles.includes("admin")) navigate("/admin");
+      else if (roles.includes("teacher")) navigate("/teacher/klassvy");
+      else if (roles.includes("student")) navigate("/studentDashboard");
+      else navigate("/");
 
       onLoginSuccess?.();
       onClose();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Inloggning misslyckades";
+    } catch (err: any) {
+      let msg = "Inloggning misslyckades";
+      if (err?.response?.data?.error) msg = err.response.data.error;
+      else if (err?.response?.data?.errors) msg = err.response.data.errors.join("\n");
+      else if (err instanceof Error) msg = err.message;
       setError(msg);
     } finally {
       setIsLoading(false);
@@ -151,7 +121,8 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-gradient-to-b from-purple-600 to-purple-800 rounded-lg shadow-2xl w-96 max-w-md mx-4 relative">
+      <div className="bg-gradient-to-b from-purple-600 to-purple-800 rounded-lg shadow-2xl 
+                      w-96 max-w-md mx-4 relative border border-white/40">
         <button
           onClick={handleClose}
           className="absolute top-2 right-4 text-white text-xl hover:text-gray-300 z-10"
@@ -168,7 +139,6 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && <div className="bg-red-500 text-white p-3 rounded-lg text-sm">{error}</div>}
 
-            {/* Snabbval */}
             <div>
               <label className="block text-sm text-white/80 mb-1">Snabbval (namn — roll — klass/er)</label>
               <select
@@ -176,6 +146,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
                 onChange={handleSelectChange}
                 className="w-full px-3 py-2 rounded-lg bg-gray-200 text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
               >
+                <option value="">—</option>
                 {groups.map(group => (
                   <optgroup key={group.label} label={group.label}>
                     {group.accounts.map(a => (
@@ -197,6 +168,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
               value={formData.emailOrUserName}
               onChange={handleInputChange}
               placeholder="Användarnamn eller e-post"
+              autoComplete="off"
               required
               className="w-full px-4 py-3 rounded-lg bg-gray-200 text-gray-700 placeholder-gray-500 border-none focus:outline-none focus:ring-2 focus:ring-purple-400"
             />
@@ -207,6 +179,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
               value={formData.password}
               onChange={handleInputChange}
               placeholder="Lösenord"
+              autoComplete="new-password"
               required
               className="w-full px-4 py-3 rounded-lg bg-gray-200 text-gray-700 placeholder-gray-500 border-none focus:outline-none focus:ring-2 focus:ring-purple-400"
             />
@@ -229,7 +202,8 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium py-3 rounded-lg transition-colors"
+              className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-400 
+                         text-white font-medium py-3 rounded-lg transition-colors text-center"
             >
               {isLoading ? "Loggar in..." : "Logga in"}
             </button>
