@@ -65,8 +65,6 @@ if (subjects.length > 0) {
   fetchLeaderboard();
 }, [subjectId]);
 
-  if (!subjectId) return <div>Laddar ämnesdata...</div>;
-
   // Huvudkomponenten renderar en dropdown för att välja ämne och visar 
   // topplistan med sidnavigering
   return (
