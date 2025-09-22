@@ -56,6 +56,7 @@ export interface QuestionOptionDto {
   id: UUID;
   optionText: string;
   sortOrder: number;
+
 }
 
 export interface QuestionDto {

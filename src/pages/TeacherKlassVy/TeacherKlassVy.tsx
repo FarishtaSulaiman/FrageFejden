@@ -13,14 +13,14 @@ type User = {
   avgScore?: number;
 };
 
-//typdefinition för ett quiz
+// typdefinition för ett quiz
 type Quiz = {
   id: string;
   title: string;
   questions: number;
 };
 
-//typdefinition för en klass med statistik
+// typdefinition för en klass med statistik
 type ClassStat = {
   id: string;
   name?: string;
@@ -37,7 +37,7 @@ type ClassStat = {
   quizzes: Quiz[];
 };
 
-//typdefinition för en aktivitet
+// typdefinition för en aktivitet
 type Activity = {
   time: string;
   klass: string;
@@ -60,7 +60,7 @@ const TeacherKlassVy: React.FC = () => {
   const [deleteQuiz, setDeleteQuiz] = useState<Quiz | null>(null);
 
   const current = useMemo(
-    () => classes.find((c) => c.id === className) ?? classes[0] ?? null,
+    () => classes.find((c) => c.id === className) ?? null,
     [className, classes]
   );
 
@@ -74,11 +74,9 @@ const TeacherKlassVy: React.FC = () => {
         const teacherClasses = await TeacherClasses.GetCreatedClasses();
         console.log("Created classes:", teacherClasses);
 
-        // Hämta elever för varje klass
         const mappedClasses: ClassStat[] = await Promise.all(
           teacherClasses.map(async (c: any) => {
             const students = await TeacherClasses.GetClassStudents(c.id);
-
             return {
               id: c.id,
               name: c.name,
@@ -98,7 +96,11 @@ const TeacherKlassVy: React.FC = () => {
         );
 
         setClasses(mappedClasses);
-        setClassName(mappedClasses[0]?.id ?? "");
+
+        // ✅ sätt bara className om det finns klasser
+        if (mappedClasses.length > 0) {
+          setClassName(mappedClasses[0].id);
+        }
       } catch (err) {
         console.error(err);
         setError("Kunde inte ladda data");
@@ -110,33 +112,41 @@ const TeacherKlassVy: React.FC = () => {
     loadData();
   }, []);
 
+  // ✅ FIX: guard i loadSubjects för att förhindra loop
   useEffect(() => {
+    if (!className) return;
+    let cancelled = false;
+
     async function loadSubjects() {
-      if (!className) return;
       try {
         const subjectsForClass = await SubjectsApi.getForClass(className);
-        setSubjects(subjectsForClass);
+        if (!cancelled) {
+          setSubjects(subjectsForClass);
+        }
       } catch (err) {
         console.error(err);
       }
     }
 
     loadSubjects();
+    return () => {
+      cancelled = true;
+    };
   }, [className]);
 
-  //öppna modal för att ta bort en elev
+  // öppna modal för att ta bort en elev
   const openDeleteUserModal = (user: User) => setDeleteUser(user);
 
-  //öppna modal för att ta bort ett quiz
+  // öppna modal för att ta bort ett quiz
   const openDeleteQuizModal = (quiz: Quiz) => setDeleteQuiz(quiz);
 
-  //stäng alla modaler
+  // stäng alla modaler
   const closeModals = () => {
     setDeleteUser(null);
     setDeleteQuiz(null);
   };
 
-  //bekräfta borttagning av elev
+  // bekräfta borttagning av elev
   const confirmDeleteUser = () => {
     if (deleteUser && current) {
       current.users = current.users.filter((u) => u.id !== deleteUser.id);
@@ -145,7 +155,7 @@ const TeacherKlassVy: React.FC = () => {
     closeModals();
   };
 
-  //bekräfta borttagning av quiz
+  // bekräfta borttagning av quiz
   const confirmDeleteQuiz = () => {
     if (deleteQuiz && current) {
       current.quizzes = current.quizzes.filter((q) => q.id !== deleteQuiz.id);
@@ -153,10 +163,31 @@ const TeacherKlassVy: React.FC = () => {
     closeModals();
   };
 
-  //visa laddning eller felmeddelande om behövs
+  // visa laddning eller felmeddelande om behövs
   if (loading) return <div>Laddar...</div>;
   if (error) return <div>{error}</div>;
-  if (!current) return <div>Ingen klass vald</div>;
+
+  // ✅ fallback-vy om inga klasser finns
+  if (!current) {
+    return (
+      <div className="h-screen bg-[#0A0F1F] text-white flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold">
+            Välkommen, {currentUser?.fullName ?? "Lärare"}!
+          </h2>
+          <p className="text-white/60 mt-2">
+            Du har inte skapat några klasser ännu.
+          </p>
+          <button
+            onClick={() => navigate("/teachertopic")}
+            className="mt-4 bg-green-500 hover:bg-green-600 px-4 py-2 rounded text-white font-semibold"
+          >
+            Skapa din första klass
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen bg-[#0A0F1F] text-white flex flex-col">
@@ -184,6 +215,7 @@ const TeacherKlassVy: React.FC = () => {
           <div className="flex items-center gap-4">
             <label className="text-sm text-white/70">Välj klass</label>
             <select
+              aria-label="SetClassName"
               value={className}
               onChange={(e) => setClassName(e.target.value)}
               className="px-4 py-2 rounded-md bg-white text-black font-semibold"
@@ -230,7 +262,7 @@ const TeacherKlassVy: React.FC = () => {
           />
         </div>
 
-        {/* huvudsektion med topp-elever, aktivitet, elevlista och quizlista */}
+        {/* huvudsektion */}
         <div className="flex flex-col md:flex-row gap-6 flex-1 overflow-hidden">
           {/* topp-elever och senaste händelser */}
           <div className="flex-1 flex flex-col gap-6 overflow-auto">
@@ -262,7 +294,9 @@ const TeacherKlassVy: React.FC = () => {
                     </div>
                     <div className="text-center">
                       <div className="text-xs text-white/60">Snitt</div>
-                      <div className="font-semibold">{s.avgScore ?? "-"}%</div>
+                      <div className="font-semibold">
+                        {s.avgScore ?? "-"}%
+                      </div>
                     </div>
                   </li>
                 ))}
@@ -375,7 +409,7 @@ const TeacherKlassVy: React.FC = () => {
         </div>
       </main>
 
-      {/* modaler för borttagning */}
+      {/* modaler */}
       {(deleteUser || deleteQuiz) && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <div className="bg-white text-black rounded-xl p-6 w-full max-w-sm shadow-2xl">
@@ -409,7 +443,7 @@ const TeacherKlassVy: React.FC = () => {
   );
 };
 
-// StatCard component - visar ett litet statistikkort
+// StatCard
 function StatCard({
   label,
   value,
@@ -425,10 +459,10 @@ function StatCard({
     tone === "green"
       ? "from-emerald-500/20 to-emerald-500/0"
       : tone === "blue"
-      ? "from-sky-500/20 to-sky-500/0"
-      : tone === "yellow"
-      ? "from-yellow-500/20 to-yellow-500/0"
-      : "from-white/15 to-white/0";
+        ? "from-sky-500/20 to-sky-500/0"
+        : tone === "yellow"
+          ? "from-yellow-500/20 to-yellow-500/0"
+          : "from-white/15 to-white/0";
 
   return (
     <div className="relative overflow-hidden rounded-2xl p-4 ring-1 ring-white/10 bg-white/5">

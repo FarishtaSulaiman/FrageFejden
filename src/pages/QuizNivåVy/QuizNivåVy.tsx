@@ -115,7 +115,10 @@ export default function QuizNivåVy(): React.ReactElement {
       }
 
       const quizId = published[0].id; // pick the first published quiz for the topic+level
-      navigate(`/quizzes/${quizId}/questions${classId ? `?classId=${encodeURIComponent(classId)}` : ""}`);
+      const subjectId = params.get("subjectId") ?? "";
+      navigate(
+      `/quizzes/${quizId}/questions?classId=${encodeURIComponent(classId)}&subjectId=${encodeURIComponent(subjectId)}`
+);
     } catch (e: any) {
       alert(e?.message ?? "Kunde inte starta quiz.");
     }
