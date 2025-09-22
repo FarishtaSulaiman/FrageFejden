@@ -1008,6 +1008,7 @@ export default function QuizStatsPage() {
         <div className="flex flex-wrap gap-4">
           <input type="date" className="rounded-md px-3 py-1 text-black" />
           <select
+            data-testid="class-select"
             className="rounded-md px-3 py-1 text-black"
             value={selectedClassId ?? ""}
             onChange={(e) => setSelectedClassId(e.target.value || null)}
