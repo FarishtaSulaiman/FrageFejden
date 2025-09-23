@@ -30,6 +30,7 @@ type ClassStat = {
   students: number;
   users: User[];
   quizzes: Quiz[];
+  joinCode?: string; 
 };
 
 // hårdkodade citat från förebilder inom matematik, vetenskap och litteratur
@@ -56,6 +57,9 @@ const TeacherKlassVy: React.FC = () => {
 
   // state för att hålla index på nuvarande citat
   const [quoteIndex, setQuoteIndex] = useState(0);
+
+  // 👇 nytt state för toast
+  const [copied, setCopied] = useState(false);
 
   // hitta den aktuella klassen (utifrån valt namn/id)
   const current = useMemo(
@@ -95,6 +99,7 @@ const TeacherKlassVy: React.FC = () => {
             return {
               id: c.id,
               name: c.name,
+              joinCode: c.joinCode, //  hämta joinCode från API
               students: students.length,
               avgScore: c.avgScore ?? 0,
               readingCompliance: c.readingCompliance ?? 0,
@@ -178,7 +183,7 @@ const TeacherKlassVy: React.FC = () => {
     closeModals();
   };
 
-  // visa laddning eller felmeddelande om behövs
+  //visa laddning eller felmeddelande om behövs
   if (loading) return <div>Laddar...</div>;
   if (error) return <div>{error}</div>;
 
@@ -250,6 +255,34 @@ const TeacherKlassVy: React.FC = () => {
           >
             Skapa quiz till klass {current.name ?? current.id}
           </button>
+        </div>
+
+        {/* 🔑 join-kod-sektion */}
+        <div className="bg-white/5 rounded-2xl p-4 ring-1 ring-white/10">
+          <h3 className="text-lg font-bold mb-3">Dela joinkod till elever</h3>
+          <p className="text-sm text-white/70 mb-2">
+            Elever använder koden på startsidan för att registrera sig till rätt klass.
+          </p>
+          <div className="flex items-center gap-3">
+            <input
+              type="text"
+              readOnly
+              value={current?.joinCode ?? ""}
+              className="px-3 py-2 rounded-md bg-white text-black font-semibold w-48"
+            />
+            <button
+              onClick={() => {
+                if (current?.joinCode) {
+                  navigator.clipboard.writeText(current.joinCode);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }
+              }}
+              className="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded text-white font-semibold"
+            >
+              Kopiera kod
+            </button>
+          </div>
         </div>
 
         {/* statistikkort, elever + citat */}
@@ -347,6 +380,13 @@ const TeacherKlassVy: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {/* ✅ snygg toast istället för alert */}
+      {copied && (
+        <div className="fixed bottom-6 right-6 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg animate-fade-in">
+          ✅ Kod kopierad!
+        </div>
+      )}
 
       {/* modaler */}
       {(deleteUser || deleteQuiz) && (

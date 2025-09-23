@@ -17,8 +17,19 @@ export type Me = {
 
 type AuthState = {
   user: Me | null;
-  login: (id: string, pw: string) => Promise<Me>; // ✅ returnerar Me
-  register: (email: string, userName: string, pw: string, fullName?: string) => Promise<Me>; // ✅ returnerar Me
+  login: (id: string, pw: string) => Promise<Me>;
+  registerTeacher: (
+    email: string,
+    userName: string,
+    pw: string,
+    fullName?: string
+  ) => Promise<Me>;
+  registerStudent: (
+    email: string,
+    userName: string,
+    pw: string,
+    fullName?: string
+  ) => Promise<Me>;
   logout: () => Promise<void>;
   hasRole: (...roles: Role[]) => boolean;
   refresh: () => Promise<void>;
@@ -54,7 +65,6 @@ function readRoles(p: AnyPayload): string[] {
   return [];
 }
 
-/** Decode token -> Me */
 function decodeTokenToMe(token: string): Me {
   const p = jwtDecode<AnyPayload>(token) as AnyPayload;
 
@@ -110,7 +120,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
 
   const [loadingUser, setLoadingUser] = useState(false);
 
-  // auto-refresh vid mount
+  //  Auto-refresh användare
   useEffect(() => {
     (async () => {
       if (!user) return;
@@ -143,38 +153,10 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     return () => clearTimeout(id);
   }, [user?.expiresAtMs]);
 
+  //  Login
   const login = async (id: string, pw: string): Promise<Me> => {
     setLoadingUser(true);
     const token = await AuthApi.login({ emailOrUserName: id, password: pw });
-    if (!isLikelyJwt(token)) throw new Error("Server returned an invalid token");
-    tokenStorage.set(token);
-
-    let me: Me;
-    try {
-      me = await AuthApi.getMe(); // hämta från backend
-      setUser(me);
-    } catch {
-      me = decodeTokenToMe(token); // fallback
-      setUser(me);
-    }
-
-    setLoadingUser(false);
-    return me; // ✅ returnerar Me direkt
-  };
-
-  const register = async (
-    email: string,
-    userName: string,
-    password: string,
-    fullName?: string
-  ): Promise<Me> => {
-    setLoadingUser(true);
-    const token = await AuthApi.register({
-      email: email.trim(),
-      userName: userName.trim(),
-      password,
-      fullName,
-    });
     if (!isLikelyJwt(token)) throw new Error("Server returned an invalid token");
     tokenStorage.set(token);
 
@@ -188,9 +170,76 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     }
 
     setLoadingUser(false);
-    return me; // ✅ returnerar Me direkt
+    return me;
   };
 
+  //  Registrera som lärare
+  const registerTeacher = async (
+    email: string,
+    userName: string,
+    password: string,
+    fullName?: string
+  ): Promise<Me> => {
+    setLoadingUser(true);
+
+    const token = await AuthApi.registerTeacher({
+      email: email.trim(),
+      userName: userName.trim(),
+      password,
+      fullName,
+    });
+
+    if (!isLikelyJwt(token)) throw new Error("Server returned an invalid token");
+    tokenStorage.set(token);
+
+    let me: Me;
+    try {
+      me = await AuthApi.getMe();
+    } catch {
+      me = decodeTokenToMe(token);
+    }
+
+    setUser(me);
+    localStorage.setItem("user", JSON.stringify(me));
+
+    setLoadingUser(false);
+    return me;
+  };
+
+  //  Registrera som student
+  const registerStudent = async (
+    email: string,
+    userName: string,
+    password: string,
+    fullName?: string
+  ): Promise<Me> => {
+    setLoadingUser(true);
+
+    const token = await AuthApi.register({
+      email: email.trim(),
+      userName: userName.trim(),
+      password,
+      fullName,
+    });
+
+    if (!isLikelyJwt(token)) throw new Error("Server returned an invalid token");
+    tokenStorage.set(token);
+
+    let me: Me;
+    try {
+      me = await AuthApi.getMe();
+    } catch {
+      me = decodeTokenToMe(token);
+    }
+
+    setUser(me);
+    localStorage.setItem("user", JSON.stringify(me));
+
+    setLoadingUser(false);
+    return me;
+  };
+
+  //  Logout
   const logout = async () => {
     setLoadingUser(true);
     try {
@@ -201,6 +250,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     setLoadingUser(false);
   };
 
+  //  Rollkontroll
   const hasRole = (...roles: Role[]) =>
     !!user && roles.some((r) => user.roles.includes(r));
 
@@ -223,7 +273,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
   };
 
   const value = useMemo<AuthState>(
-    () => ({ user, login, register, logout, hasRole, refresh, loadingUser }),
+    () => ({ user, login, registerTeacher, registerStudent, logout, hasRole, refresh, loadingUser }),
     [user, loadingUser]
   );
 

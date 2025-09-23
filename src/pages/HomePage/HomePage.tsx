@@ -16,6 +16,9 @@ export default function HomePage() {
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
 
+  // 👇 nytt state för joinkod (elevflöde)
+  const [joinCode, setJoinCode] = useState("");
+
   return (
     <div className="w-full bg-[#0A0F1F] text-white">
       <section className="relative overflow-hidden">
@@ -40,13 +43,15 @@ export default function HomePage() {
             </p>
             <div className="mt-6 w-full">
               <div className="mx-auto flex w-fit flex-wrap items-center justify-center gap-4">
+                {/* Lärare */}
                 <button
                   type="button"
                   onClick={() => setShowRegister(true)}
                   className="inline-flex items-center justify-center rounded-xl bg-[#22C55E] px-6 py-3 text-[14px] font-semibold text-white shadow-[0_12px_28px_rgba(34,197,94,0.35)] hover:brightness-110 active:scale-[0.99]"
                 >
-                  Registrera dig
+                  Registrera dig som lärare
                 </button>
+                {/* Logga in */}
                 <button
                   type="button"
                   onClick={() => setShowLogin(true)}
@@ -54,6 +59,33 @@ export default function HomePage() {
                 >
                   Logga in
                 </button>
+              </div>
+
+              {/* Elevflöde */}
+              <div className="mt-6 text-center">
+                <p className="mb-2 text-sm text-white/80">
+                  Är du elev? Ange joinkod från din lärare:
+                </p>
+                <div className="flex justify-center gap-2">
+                  <input
+                    type="text"
+                    value={joinCode}
+                    onChange={(e) => setJoinCode(e.target.value)}
+                    placeholder="T.ex. JOIN9B"
+                    className="rounded-lg px-3 py-2 text-black text-sm w-40"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (joinCode.trim()) {
+                        navigate(`/class/join/${joinCode.trim()}`);
+                      }
+                    }}
+                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                  >
+                    Gå med som student
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -70,6 +102,7 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Resten är oförändrat */}
       <section className="mx-auto max-w-6xl px-4 pt-4 pb-10 lg:px-6">
         <div className="grid gap-8 md:grid-cols-2">
           <article className="rounded-2xl border border-[#2A3353] bg-[#0F1A2F]/90 shadow-[0_10px_26px_rgba(0,0,0,0.25)]">
@@ -79,7 +112,9 @@ export default function HomePage() {
             </header>
             <div className="px-6 pb-6">
               <div className="rounded-xl bg-[#202A49]/60 px-4 py-4 text-[14.5px] leading-relaxed text-white/90">
-                ”Frågefejden gör lärandet roligare! Samla poäng, utmana dina vänner och klättra på topplistan – samtidigt som du lär dig mer i skolan.”
+                ”Frågefejden gör lärandet roligare! Samla poäng, utmana dina
+                vänner och klättra på topplistan – samtidigt som du lär dig mer i
+                skolan.”
               </div>
             </div>
           </article>
@@ -90,7 +125,9 @@ export default function HomePage() {
             </header>
             <div className="px-6 pb-6">
               <div className="rounded-xl bg-[#202A49]/60 px-4 py-4 text-[14.5px] leading-relaxed text-white/90">
-                ”Frågefejden – lärande på ett nytt sätt. Följ elevers utveckling, skapa quiz och testa deras kunskaper digitalt. Ett engagerande och roligt verktyg för klassrummet.”
+                ”Frågefejden – lärande på ett nytt sätt. Följ elevers utveckling,
+                skapa quiz och testa deras kunskaper digitalt. Ett engagerande och
+                roligt verktyg för klassrummet.”
               </div>
             </div>
           </article>
@@ -108,12 +145,17 @@ export default function HomePage() {
             <h4 className="text-[16px] font-semibold">Utmana vänner</h4>
           </div>
           <div className="rounded-2L border border-[#2A3353] bg-[#0F1A2F]/90 px-6 py-8 text-center">
-            <img src={controllerIcon} alt="Handkontroll" className="mx-auto mb-4 h-12 w-12" />
+            <img
+              src={controllerIcon}
+              alt="Handkontroll"
+              className="mx-auto mb-4 h-12 w-12"
+            />
             <h4 className="text-[16px] font-semibold">Klättra på topplistan</h4>
           </div>
         </div>
       </section>
 
+      {/* Modals */}
       <LoginModal
         isOpen={showLogin}
         onClose={() => setShowLogin(false)}
@@ -128,7 +170,7 @@ export default function HomePage() {
         onClose={() => setShowRegister(false)}
         onRegisterSuccess={() => {
           setShowRegister(false);
-          navigate("/dashboard");
+          navigate("teacher/klassvy");
         }}
       />
     </div>

@@ -37,6 +37,17 @@ export const AuthApi = {
     return extractToken(res.data);
   },
 
+  async registerTeacher(data: RegisterReq): Promise<string> {
+    const payload = {
+      email: data.email,
+      userName: data.userName,
+      password: data.password,
+      fullname: data.fullName?.trim() ?? "",
+    };
+    const res = await http.post("/Auth/registerTeacher", payload);
+    return extractToken(res.data);
+  },
+
   async logout(): Promise<void> {
     try {
       await http.post("/Auth/logout");
