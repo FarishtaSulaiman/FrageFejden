@@ -7,7 +7,7 @@ import {
   DailyApi,
 } from "../../Api/index";
 
-import avatar from "../../assets/images/avatar/avatar2.png";
+import avatarFallback from "../../assets/images/avatar/avatar2.png";
 import frageTitle from "../../assets/images/titles/frageFejden-title-pic.png";
 import trophy from "../../assets/images/icons/trophy-icon.png";
 import funfact from "../../assets/images/pictures/fun-fact-pic.png";
@@ -42,21 +42,17 @@ function normalizeStats(raw: any): DailyStats {
   const totalAnswered = Number(
     raw.TotalAnswered ?? raw.totalAnswered ?? raw.total_answered ?? 0
   );
-
   const currentStreak = Number(
     raw.CurrentStreak ?? raw.currentStreak ?? raw.current_streak ?? 0
   );
-
   const longestStreak = Number(
     raw.LongestStreak ?? raw.longestStreak ?? raw.longest_streak ?? 0
   );
-
   const lastAnsweredDate =
     raw.LastAnsweredDate ??
     raw.lastAnsweredDate ??
     raw.last_answered_date ??
     null;
-
   const weekAnswered = Number(
     raw.WeekAnswered ?? raw.weekAnswered ?? raw.week_answered ?? 0
   );
@@ -72,53 +68,58 @@ function normalizeStats(raw: any): DailyStats {
   };
 }
 
+/** URL från profilens avatarfält. */
+function resolveAvatarUrl(me: any): string | null {
+  const raw = String(
+    me?.avatarUrl ??
+      ""
+  ).trim();
+
+  if (!raw) return null;
+  if (/^(https?:)?\/\//i.test(raw) || raw.startsWith("data:")) return raw;
+
+  const base =
+    (import.meta as any)?.env?.VITE_AVATAR_BASE_URL ||
+    (import.meta as any)?.env?.VITE_API_BASE_URL ||
+    "";
+
+  return base ? `${base.replace(/\/+$/, "")}/${raw.replace(/^\/+/, "")}` : raw;
+}
+
 export default function StudentDashboardPage() {
   const navigate = useNavigate();
 
-  // Spara namn och mail på användaren
+  // Profil
   const [displayName, setDisplayName] = useState("Användare");
-  const [email, setEmail] = useState("");
-  // useState för score/experiencepoints
+  const [avatarUrl, setAvatarUrl] = useState<string>(avatarFallback);
   const [points, setPoints] = useState<number>(0);
 
-  // rank
+  // Rank/leaderboard
   const [rankNum, setRankNum] = useState<number | null>(null);
-  const [topThree, setTopThree] = useState<any[]>([]);
+  const [topList, setTopList] = useState<any[]>([]);
 
-  // useState för funfact
+  // Fun fact
   const [fact, setFact] = useState<string>("");
 
-  // useState för modal dagens mini quiz
+  // Daily quiz modal
   const [openDaily, setOpenDaily] = useState(false);
 
-  // useState för stats, se ens streaks
+  // Daily stats
   const [stats, setStats] = useState<DailyStats | null>(null);
   const [statsErr, setStatsErr] = useState<string | null>(null);
 
-  // Alias till API-metoden (funktionsreferens – anropas i useEffect)
-  const getMe = AuthApi.getMe;
-
-  // useEffect för username, score/experiencepoints, ranking, funfact och dailyStreak
   useEffect(() => {
     (async () => {
       try {
-        const me = await AuthApi.getMe(); // hämtar inloggad + id
+        const me = await AuthApi.getMe(); // { id, fullName, avatarUrl? ... }
+        setDisplayName(me?.fullName ?? "Användare");
+        setAvatarUrl(resolveAvatarUrl(me) || avatarFallback);
 
-        // namn + mail
-        //   const name =
-        //     me.FullName?.trim() ||
-        // me.userName?.trim() ||
-        // me.email?.split("@")[0] ||
-        // "Användare";
-
-        const name = me.fullName ?? "";
-        setDisplayName(name);
-
-        // poäng
+        // Poäng
         const xp = await Classes.GetLoggedInUserScore(me.id);
         setPoints(typeof xp === "number" ? xp : 0);
 
-        // hämta mina klasser
+        // Leaderboard
         const myClasses = await Classes.GetUsersClasses();
         const first = myClasses?.[0];
         const classId =
@@ -130,15 +131,19 @@ export default function StudentDashboardPage() {
             me.id
           );
           setRankNum(myRank);
-          setTopThree(leaderboard.slice(0, 3));
+          const studentsOnly = (leaderboard ?? []).filter(
+            (r: any) => !isTeacherRow(r)
+          );
+          const ranked = addCompetitionRank(studentsOnly);
+          setTopList(ranked.slice(0, 3));
         } else {
           setRankNum(null);
-          setTopThree([]);
+          setTopList([]);
         }
 
-        // Hämta fun fact oavsett classId
+        // Fun fact
         try {
-          const f = await getFunFact();
+          const f: FunFact = await getFunFact();
           setFact(f.text || "Ingen fun fact just nu.");
         } catch {
           setFact("Ingen fun fact just nu.");
@@ -146,17 +151,17 @@ export default function StudentDashboardPage() {
       } catch (e) {
         console.error("Kunde inte hämta profil/poäng/ranking:", e);
         setDisplayName("Användare");
-        setEmail("");
+        setAvatarUrl(avatarFallback);
         setPoints(0);
         setRankNum(null);
-        setTopThree([]);
+        setTopList([]);
       }
 
-      // Hämta progress (streak + veckomål)
+      // Daily stats
       try {
-        const serverResponse = await DailyApi.getStats(); // hämtar rådata från backend
-        const normalizedStats = normalizeStats(serverResponse); // mappa till camelCase
-        setStats(normalizedStats); // spara i state
+        const serverResponse = await DailyApi.getStats();
+        const normalizedStats = normalizeStats(serverResponse);
+        setStats(normalizedStats);
       } catch (error: any) {
         console.error("Kunde inte hämta /daily/stats:", error);
         setStatsErr(error?.message ?? "Kunde inte hämta progress.");
@@ -166,13 +171,48 @@ export default function StudentDashboardPage() {
 
   async function refreshDailyStats() {
     try {
-      const serverResponse = await DailyApi.getStats(); // GET /api/daily/stats
-      const normalizedStats = normalizeStats(serverResponse); // PascalCase → camelCase
+      const serverResponse = await DailyApi.getStats();
+      const normalizedStats = normalizeStats(serverResponse);
       setStats(normalizedStats);
     } catch (error: any) {
       console.error("Kunde inte hämta /daily/stats:", error);
       setStatsErr(error?.message ?? "Kunde inte hämta progress.");
     }
+  }
+
+  // ---- Hjälpare ----
+  function isTeacherRow(r: any) {
+    const role = (r.role ?? r.Role ?? "").toString().toLowerCase();
+    const roles = (r.roles ?? r.Roles ?? []).map((x: any) =>
+      String(x).toLowerCase()
+    );
+    const flag =
+      r.isTeacher === true ||
+      r.IsTeacher === true ||
+      r.teacher === true ||
+      r.Teacher === true;
+
+    return (
+      flag ||
+      role.includes("teacher") ||
+      role.includes("lärare") ||
+      roles.includes("teacher") ||
+      roles.includes("lärare")
+    );
+  }
+
+  function addCompetitionRank(rows: Array<any & { score: number }>) {
+    const sorted = [...rows].sort((a, b) => Number(b.score) - Number(a.score));
+    let lastScore: number | null = null;
+    let currentRank = 0;
+    return sorted.map((row, idx) => {
+      const sc = Number(row.score) || 0;
+      if (lastScore === null || sc !== lastScore) {
+        currentRank = idx + 1;
+        lastScore = sc;
+      }
+      return { ...row, rank: currentRank };
+    });
   }
 
   return (
@@ -183,18 +223,15 @@ export default function StudentDashboardPage() {
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
               <img
-                src={avatar}
+                src={avatarUrl}
                 alt="Användaravatar"
                 className="h-10 w-10 rounded-full object-cover ring-2 ring-white/10"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = avatarFallback;
+                }}
               />
               <span className="font-semibold">Hej {displayName}!</span>
-              {/* <span className="block text-xs opacity-70">{email}</span> */}
             </div>
-
-            <input
-              placeholder="Sök…."
-              className="w-full rounded-full bg-black/30 px-4 py-2 text-sm placeholder:text-white/60 md:max-w-md"
-            />
 
             <div className="flex items-center gap-6 text-sm">
               <div className="flex items-center gap-2">
@@ -209,11 +246,10 @@ export default function StudentDashboardPage() {
           </div>
         </div>
 
-        {/* GRID: vänster / mitten / höger kolumnerna*/}
+        {/* GRID: vänster / mitten / höger kolumnerna */}
         <div className="grid gap-6 md:grid-cols-[280px,1fr,280px]">
           {/* VÄNSTER KOLUMNEN */}
           <div className="flex flex-col">
-            {/* FRÅGEFEJDEN – stor, centrerad, beskär transparent kant */}
             <div className="mx-auto flex h-[120px] w-full max-w-[420px] items-center justify-center overflow-hidden md:h-[150px]">
               <img
                 src={frageTitle}
@@ -222,7 +258,6 @@ export default function StudentDashboardPage() {
               />
             </div>
 
-            {/* Knappar */}
             <div className="mt-2 space-y-3">
               <button
                 data-testid="starta-quiz-btn"
@@ -243,7 +278,7 @@ export default function StudentDashboardPage() {
 
             {/* Fun fact */}
             <section className="mt-3 rounded-2xl bg-[#3D1C87] p-5 shadow-lg">
-              <div className="flex items-center gap-3 mb-3">
+              <div className="mb-3 flex items-center gap-3">
                 <img src={funfact} alt="Fun fact" className="h-10 w-10" />
                 <div>
                   <h2 className="text-lg font-extrabold">Fun fact</h2>
@@ -260,28 +295,22 @@ export default function StudentDashboardPage() {
           {/* MITTEN KOLUMNEN – STORT VITT KORT */}
           <div className="mt-6 md:mt-10">
             <div className="relative mx-auto w-full max-w-[620px] md:max-w-[660px]">
-              {/* VITA KORTET */}
-              <div className="rounded-2xl bg-white p-8 text-[#1b1b1b] shadow-lg md:p-12 mx-auto max-w-[510px]">
+              <div className="mx-auto max-w-[510px] rounded-2xl bg-white p-8 text-[#1b1b1b] shadow-lg md:p-12">
                 <div className="mx-auto mb-5 h-6 w-12 rounded-full bg-black/10" />
-
-                {/* Text + bild */}
                 <div className="grid grid-cols-1 items-center gap-8 md:grid-cols-[1fr,360px]">
                   <h3 className="text-center text-3xl font-extrabold md:text-left md:text-4xl whitespace-nowrap leading-tight">
                     Dagens Quiz
                   </h3>
-
-                  {/* Frågeteckenbilden position */}
                   <img
                     src={questionmark}
                     alt="Frågetecken"
-                    className="justify-self-end w-40 md:w-[320px] -translate-x-2 md:-translate-x-28"
+                    className="w-40 justify-self-end md:w-[320px] -translate-x-2 md:-translate-x-28"
                   />
                 </div>
               </div>
 
-              {/* Svara på dagens quiz knapp */}
               <button
-                onClick={() => setOpenDaily(true)} //  öppnar modalen
+                onClick={() => setOpenDaily(true)}
                 className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-1/2 rounded-xl bg-[#5827C6] px-6 py-3 font-semibold text-white shadow"
               >
                 Svara på dagens Quiz
@@ -296,14 +325,14 @@ export default function StudentDashboardPage() {
             </div>
           </div>
 
-          {/* HÖGER KOLUMN – Topplista + Mål & streak (ligger högre än det stora vita kortet) */}
+          {/* HÖGER KOLUMN – Topplista + Mål & streak */}
           <div className="mt-1 space-y-4 md:mt-2">
             {/* Topplista */}
             <section className="rounded-2xl bg-[#3D1C87] p-4">
               <h2 className="text-lg font-extrabold">Topplista</h2>
               <div className="mt-3 space-y-3 text-sm">
-                {topThree.length ? (
-                  topThree.map((p) => (
+                {topList.length ? (
+                  topList.map((p) => (
                     <Row
                       key={p.userId}
                       name={
@@ -337,17 +366,12 @@ export default function StudentDashboardPage() {
 
               {stats && (
                 <>
-                  {/* 🔥 Streak */}
                   <div className="mt-3 rounded-xl bg-[#FBA500] px-3 py-2 font-extrabold text-black">
                     🔥 {stats.currentStreak} dagar i rad
                   </div>
-
-                  {/* Längsta streak (extra rad) */}
                   <div className="mt-2 text-xs text-white/70">
                     Längsta streak: {stats.longestStreak} dagar
                   </div>
-
-                  {/* Veckomål */}
                   <div className="mt-3 rounded-xl bg-black/20 p-3">
                     <div className="text-sm font-semibold">Veckomål</div>
                     <div className="text-xs text-white/80">
@@ -368,8 +392,6 @@ export default function StudentDashboardPage() {
                       />
                     </div>
                   </div>
-
-                  {/* Senast besvarad */}
                   {stats.lastAnsweredDate && (
                     <div className="mt-2 text-xs text-white/60">
                       Senast besvarad:{" "}
@@ -389,7 +411,7 @@ export default function StudentDashboardPage() {
   );
 }
 
-/* --- småkomponenter--- */
+/* --- småkomponenter --- */
 function Row({ name, points }: { name: string; points: string }) {
   return (
     <div className="flex items-center justify-between rounded-xl bg-black/15 px-3 py-2">
