@@ -6,7 +6,7 @@ describe('Daily quiz',() => {
   });
   it('Should logout user when pressing logout button', () => {
     cy.contains('button', 'Prestationer');
-    cy.contains('button', 'Användare:').click();
+    cy.contains('button', 'student:').click();
     cy.contains('Hej');
     cy.contains('button', 'Logga ut').click();
     cy.url().should('include', '/localhost:5173');

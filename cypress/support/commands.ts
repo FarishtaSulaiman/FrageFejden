@@ -5,7 +5,7 @@ Cypress.Commands.add('login', () => {
   cy.visit('/');
   cy.contains('Logga in').click();
   cy.get('[data-testid="login-modal"]').within(() => {
-    cy.get('input[name="emailOrUserName"]').clear().type('eva.8a@school.edu');
+    cy.get('input[name="emailOrUserName"]').clear().type('sofia.10d@school.edu');
     cy.get('input[name="password"]').clear().type('Password123!');
     cy.get('button[type="submit"]').click();
   });

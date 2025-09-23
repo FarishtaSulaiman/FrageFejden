@@ -16,7 +16,7 @@ describe('Start quiz', () => {
     cy.contains('button', 'Bekräfta val').click();
     cy.url().should('include','/topics');
     cy.contains('Du har valt kursen');
-    cy.get('button[aria-label="Nivå 2"]').click();
+    cy.get('button[aria-label="Nivå 1"]').click();
     cy.get('button').eq(3).click();
     cy.contains('button', 'Bekräfta svar').click();
     cy.contains('button', 'Nästa fråga').click();

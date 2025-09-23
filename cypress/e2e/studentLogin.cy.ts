@@ -11,8 +11,8 @@ describe('Login as student', () => {
     cy.get('[data-testid="login-modal"]').should('be.visible');
     //Fyller i email och lösenord, letar endast efter fälten i modalen
     cy.get('[data-testid="login-modal"]').within(() => {
-      cy.get('input[name="emailOrUserName"]').clear().type('test@test.com');
-      cy.get('input[name="password"]').clear().type('Toalettb0rste1!');
+      cy.get('input[name="emailOrUserName"]').clear().type('sofia.10d@school.edu');
+      cy.get('input[name="password"]').clear().type('Password123!');
       //Klickar på knappen för att skicka in formuläret
       cy.get('button[type="submit"]').click();
     });
