@@ -333,36 +333,11 @@ export default function QuizStatsPage() {
     })();
   }, [allResponses]);
 
-  // Filtrering på ämne/kurs – används på elevrader
-  const matchesSubjectTopicFilters = (row: any) => {
-    if (selectedSubjectId === ALL_SUBJECTS) return true;
-    const rowSubjectId =
-      row.subjectId ??
-      row._subjectId ??
-      (Array.isArray(row._subjectIds) ? row._subjectIds : null);
-    const subjectOk = Array.isArray(rowSubjectId)
-      ? rowSubjectId.includes(selectedSubjectId)
-      : rowSubjectId == null || rowSubjectId === selectedSubjectId;
-    if (!subjectOk) return false;
-
-    if (selectedTopicId === ALL_TOPICS) return true;
-
-    const rowTopicId =
-      row.topicId ??
-      row._topicId ??
-      (Array.isArray(row._topicIds) ? row._topicIds : null);
-    const topicOk = Array.isArray(rowTopicId)
-      ? rowTopicId.includes(selectedTopicId)
-      : rowTopicId == null || rowTopicId === selectedTopicId;
-
-    return topicOk;
-  };
-
   // Datum ur response
   function getResponseDateISO(r: any): string | null {
     const raw =
       r?.answeredAt ??
-      r?.completedAt ?? // <— NYTT: stöd för API:ets completedAt
+      r?.completedAt ??
       r?.submittedAt ??
       r?.createdAt ??
       r?.timestamp ??
@@ -374,13 +349,13 @@ export default function QuizStatsPage() {
     return toISO(d);
   }
 
-  // Filtrera response på datum + ämne/kurs
+  // Filtrera response på datum + ämne/kurs (STRIKT: kräver match om filter är valt)
   const responseMatchesAllFilters = (r: any) => {
-    // Ämne/kurs
     const respSubjectId =
       r?.subjectId ??
       r?._subjectId ??
       (Array.isArray(r?._subjectIds) ? r._subjectIds : null);
+
     const respTopicId =
       r?.topicId ??
       r?._topicId ??
@@ -389,17 +364,16 @@ export default function QuizStatsPage() {
     if (selectedSubjectId !== ALL_SUBJECTS) {
       const subjectOk = Array.isArray(respSubjectId)
         ? respSubjectId.includes(selectedSubjectId)
-        : respSubjectId == null || respSubjectId === selectedSubjectId;
+        : respSubjectId === selectedSubjectId;
       if (!subjectOk) return false;
     }
     if (selectedTopicId !== ALL_TOPICS) {
       const topicOk = Array.isArray(respTopicId)
         ? respTopicId.includes(selectedTopicId)
-        : respTopicId == null || respTopicId === selectedTopicId;
+        : respTopicId === selectedTopicId;
       if (!topicOk) return false;
     }
 
-    // Datum
     const k = getResponseDateISO(r);
     if (!k) return false;
     if (dateFrom && k < dateFrom) return false;
@@ -561,7 +535,7 @@ export default function QuizStatsPage() {
   // ────────────────────────────────────────────────────────────────────────────
   //  TABELL/LEADERBOARD
   // ────────────────────────────────────────────────────────────────────────────
-  const preparedRows = students.filter(matchesSubjectTopicFilters).map((s) => {
+  const preparedRows = students.map((s) => {
     const sid = String(s.id ?? s.userId ?? "");
     const timeSec = sid ? perStudentAvgTimeSeconds.get(sid) ?? null : null;
     return {
