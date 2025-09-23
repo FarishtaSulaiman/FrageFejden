@@ -84,7 +84,7 @@ describe("QuizzesApi.create", () => {
     });
 
     //Testar felhantering vid skapande
-    
+
     it("should throw error if creation fails", async () => {
         const data: { title: string; description: string; applicationUserId: string; subjectId: string; levelId: string; isPublished: boolean } = {
             title: "Quiz",
@@ -120,7 +120,7 @@ describe("QuizzesApi.getPublished", () => {
     });
 
     //Testar felhantering vid hämtning av publicerade quizzar
-    
+
     it("should throw error if request fails", async () => {
         const filters: { SubjectId?: string; LevelId?: string } = {
             SubjectId: "subj1",

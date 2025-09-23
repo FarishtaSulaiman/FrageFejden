@@ -1,9 +1,9 @@
-// src/Api/QuizApi/Quizzes.ts
 import { http } from "../../lib/http";
 
-// Types
+// ===== Shared =====
 export type UUID = string;
 
+// ===== Quizzes types (existing) =====
 export type Quiz = {
   id: UUID;
   title: string;
@@ -36,7 +36,7 @@ export type QuizFilter = {
 
 export type CreateQuizDto = {
   topicId: UUID;
-  subjectId?: UUID; // Optional, will be derived from topic
+  subjectId?: UUID; // Optional (server derives from topicId) — ignored by client payload
   levelId?: UUID | null;
   classId?: UUID | null;
   title: string;
@@ -53,15 +53,10 @@ export type UpdateQuizDto = {
   classId?: UUID | null;
 };
 
-export type PublishQuizDto = {
-  isPublished: boolean;
-};
+export type PublishQuizDto = { isPublished: boolean };
 
 export type UpdateQuizQuestionsDto = {
-  questions: {
-    questionId: UUID;
-    sortOrder: number;
-  }[];
+  questions: { questionId: UUID; sortOrder: number }[];
 };
 
 export type QuizSummaryDto = {
@@ -107,7 +102,7 @@ export type QuizQuestionDto = {
   questionType: string;
   difficulty: string;
   options: QuestionOptionDto[];
-  correctOptionId?: UUID | null; // Only present when includeAnswers=true
+  correctOptionId?: UUID | null;
 };
 
 export type QuestionOptionDto = {
@@ -137,7 +132,7 @@ export type QuizAttemptSummaryDto = {
   xpEarned: number;
 };
 
-// Legacy Question type for backward compatibility
+// Legacy Question type for compatibility helpers
 export type Question = {
   id: UUID;
   text: string;
@@ -145,14 +140,9 @@ export type Question = {
   correctAnswerId?: UUID;
 };
 
-// Attempt types
-export type StartAttemptRequest = {
-  bypassLock?: boolean;
-};
-
-export type StartAttemptResponse = {
-  attemptId: UUID;
-};
+// Attempts
+export type StartAttemptRequest = { bypassLock?: boolean };
+export type StartAttemptResponse = { attemptId: UUID };
 
 export type SubmitAnswerRequest = {
   questionId: UUID;
@@ -198,16 +188,42 @@ export type UserQuizStatusDto = {
   xpEarned: number;
 };
 
-export type AllowRetryRequest = {
-  userId: UUID;
-  canRetry: boolean;
+export type AllowRetryRequest = { userId: UUID; canRetry: boolean };
+
+/* ============ NEW: Question creation types ============ */
+export type CreateQuestionDto = {
+  topicId: UUID;
+  levelId: UUID;
+  stem: string;
+  explanation?: string | null;
+  options: { text: string; isCorrect: boolean }[];
 };
 
-// API
+export type CreatedQuestionDto = { id: UUID };
+
+/* =========================
+ * API
+ * ========================= */
 export const QuizzesApi = {
   async getQuizzes(filter?: QuizFilter): Promise<QuizSummaryDto[]> {
     const res = await http.get<QuizSummaryDto[]>("/quizzes", {
       params: filter,
+    });
+    return res.data;
+  },
+
+  async getPublishedQuizzes(
+    subjectId?: UUID,
+    topicId?: UUID,
+    levelId?: UUID
+  ): Promise<QuizSummaryDto[]> {
+    const params: Record<string, unknown> = {};
+    if (subjectId) params.subjectId = subjectId;
+    if (topicId) params.topicId = topicId;
+    if (levelId) params.levelId = levelId;
+
+    const res = await http.get<QuizSummaryDto[]>("/quizzes/published", {
+      params,
     });
     return res.data;
   },
@@ -221,22 +237,10 @@ export const QuizzesApi = {
     searchTerm?: string;
   }): Promise<QuizSummaryDto[]> {
     const res = await http.get("/Quizzes/my-quizzes", { params });
-    const data = res.data;
+    const data = res.data as any;
     if (Array.isArray(data)) return data;
-    if (Array.isArray((data as any)?.items)) return (data as any).items;
+    if (Array.isArray(data?.items)) return data.items;
     return [];
-  },
-
-  async getPublishedQuizzes(
-    subjectId?: UUID,
-    topicId?: UUID,
-    levelId?: UUID
-  ): Promise<QuizSummaryDto[]> {
-    const params = { subjectId, topicId, levelId };
-    const res = await http.get<QuizSummaryDto[]>("/quizzes/published", {
-      params,
-    });
-    return res.data;
   },
 
   async getQuiz(id: UUID): Promise<Quiz> {
@@ -258,12 +262,35 @@ export const QuizzesApi = {
   },
 
   async createQuiz(createDto: CreateQuizDto): Promise<Quiz> {
-    const res = await http.post<Quiz>("/quizzes", createDto);
+    // Don’t send undefined keys. Also: DO NOT forward subjectId; server derives from topicId.
+    const payload: Record<string, unknown> = {
+      topicId: createDto.topicId,
+      title: createDto.title,
+      isPublished: createDto.isPublished,
+    };
+    if (createDto.description !== undefined)
+      payload.description = createDto.description;
+    // if (createDto.subjectId) payload.subjectId = createDto.subjectId; // ❌ omit for safety
+    if (createDto.levelId !== undefined) payload.levelId = createDto.levelId;
+    if (createDto.classId !== undefined) payload.classId = createDto.classId;
+    if (createDto.questionIds?.length)
+      payload.questionIds = createDto.questionIds;
+
+    const res = await http.post<Quiz>("/quizzes", payload);
     return res.data;
   },
 
   async updateQuiz(id: UUID, updateDto: UpdateQuizDto): Promise<Quiz> {
-    const res = await http.put<Quiz>(`/quizzes/${id}`, updateDto);
+    const payload: Record<string, unknown> = {
+      title: updateDto.title,
+      isPublished: updateDto.isPublished,
+    };
+    if (updateDto.description !== undefined)
+      payload.description = updateDto.description;
+    if (updateDto.levelId !== undefined) payload.levelId = updateDto.levelId;
+    if (updateDto.classId !== undefined) payload.classId = updateDto.classId;
+
+    const res = await http.put<Quiz>(`/quizzes/${id}`, payload);
     return res.data;
   },
 
@@ -310,7 +337,7 @@ export const QuizzesApi = {
     quizId: UUID,
     includeAnswers = false
   ): Promise<Question[]> {
-    const dto = await this.getQuizWithQuestions(quizId, includeAnswers);
+    const dto = await QuizzesApi.getQuizWithQuestions(quizId, includeAnswers);
     return dto.questions.map((q) => ({
       id: q.questionId,
       text: q.questionStem,
@@ -321,7 +348,7 @@ export const QuizzesApi = {
 
   async exists(id: UUID): Promise<boolean> {
     try {
-      await this.getQuiz(id);
+      await QuizzesApi.getQuiz(id);
       return true;
     } catch (error: any) {
       if (error?.response?.status === 404) return false;
@@ -330,11 +357,78 @@ export const QuizzesApi = {
   },
 
   async canAccess(quizId: UUID): Promise<boolean> {
-    return this.checkQuizAccess(quizId);
+    return QuizzesApi.checkQuizAccess(quizId);
   },
 
-  // Utility methods
-  async setPublishedStatus(quizId: UUID, isPublished: boolean): Promise<void> {
-    await this.publishQuiz(quizId, { isPublished });
+  async setPublishedStatus(
+    quizId: UUID,
+    isPublished: boolean
+  ): Promise<void> {
+    await QuizzesApi.publishQuiz(quizId, { isPublished });
+  },
+
+  /* ========== Questions endpoints ========== */
+
+  async createQuestion(body: CreateQuestionDto): Promise<CreatedQuestionDto> {
+    const res = await http.post(
+      `/topics/${body.topicId}/levels/${body.levelId}/questions`,
+      {
+        stem: body.stem,
+        explanation: body.explanation ?? null,
+        options: body.options.map((o) => ({
+          text: o.text,
+          isCorrect: o.isCorrect,
+        })),
+      }
+    );
+    return res.data as CreatedQuestionDto;
+  },
+
+  async createQuestions(
+    items: CreateQuestionDto[]
+  ): Promise<CreatedQuestionDto[]> {
+    const out: CreatedQuestionDto[] = [];
+    for (const item of items) {
+      const created = await QuizzesApi.createQuestion(item);
+      out.push(created);
+    }
+    return out;
+  },
+
+  async createQuizWithNewQuestions(args: {
+    topicId: UUID;
+    levelId: UUID;
+    title: string;
+    description?: string;
+    isPublished: boolean;
+    subjectId?: UUID; // kept in type for compatibility
+    classId?: UUID;
+    questions: {
+      stem: string;
+      explanation?: string | null;
+      options: { text: string; isCorrect: boolean }[];
+    }[];
+  }): Promise<Quiz> {
+    const created = await QuizzesApi.createQuestions(
+      args.questions.map((q) => ({
+        topicId: args.topicId,
+        levelId: args.levelId,
+        stem: q.stem,
+        explanation: q.explanation ?? null,
+        options: q.options,
+      }))
+    );
+
+    const questionIds = created.map((c) => c.id);
+
+    return QuizzesApi.createQuiz({
+      topicId: args.topicId,
+      levelId: args.levelId,
+      classId: args.classId,
+      title: args.title,
+      description: args.description,
+      isPublished: args.isPublished,
+      questionIds,
+    });
   },
 };

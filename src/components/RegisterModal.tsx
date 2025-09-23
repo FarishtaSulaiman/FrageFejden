@@ -8,7 +8,7 @@ interface RegisterModalProps {
 }
 
 const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onRegisterSuccess }) => {
-  const { register } = useAuth();
+  const { registerTeacher } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     userName: "",
@@ -46,7 +46,9 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onRegist
     }
 
     try {
-      await register(formData.email, formData.userName, formData.password, formData.fullName);
+      //  nu används rätt endpoint: /Auth/registerTeacher
+      await registerTeacher(formData.email, formData.userName, formData.password, formData.fullName);
+
       onRegisterSuccess?.();
       onClose();
     } catch (err: any) {
@@ -79,12 +81,16 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onRegist
         </button>
 
         <div className="bg-purple-600 text-white text-center py-4 rounded-t-lg">
-          <h2 className="text-xl font-medium">Registrera dig</h2>
+          <h2 className="text-xl font-medium">Registrera dig som lärare</h2>
         </div>
 
         <div className="bg-slate-800 p-8 rounded-b-lg">
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error && <div className="bg-red-500 text-white p-3 rounded-lg text-sm whitespace-pre-line">{error}</div>}
+            {error && (
+              <div className="bg-red-500 text-white p-3 rounded-lg text-sm whitespace-pre-line">
+                {error}
+              </div>
+            )}
 
             <input
               type="email"
@@ -146,7 +152,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, onRegist
               className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-400 
                          text-white font-medium py-3 rounded-lg transition-colors text-center"
             >
-              {isLoading ? "Registrerar..." : "Registrera"}
+              {isLoading ? "Registrerar..." : "Registrera som lärare"}
             </button>
           </form>
         </div>

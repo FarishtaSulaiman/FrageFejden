@@ -22,22 +22,46 @@ import trophy from "../../assets/images/icons/trophy-icon.png";
 
 export default function QuizStatsPage() {
   // ────────────────────────────────────────────────────────────────────────────
-  //  KONSTANTER
+  //  KONSTANTER & HJÄLPARE
   // ────────────────────────────────────────────────────────────────────────────
   const ALL_CLASSES = "__ALL__";
   const ALL_SUBJECTS = "__ALL_SUBJECTS__";
   const ALL_TOPICS = "__ALL_TOPICS__";
 
-  // Hjälpare
   const collator = useMemo(
     () => new Intl.Collator("sv", { sensitivity: "base" }),
     []
   );
+
   const displayNameOf = (s: any) =>
     (s.fullName ?? "").trim() ||
     (s.name ?? "").trim() ||
     (s.userName ?? "").split("@")[0] ||
     "Okänd";
+
+  const fmtShort = new Intl.DateTimeFormat("sv-SE", {
+    day: "numeric",
+    month: "short",
+  });
+  const fmtFull = new Intl.DateTimeFormat("sv-SE", {
+    weekday: "short",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  const toISO = (d: Date) => {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+  const fromISO = (iso: string) => {
+    const [y, m, d] = iso.split("-").map(Number);
+    return new Date(y, (m ?? 1) - 1, d ?? 1);
+  };
+  const shortLabel = (iso: string) => fmtShort.format(fromISO(iso));
+  const fullLabel = (iso: string) => fmtFull.format(fromISO(iso));
 
   // ────────────────────────────────────────────────────────────────────────────
   //  STATE + EFFECT: INLOGGAD ANVÄNDARE
@@ -56,6 +80,43 @@ export default function QuizStatsPage() {
       }
     })();
   }, []);
+
+  // ────────────────────────────────────────────────────────────────────────────
+  //  STATE + EFFECT: DATUMFILTER (från/till) – påverkar KPI:er, tabell & graf
+  // ────────────────────────────────────────────────────────────────────────────
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
+  const fourteenAgo = useMemo(() => {
+    const d = new Date(today);
+    d.setDate(d.getDate() - 13); // inkl. båda ändarna ger 14 staplar
+    return d;
+  }, [today]);
+
+  const [dateFrom, setDateFrom] = useState<string>(toISO(fourteenAgo));
+  const [dateTo, setDateTo] = useState<string>(toISO(today));
+
+  // Hålla intervallet giltigt (auto-korrigera om "från" > "till")
+  const onChangeFrom = (v: string) => {
+    if (!v) return;
+    if (dateTo && v > dateTo) {
+      setDateFrom(v);
+      setDateTo(v);
+    } else {
+      setDateFrom(v);
+    }
+  };
+  const onChangeTo = (v: string) => {
+    if (!v) return;
+    if (dateFrom && v < dateFrom) {
+      setDateFrom(v);
+      setDateTo(v);
+    } else {
+      setDateTo(v);
+    }
+  };
 
   // ────────────────────────────────────────────────────────────────────────────
   //  STATE + EFFECT: KLASSER & ELEVER (+ leaderboard per klass)
@@ -96,7 +157,6 @@ export default function QuizStatsPage() {
         setLoading(true);
         setError(null);
 
-        // Alla klasser → bygg ihop alla elevlistor + poäng
         if (selectedClassId === ALL_CLASSES) {
           if (!classes.length) {
             setStudents([]);
@@ -136,7 +196,6 @@ export default function QuizStatsPage() {
           return;
         }
 
-        // Enskild klass
         const [classList, lb] = await Promise.all([
           TeacherClasses.GetClassStudents(selectedClassId),
           Classes.GetClassLeaderboard(selectedClassId, userId),
@@ -218,7 +277,7 @@ export default function QuizStatsPage() {
   }, [selectedSubjectId]);
 
   // ────────────────────────────────────────────────────────────────────────────
-  //  STATE + EFFECT: MINA QUIZ (antal för KPI-kort)
+  //  STATE + EFFECT: MINA QUIZ (KPI)
   // ────────────────────────────────────────────────────────────────────────────
   const [myQuizzes, setMyQuizzes] = useState<QuizSummaryDto[] | null>(null);
   const [myQuizzesLoading, setMyQuizzesLoading] = useState(false);
@@ -247,7 +306,7 @@ export default function QuizStatsPage() {
   }, [userId]);
 
   // ────────────────────────────────────────────────────────────────────────────
-  //  STATE + EFFECT: SVAR (rådata) + härledda KPI:er & DIAGRAM
+  //  STATE + EFFECT: SVAR (rådata) + HJÄLPARE
   // ────────────────────────────────────────────────────────────────────────────
   const [allResponses, setAllResponses] = useState<StudentResponseDto[] | null>(
     null
@@ -274,7 +333,7 @@ export default function QuizStatsPage() {
     })();
   }, [allResponses]);
 
-  // Filtrering på ämne/kurs – för tabellens elevrader
+  // Filtrering på ämne/kurs – används på elevrader
   const matchesSubjectTopicFilters = (row: any) => {
     if (selectedSubjectId === ALL_SUBJECTS) return true;
     const rowSubjectId =
@@ -299,11 +358,25 @@ export default function QuizStatsPage() {
     return topicOk;
   };
 
-  // Samma filter – applicerat direkt på response (för diagram/KPI)
-  const responseMatchesSubjectTopicFilters = (r: any) => {
-    if (selectedSubjectId === ALL_SUBJECTS && selectedTopicId === ALL_TOPICS) {
-      return true;
-    }
+  // Datum ur response
+  function getResponseDateISO(r: any): string | null {
+    const raw =
+      r?.answeredAt ??
+      r?.completedAt ?? // <— NYTT: stöd för API:ets completedAt
+      r?.submittedAt ??
+      r?.createdAt ??
+      r?.timestamp ??
+      r?.updatedAt ??
+      null;
+    if (!raw) return null;
+    const d = new Date(raw);
+    if (isNaN(+d)) return null;
+    return toISO(d);
+  }
+
+  // Filtrera response på datum + ämne/kurs
+  const responseMatchesAllFilters = (r: any) => {
+    // Ämne/kurs
     const respSubjectId =
       r?.subjectId ??
       r?._subjectId ??
@@ -325,10 +398,19 @@ export default function QuizStatsPage() {
         : respTopicId == null || respTopicId === selectedTopicId;
       if (!topicOk) return false;
     }
+
+    // Datum
+    const k = getResponseDateISO(r);
+    if (!k) return false;
+    if (dateFrom && k < dateFrom) return false;
+    if (dateTo && k > dateTo) return false;
+
     return true;
   };
 
-  // Tidsgenomsnitt per elev (sekunder)
+  // ────────────────────────────────────────────────────────────────────────────
+  //  KPI & TABELL: härledda värden (påverkas av datum/klass/ämne/kurs)
+  // ────────────────────────────────────────────────────────────────────────────
   const perStudentAvgTimeSeconds = useMemo(() => {
     if (!allResponses) return new Map<string, number>();
 
@@ -345,7 +427,7 @@ export default function QuizStatsPage() {
     const counts = new Map<string, number>();
 
     for (const r of allResponses) {
-      if (!responseMatchesSubjectTopicFilters(r)) continue;
+      if (!responseMatchesAllFilters(r)) continue;
       const sid = (r as any)?.studentId ? String((r as any).studentId) : null;
       if (!sid || !eligibleIds.has(sid)) continue;
       if ((r as any).timeMs == null) continue;
@@ -372,9 +454,10 @@ export default function QuizStatsPage() {
     selectedClassId,
     selectedSubjectId,
     selectedTopicId,
+    dateFrom,
+    dateTo,
   ]);
 
-  // Rätt % per elev
   const perStudentCorrectPct = useMemo(() => {
     if (!allResponses) return new Map<string, number>();
 
@@ -391,7 +474,7 @@ export default function QuizStatsPage() {
     const corrects = new Map<string, number>();
 
     for (const r of allResponses) {
-      if (!responseMatchesSubjectTopicFilters(r)) continue;
+      if (!responseMatchesAllFilters(r)) continue;
       const sid = (r as any)?.studentId ? String((r as any).studentId) : null;
       if (!sid || !eligibleIds.has(sid)) continue;
 
@@ -427,13 +510,13 @@ export default function QuizStatsPage() {
     selectedClassId,
     selectedSubjectId,
     selectedTopicId,
+    dateFrom,
+    dateTo,
   ]);
 
-  // Genomsnitt svar per elev (KPI) – påverkas av vald klass + ämne/kurs
   const [avgAnswersPerStudent, setAvgAnswersPerStudent] = useState<
     number | null
   >(null);
-
   useEffect(() => {
     if (!allResponses) return;
 
@@ -454,7 +537,7 @@ export default function QuizStatsPage() {
 
     const counts = new Map<string, number>();
     for (const r of allResponses) {
-      if (!responseMatchesSubjectTopicFilters(r)) continue;
+      if (!responseMatchesAllFilters(r)) continue;
       const sid = r?.studentId ? String(r.studentId) : null;
       if (!sid || !eligibleIds.has(sid)) continue;
       counts.set(sid, (counts.get(sid) ?? 0) + 1);
@@ -471,10 +554,12 @@ export default function QuizStatsPage() {
     students,
     selectedSubjectId,
     selectedTopicId,
+    dateFrom,
+    dateTo,
   ]);
 
   // ────────────────────────────────────────────────────────────────────────────
-  //  HÄRLEDER RADER FÖR TABELL/LEADERBOARD
+  //  TABELL/LEADERBOARD
   // ────────────────────────────────────────────────────────────────────────────
   const preparedRows = students.filter(matchesSubjectTopicFilters).map((s) => {
     const sid = String(s.id ?? s.userId ?? "");
@@ -502,7 +587,6 @@ export default function QuizStatsPage() {
       : preparedRows.filter((r) => r._classId === selectedClassId);
   }, [preparedRows, selectedClassId]);
 
-  // KPI:er för kort
   const avgParticipants = useMemo(
     () => currentRows.filter((r) => (r._points ?? 0) > 0).length || 0,
     [currentRows]
@@ -574,57 +658,12 @@ export default function QuizStatsPage() {
   const rows = [...filtered].sort(compare);
 
   // ────────────────────────────────────────────────────────────────────────────
-  //  DIAGRAM: datum-helpers + dataset (senaste 14 dagar, unika klass–quiz/dag)
+  //  DIAGRAM: dataset per dag inom valt datumintervall (klass–quiz/dag)
   // ────────────────────────────────────────────────────────────────────────────
-  const [labelStep, setLabelStep] = useState<number>(2); // glesa X-etiketter
-  useEffect(() => {
-    const update = () => {
-      const w = typeof window !== "undefined" ? window.innerWidth : 1200;
-      setLabelStep(w < 480 ? 3 : w < 1024 ? 2 : 1);
-    };
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
-
-  function dateFromISO(iso: string) {
-    const [y, m, d] = iso.split("-").map(Number);
-    return new Date(y, (m ?? 1) - 1, d ?? 1);
-  }
-  const fmtShort = new Intl.DateTimeFormat("sv-SE", {
-    day: "numeric",
-    month: "short",
-  });
-  const fmtFull = new Intl.DateTimeFormat("sv-SE", {
-    weekday: "short",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-  const labelShort = (iso: string) => fmtShort.format(dateFromISO(iso));
-  const labelFull = (iso: string) => fmtFull.format(dateFromISO(iso));
-
-  function getResponseDateISO(r: any): string | null {
-    const raw =
-      r?.answeredAt ??
-      r?.submittedAt ??
-      r?.createdAt ??
-      r?.timestamp ??
-      r?.updatedAt ??
-      null;
-    if (!raw) return null;
-    const d = new Date(raw);
-    if (isNaN(+d)) return null;
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
-  }
-
   type ChartPoint = { day: string; completed: number };
 
-  const completedPerDay14: ChartPoint[] = useMemo(() => {
-    if (!allResponses || !students.length) return [];
+  const completedPerDay: ChartPoint[] = useMemo(() => {
+    if (!allResponses || !students.length || !dateFrom || !dateTo) return [];
 
     // Vilka elever är aktuella (valda klassen eller alla)?
     const eligibleRows =
@@ -642,20 +681,20 @@ export default function QuizStatsPage() {
       if (cid && !studentToClassId.has(sid)) studentToClassId.set(sid, cid);
     }
 
-    // X-axel (14 dagar bakåt)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // X-axel: alla datum mellan dateFrom..dateTo (inklusive)
+    const start = fromISO(dateFrom);
+    const end = fromISO(dateTo);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+
     const days: string[] = [];
     const indexByDate = new Map<string, number>();
-    for (let i = 13; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(today.getDate() - i);
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, "0");
-      const dd = String(d.getDate()).padStart(2, "0");
-      const key = `${yyyy}-${mm}-${dd}`;
+    const cursor = new Date(start);
+    while (cursor <= end) {
+      const key = toISO(cursor);
       indexByDate.set(key, days.length);
       days.push(key);
+      cursor.setDate(cursor.getDate() + 1);
     }
 
     // Räkna unika (dag, klassId, quizId)
@@ -663,7 +702,7 @@ export default function QuizStatsPage() {
     const counts = new Array<number>(days.length).fill(0);
 
     for (const r of allResponses as any[]) {
-      if (!responseMatchesSubjectTopicFilters(r)) continue;
+      if (!responseMatchesAllFilters(r)) continue;
 
       const sid = r?.studentId ? String(r.studentId) : null;
       if (!sid || !eligibleIds.has(sid)) continue;
@@ -699,12 +738,14 @@ export default function QuizStatsPage() {
     selectedClassId,
     selectedSubjectId,
     selectedTopicId,
+    dateFrom,
+    dateTo,
   ]);
 
-  // Y-axel: snygga "nice" steg + grid
+  // Y-axel: snygga steg + grid
   const yInfo = useMemo(() => {
     const maxVal =
-      completedPerDay14.reduce((m, d) => Math.max(m, d.completed), 0) || 1;
+      completedPerDay.reduce((m, d) => Math.max(m, d.completed), 0) || 1;
     const nTicks = 4;
     const rawStep = Math.ceil(maxVal / nTicks);
     const pow10 = Math.pow(10, Math.floor(Math.log10(rawStep)));
@@ -715,7 +756,7 @@ export default function QuizStatsPage() {
     const ticks: number[] = [];
     for (let v = 0; v <= maxTick; v += step) ticks.push(v);
     return { maxTick: Math.max(maxTick, 1), step, ticks };
-  }, [completedPerDay14]);
+  }, [completedPerDay]);
 
   // Texter för diagram
   const isAllClasses = selectedClassId === ALL_CLASSES;
@@ -725,20 +766,32 @@ export default function QuizStatsPage() {
     ? "Visar antal olika klass–quiz-kombinationer per dag. Om en klass genomför samma quiz flera gånger samma dag räknas det som 1."
     : "Visar antal olika quiz som den här klassen genomförde per dag. Om samma quiz körs flera gånger samma dag räknas det som 1.";
   const totalCompleted = useMemo(
-    () => completedPerDay14.reduce((sum, p) => sum + p.completed, 0),
-    [completedPerDay14]
+    () => completedPerDay.reduce((sum, p) => sum + p.completed, 0),
+    [completedPerDay]
   );
   const maxDayInfo = useMemo(() => {
     let max = 0;
     let day: string | null = null;
-    for (const p of completedPerDay14) {
+    for (const p of completedPerDay) {
       if (p.completed > max) {
         max = p.completed;
         day = p.day;
       }
     }
     return { max, day };
-  }, [completedPerDay14]);
+  }, [completedPerDay]);
+
+  const rangeLabel =
+    dateFrom && dateTo
+      ? `${shortLabel(dateFrom)} – ${shortLabel(dateTo)}`
+      : "Datumintervall";
+
+  // Dynamisk glesning av X-etiketter (behåll ~8–14 etiketter beroende på skärm)
+  const dynamicLabelStep = useMemo(() => {
+    const w = typeof window !== "undefined" ? window.innerWidth : 1200;
+    const target = w < 480 ? 6 : w < 1024 ? 10 : 14;
+    return Math.max(1, Math.ceil((completedPerDay.length || 1) / target));
+  }, [completedPerDay.length]);
 
   // ────────────────────────────────────────────────────────────────────────────
   //  RENDER
@@ -769,7 +822,7 @@ export default function QuizStatsPage() {
 
       {/* KPI-kort */}
       <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5 px-6 pt-0">
-        {/* Genomsnitt deltagare – FIX: bara EN ikonruta */}
+        {/* Genomsnitt deltagare */}
         <div className="rounded-2xl bg-[#3D1C87] p-5 shadow-[0_8px_24px_rgba(0,0,0,0.25)] min-h-[120px]">
           <div className="flex items-center gap-4">
             <div className="grid h-12 w-12 place-items-center rounded-xl bg-black/25">
@@ -855,13 +908,13 @@ export default function QuizStatsPage() {
         <div className="rounded-2xl bg-[#3D1C87] p-5 shadow-[0_10px_26px_rgba(0,0,0,0.25)] min-h-[320px]">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-lg">Genomförda Quiz</h2>
-            <span className="text-xs text-white/70">Senaste 14 dagar</span>
+            <span className="text-xs text-white/70">{rangeLabel}</span>
           </div>
 
           <div className="mt-4 rounded-xl bg-black/15 p-3 sm:p-4">
-            {completedPerDay14.length === 0 ? (
+            {completedPerDay.length === 0 ? (
               <div className="h-[220px] grid place-items-center text-white/70">
-                Inga quiz genomförda ännu
+                Inga quiz genomförda i valt intervall
               </div>
             ) : (
               <>
@@ -897,11 +950,11 @@ export default function QuizStatsPage() {
                     <div className="h-[220px] flex items-end gap-1 sm:gap-1.5 relative">
                       {(() => {
                         const maxVal =
-                          completedPerDay14.reduce(
+                          completedPerDay.reduce(
                             (m, d) => Math.max(m, d.completed),
                             0
                           ) || 1;
-                        return completedPerDay14.map((d: ChartPoint) => {
+                        return completedPerDay.map((d: ChartPoint) => {
                           const h = (d.completed / maxVal) * 100;
                           return (
                             <div
@@ -917,7 +970,7 @@ export default function QuizStatsPage() {
                                     "linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.75) 100%)",
                                   boxShadow: "0 2px 10px rgba(0,0,0,0.15)",
                                 }}
-                                title={`${labelFull(d.day)}: ${
+                                title={`${fullLabel(d.day)}: ${
                                   d.completed
                                 } ${unitLong}`}
                               />
@@ -931,23 +984,25 @@ export default function QuizStatsPage() {
                     <div
                       className="mt-2 grid"
                       style={{
-                        gridTemplateColumns: `repeat(${completedPerDay14.length}, minmax(0, 1fr))`,
+                        gridTemplateColumns: `repeat(${completedPerDay.length}, minmax(0, 1fr))`,
                       }}
                     >
-                      {completedPerDay14.map((d: ChartPoint, idx: number) => (
+                      {completedPerDay.map((d: ChartPoint, idx: number) => (
                         <div
                           key={`label-${d.day}`}
                           className="text-[10px] sm:text-xs text-white/70 text-center select-none rotate-45 origin-top-right translate-y-2 whitespace-nowrap"
-                          title={labelFull(d.day)}
+                          title={fullLabel(d.day)}
                         >
-                          {idx % labelStep === 0 ? labelShort(d.day) : ""}
+                          {idx % dynamicLabelStep === 0
+                            ? shortLabel(d.day)
+                            : ""}
                         </div>
                       ))}
                     </div>
                   </div>
                 </div>
 
-                {/* Footer förklaring + totals (separata kolumner/rader) */}
+                {/* Förklaring + totals */}
                 <div className="mt-3 grid grid-cols-1 xl:grid-cols-2 gap-2 text-[11px] text-white/70">
                   <p className="leading-snug">{chartExplainer}</p>
                   <p className="leading-snug xl:text-right">
@@ -955,7 +1010,7 @@ export default function QuizStatsPage() {
                     <span className="mx-1 hidden xl:inline">•</span>
                     <br className="xl:hidden" />
                     Högsta dagsvärde: {maxDayInfo.max} {unitShort}
-                    {maxDayInfo.day ? ` (${labelShort(maxDayInfo.day)})` : ""}
+                    {maxDayInfo.day ? ` (${shortLabel(maxDayInfo.day)})` : ""}
                   </p>
                 </div>
               </>
@@ -1005,8 +1060,27 @@ export default function QuizStatsPage() {
 
       {/* Filterrad */}
       <section className="w-full flex justify-center pt-6 px-6">
-        <div className="flex flex-wrap gap-4">
-          <input type="date" className="rounded-md px-3 py-1 text-black" />
+        <div className="flex flex-wrap gap-4 items-center">
+          {/* Datumintervall */}
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              className="rounded-md px-3 py-1 text-black"
+              value={dateFrom}
+              max={dateTo}
+              onChange={(e) => onChangeFrom(e.target.value)}
+            />
+            <span className="text-white/70">–</span>
+            <input
+              type="date"
+              className="rounded-md px-3 py-1 text-black"
+              value={dateTo}
+              min={dateFrom}
+              onChange={(e) => onChangeTo(e.target.value)}
+            />
+          </div>
+
+          {/* Klass */}
           <select
             data-testid="class-select"
             className="rounded-md px-3 py-1 text-black"
@@ -1025,6 +1099,7 @@ export default function QuizStatsPage() {
             ))}
           </select>
 
+          {/* Ämne */}
           <select
             className="rounded-md px-3 py-1 text-black"
             value={selectedSubjectId}
@@ -1039,6 +1114,7 @@ export default function QuizStatsPage() {
             ))}
           </select>
 
+          {/* Kurs */}
           <select
             className="rounded-md px-3 py-1 text-black"
             value={selectedTopicId}
@@ -1054,6 +1130,7 @@ export default function QuizStatsPage() {
               ))}
           </select>
 
+          {/* Sök */}
           <input
             type="text"
             placeholder="Sök elev…"
