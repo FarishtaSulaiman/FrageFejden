@@ -15,3 +15,4 @@ export { StatisticsApi } from "./StatisticsApi/StatisticsApi";
 export type { ClassAverageScoreDto } from "./StatisticsApi/StatisticsApi";
 export type { StudentResponseDto } from "./StatisticsApi/StatisticsApi";
 
+export { DuelApi } from "./DuelApi/Duel";
