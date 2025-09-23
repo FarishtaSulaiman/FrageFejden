@@ -1,194 +1,232 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { AuthApi, SubjectsApi, TeacherClasses } from "../../Api/index";
+import { AuthApi, Classes, SubjectsApi } from "../../Api/index";
 
-//typ för ämne
 type UINormalizedSubject = {
   id: string;
   name: string;
+  iconUrl?: string | null;
+  levelsCount?: number;
   topicsCount?: number;
 };
 
-// ikoner för ämnen
-import geografiIcon from "../../assets/images/icons/geografy-icon.png";
-import historyIcon from "../../assets/images/icons/history-icon.png";
-import mathIcon from "../../assets/images/icons/math-transparent.png";
-import bookIcon from "../../assets/images/icons/open-book.png";
-
-// koppla ämnesnamn till ikon
-const SUBJECT_ICON_BY_NAME: Record<string, string> = {
-  geografi: geografiIcon,
-  historia: historyIcon,
-  matematik: mathIcon,
-  svenska: bookIcon,
-};
-
-// hämta rätt ikon för ämnet
-function subjectIconFor(name?: string) {
-  const key = (name ?? "").trim().toLowerCase();
-  return SUBJECT_ICON_BY_NAME[key] ?? bookIcon; // om inget matchar, ta bok-ikonen
+function resolveIconUrl(s: any): string {
+  const url = s?.iconUrl ?? s?.IconUrl ?? s?.iconURL ?? s?.icon ?? null;
+  if (typeof url === "string" && url.trim()) return url;
+  return "/icons/open-book.png";
 }
 
-export default function QuizVyTeacher() {
-  const [searchParams] = useSearchParams();
+export default function QuizVyTeacher(): React.ReactElement {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  // hämta klassId från URL
-  const queryClassId = searchParams.get("classId");
+  // ✅ Get class info from URL params
+  const urlClassId = searchParams.get("classId");
+  const urlClassName = searchParams.get("className") || "Okänd klass";
 
-  // state för klassinfo, ämnen, valt ämne och laddning
-  const [classInfo, setClassInfo] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
   const [subjects, setSubjects] = useState<UINormalizedSubject[]>([]);
-  const [selected, setSelected] = useState<UINormalizedSubject | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<{ id: string; name: string } | null>(
+    null
+  );
+  const [classInfo, setClassInfo] = useState<{ id: string; name: string } | null>(null);
 
-  // hämta klassinfo
   useEffect(() => {
     let alive = true;
 
-    (async () => {
-      try {
-        const myClasses = await TeacherClasses.GetCreatedClasses();
-        if (!Array.isArray(myClasses) || myClasses.length === 0) return;
-
-        // ta klassen från URL eller första klassen om ingen matchar
-        const pickedClass =
-          myClasses.find((c) => c.id === queryClassId) || myClasses[0];
-        if (!alive) return;
-
-        setClassInfo({ id: pickedClass.id, name: pickedClass.name });
-      } catch (err) {
-        console.error("Kunde inte hämta klasser:", err);
-      }
-    })();
-
-    return () => {
-      alive = false;
-    };
-  }, [queryClassId]);
-
-  // hämta ämnen när klassen är vald
-  useEffect(() => {
-    if (!classInfo?.id) return;
-
-    let alive = true;
     (async () => {
       setLoading(true);
+
+      let me: any = null;
       try {
-        await AuthApi.getMe(); // kontrollera användare
+        me = await AuthApi.getMe();
+      } catch { }
 
-        const list = await SubjectsApi.getForClass(classInfo.id);
-        if (!alive) return;
+      let pickedClassId: string | null = null;
+      let pickedClassName: string | null = null;
 
-        const normalized: UINormalizedSubject[] = (
-          Array.isArray(list) ? list : []
-        ).map((s) => ({
-          id: s.id,
-          name: s.name ?? "Ämne",
-          topicsCount: s.topicCount ?? undefined,
-        }));
-
-        // sortera alfabetiskt
-        normalized.sort((a, b) => a.name.localeCompare(b.name));
-        setSubjects(normalized);
-
-        // väljer första ämnet automatiskt
-        setSelected(normalized[0] || null);
-      } catch (err) {
-        console.error("Kunde inte hämta ämnen:", err);
-        setSubjects([]);
-      } finally {
-        if (alive) setLoading(false);
+      // ✅ Use URL params if available, otherwise fallback to first class
+      if (urlClassId) {
+        pickedClassId = urlClassId;
+        pickedClassName = decodeURIComponent(urlClassName);
+        setClassInfo({ id: pickedClassId, name: pickedClassName });
+      } else {
+        // Fallback: get first class from user's classes
+        try {
+          const myClasses = await Classes.GetUsersClasses();
+          if (Array.isArray(myClasses) && myClasses.length > 0) {
+            const first = myClasses[0];
+            pickedClassId =
+              first?.classId ?? first?.id ?? first?.ClassId ?? first?.Id ?? null;
+            pickedClassName = first?.name ?? first?.Name ?? "Okänd klass";
+            setClassInfo({
+              id: pickedClassId || "",
+              name: pickedClassName
+            });
+          }
+        } catch { }
       }
+      
+      // ✅ Load subjects for the selected class
+      try {
+        if (pickedClassId) {
+          const list = await SubjectsApi.getForClass(pickedClassId);
+          if (!alive) return;
+
+          const normalized: UINormalizedSubject[] = (
+            Array.isArray(list) ? list : []
+          ).map((s: any) => ({
+            id: s.id ?? s.subjectId,
+            name: s.name ?? "Ämne",
+            iconUrl: resolveIconUrl(s),
+            levelsCount: s.levelsCount ?? s.levelCount ?? undefined,
+            topicsCount: s.topicCount ?? s.topicsCount ?? undefined,
+          }));
+
+          normalized.sort((a, b) => a.name.localeCompare(b.name));
+          setSubjects(normalized);
+        }
+      } catch (err) {
+        console.error("Failed to load subjects:", err);
+        setSubjects([]);
+      }
+
+      if (alive) setLoading(false);
     })();
 
     return () => {
       alive = false;
     };
-  }, [classInfo]);
+  }, [urlClassId, urlClassName]);
 
-  // gör om ämnen till kort för visning, så det blir snyggt
   const subjectCards = useMemo(() => {
     if (!subjects.length) return [];
-    return subjects.map((s) => ({
-      id: s.id,
-      label: s.name,
-      sub: s.topicsCount ? `${s.topicsCount} områden` : "Inga nivåer ännu",
-      icon: subjectIconFor(s.name),
-    }));
+    return subjects.map((s) => {
+      const sub =
+        typeof s.levelsCount === "number" && s.levelsCount > 0
+          ? `${s.levelsCount} nivåer`
+          : typeof s.topicsCount === "number" && s.topicsCount > 0
+            ? `${s.topicsCount} områden`
+            : "Inga nivåer ännu";
+
+      return {
+        id: s.id,
+        label: s.name,
+        sub,
+        iconUrl: s.iconUrl,
+      };
+    });
   }, [subjects]);
 
-  // gå till skapa quiz-sidan när man trycker på knappen
-  const handleCreateQuiz = () => {
+  function handleCreateQuiz() {
     if (!selected || !classInfo) return;
     navigate(`/skapa-quiz?subjectId=${selected.id}&classId=${classInfo.id}`);
-  };
+  }
+
+  // ✅ Go back to class overview
+  function handleGoBack() {
+    navigate("/klassvy");
+  }
 
   return (
-    <div className="min-h-screen bg-[#0A0F1F] text-white p-6">
-      {/* rubrik */}
-      <h2 className="text-center text-[18px] font-semibold text-white/90 mb-6">
-        Välj ämne för nytt quiz för{" "}
-        <span className="font-bold">{classInfo?.name ?? "—"}</span>
-      </h2>
-
-      {loading && <p>Laddar...</p>}
-
-      {/* Visa ämneskort */}
-      {!loading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-[1100px] mx-auto">
-          {subjectCards.map((s) => {
-            const isSelected = selected?.id === s.id;
-            return (
-              <button
-                key={s.id}
-                onClick={() => setSelected({ id: s.id, name: s.label })}
-                disabled={loading}
-                className="relative w-full text-left"
-              >
-                {/* markera valt ämne */}
-                {isSelected && (
-                  <div className="absolute -inset-[6px] rounded-[26px] ring-2 ring-white/95" />
-                )}
-                <article className="relative h-[140px] w-full rounded-[26px] border border-[#1E2A49] bg-[#0E1629] px-7 py-6 flex items-center gap-6">
-                  <div className="flex h-[84px] w-[84px] items-center justify-center rounded-2xl bg-gradient-to-b from-[#0E1A34] to-[#0B152A]">
-                    <img
-                      src={s.icon}
-                      alt={s.label}
-                      className="h-[56px] w-[56px] object-contain"
-                    />
-                  </div>
-                  <div>
-                    <h3 className="text-[20px] font-semibold">{s.label}</h3>
-                    <p className="mt-1 text-[13px] text-white/65">{s.sub}</p>
-                  </div>
-                </article>
-              </button>
-            );
-          })}
-
-          {/* om inga ämnen finns */}
-          {!loading && subjectCards.length === 0 && (
-            <div className="col-span-full text-center text-white/75 text-sm">
-              Du har inga ämnen inlagda ännu.
-            </div>
-          )}
+    <div className="min-h-screen bg-[#0A0F1F] text-white">
+      {/* ✅ Header with back button and class info */}
+      <section className="mx-auto max-w-[1100px] px-4 pt-8">
+        <div className="flex items-center gap-4 mb-4">
+          <button
+            onClick={handleGoBack}
+            className="flex items-center gap-2 text-white/70 hover:text-white transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Tillbaka till klassvy
+          </button>
         </div>
-      )}
 
-      {/* knapp för att skapa nytt quiz */}
-      <div className="mt-12 flex justify-center">
-        <button
-          onClick={handleCreateQuiz}
-          disabled={!selected || loading}
-          className="bg-[#22C55E] px-8 py-3 rounded-xl font-semibold text-white disabled:bg-[#22C55E]/50"
-        >
-          Skapa nytt quiz
-        </button>
-      </div>
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-white mb-2">
+            Skapa quiz för klass: {classInfo?.name || "Laddar..."}
+          </h1>
+          <h2 className="text-[18px] font-semibold text-white/90">
+            Välj ämne för ditt nya quiz
+          </h2>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-[1100px] px-4 pt-6">
+        {loading && (
+          <div className="text-center text-white/75 text-sm">
+            Laddar ämnen...
+          </div>
+        )}
+
+        {!loading && subjectCards.length === 0 && (
+          <div className="text-center text-white/75 text-sm">
+            <p className="mb-4">Denna klass har inga ämnen inlagda ännu.</p>
+            <p className="text-xs text-white/60">
+              Kontakta en administratör för att lägga till ämnen i klassen.
+            </p>
+          </div>
+        )}
+
+        {!loading && subjectCards.length > 0 && (
+          <>
+            <div className="grid grid-cols-1 place-items-center gap-x-16 gap-y-10 sm:grid-cols-2">
+              {subjectCards.map((s) => {
+                const isSelected = selected?.id === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setSelected({ id: s.id, name: s.label })}
+                    aria-pressed={isSelected}
+                    className="relative w-full max-w-[460px] text-left"
+                    disabled={loading}
+                  >
+                    {isSelected && (
+                      <div className="pointer-events-none absolute -inset-[6px] rounded-[26px] ring-2 ring-white/95 shadow-[0_0_0_6px_rgba(255,255,255,0.08)]" />
+                    )}
+                    <article className="relative h-[140px] w-full rounded-[26px] border border-[#1E2A49] bg-[#0E1629] px-7 py-6 shadow-[0_22px_48px_rgba(0,0,0,0.5)]">
+                      <div className="flex h-full items-center gap-6">
+                        <div className="flex h-[84px] w-[84px] items-center justify-center rounded-2xl bg-gradient-to-b from-[#0E1A34] to-[#0B152A] ring-1 ring-white/5 shadow-[0_12px_28px_rgba(0,0,0,0.45)]">
+                          <img
+                            src={s.iconUrl || "/icons/open-book.png"}
+                            alt={s.label}
+                            className="h-[56px] w-[56px] object-contain"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).src =
+                                "/icons/open-book.png";
+                            }}
+                          />
+                        </div>
+                        <div className="translate-y-[-2px]">
+                          <h3 className="text-[20px] font-semibold">{s.label}</h3>
+                          <p className="mt-1 text-[13px] text-white/65">{s.sub}</p>
+                        </div>
+                      </div>
+                    </article>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="mt-12 flex justify-center pb-20">
+              <button
+                type="button"
+                disabled={!selected || loading}
+                onClick={handleCreateQuiz}
+                className="inline-flex items-center justify-center rounded-xl bg-[#22C55E] px-8 py-3 text-[15px] font-semibold text-white shadow-[0_26px_70px_rgba(34,197,94,0.45)] hover:brightness-110 active:scale-[0.99] disabled:bg-[#22C55E]/50 disabled:cursor-not-allowed"
+              >
+                {selected
+                  ? `Skapa quiz i ${selected.name}`
+                  : "Välj ett ämne först"
+                }
+              </button>
+            </div>
+          </>
+        )}
+      </section>
     </div>
   );
 }
