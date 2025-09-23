@@ -225,6 +225,7 @@ export default function StudentDashboardPage() {
             {/* Knappar */}
             <div className="mt-2 space-y-3">
               <button
+                data-testid="starta-quiz-btn"
                 onClick={() => navigate("/QuizVyStudent")}
                 className="w-full rounded-2xl bg-[#3BCC52] px-5 py-4 text-left text-lg font-bold text-white"
               >
