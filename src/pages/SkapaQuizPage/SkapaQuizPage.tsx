@@ -1,19 +1,23 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { ChevronDown, ChevronRight, Plus, Edit2, Trash2, BookOpen, FileText } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import {
+  ChevronDown,
+  ChevronRight,
+  Plus,
+  Edit2,
+  Trash2,
+  BookOpen,
+  FileText,
+} from "lucide-react";
 
 import {
   topicApi,
   TopicDto,
   TopicSummaryDto,
   LevelRowDto,
-} from '../../Api/TopicsApi/topics';
+} from "../../Api/TopicsApi/topics";
 
-import {
-  QuizzesApi,
-  QuizSummaryDto,
-  UUID,
-} from '../../Api/QuizApi/Quizzes';
+import { QuizzesApi, QuizSummaryDto, UUID } from "../../Api/QuizApi/Quizzes";
 
 /* ---------- Local UI types ---------- */
 interface ExtendedLevel extends LevelRowDto {
@@ -54,16 +58,17 @@ interface TopicFormData {
 
 const ManageSubjectTopicsPage: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const subjectId = (searchParams.get('subjectId') || '').trim();
-  const classId = (searchParams.get('classId') || '').trim() || undefined;
+
+  const subjectId = (searchParams.get("subjectId") || "").trim();
+  const classId = (searchParams.get("classId") || "").trim() || undefined;
 
   console.log("[Page] query params:", { subjectId, classId });
 
   // topic list + selection
   const [topics, setTopics] = useState<TopicSummaryDto[]>([]);
-  const [selectedTopicId, setSelectedTopicId] = useState<string>('');
+  const [selectedTopicId, setSelectedTopicId] = useState<string>("");
   const selectedTopic = useMemo(
-    () => topics.find(t => t.topicId === selectedTopicId) || null,
+    () => topics.find((t) => t.topicId === selectedTopicId) || null,
     [topics, selectedTopicId]
   );
 
@@ -75,31 +80,43 @@ const ManageSubjectTopicsPage: React.FC = () => {
 
   // modals
   const [showTopicModal, setShowTopicModal] = useState(false);
-  const [editingTopic, setEditingTopic] = useState<TopicSummaryDto | null>(null);
+  const [editingTopic, setEditingTopic] = useState<TopicSummaryDto | null>(
+    null
+  );
 
   const [showLevelModal, setShowLevelModal] = useState(false);
   const [editingLevel, setEditingLevel] = useState<ExtendedLevel | null>(null);
 
   const [showQuizModal, setShowQuizModal] = useState(false);
-  const [selectedLevelForQuiz, setSelectedLevelForQuiz] = useState<ExtendedLevel | null>(null);
+  const [selectedLevelForQuiz, setSelectedLevelForQuiz] =
+    useState<ExtendedLevel | null>(null);
 
   // forms
-  const [topicForm, setTopicForm] = useState<TopicFormData>({ name: '', description: '', sortOrder: 0 });
-  const [levelForm, setLevelForm] = useState<LevelFormData>({ levelNumber: 1, title: '', minXpUnlock: 0, studyText: '' });
+  const [topicForm, setTopicForm] = useState<TopicFormData>({
+    name: "",
+    description: "",
+    sortOrder: 0,
+  });
+  const [levelForm, setLevelForm] = useState<LevelFormData>({
+    levelNumber: 1,
+    title: "",
+    minXpUnlock: 0,
+    studyText: "",
+  });
   const [quizForm, setQuizForm] = useState<QuizFormData>({
-    title: '',
-    description: '',
+    title: "",
+    description: "",
     isPublished: false,
     questions: [
       {
-        stem: '',
-        explanation: '',
+        stem: "",
+        explanation: "",
         options: [
-          { text: '', isCorrect: false },
-          { text: '', isCorrect: false }
-        ]
-      }
-    ]
+          { text: "", isCorrect: false },
+          { text: "", isCorrect: false },
+        ],
+      },
+    ],
   });
 
   /* ========= load topics for subject ========= */
@@ -121,9 +138,9 @@ const ManageSubjectTopicsPage: React.FC = () => {
           setSelectedTopicId(list[0].topicId);
         }
       } catch (e) {
-        console.error('[Page] Failed to load topics', e);
+        console.error("[Page] Failed to load topics", e);
         setTopics([]);
-        setSelectedTopicId('');
+        setSelectedTopicId("");
       } finally {
         setLoading(false);
       }
@@ -144,11 +161,16 @@ const ManageSubjectTopicsPage: React.FC = () => {
         setLoading(true);
         console.log("[Page] Loading topic details:", selectedTopicId);
         const t = await topicApi.get(selectedTopicId);
-        console.log("[Page] topicDetails:", t, "server-derived subjectId:", (t as any).subjectId);
+        console.log(
+          "[Page] topicDetails:",
+          t,
+          "server-derived subjectId:",
+          (t as any).subjectId
+        );
         setTopicDetails(t);
         await loadLevels(selectedTopicId);
       } catch (e) {
-        console.error('[Page] Failed to load topic/levels', e);
+        console.error("[Page] Failed to load topic/levels", e);
         setTopicDetails(null);
         setLevels([]);
       } finally {
@@ -164,12 +186,16 @@ const ManageSubjectTopicsPage: React.FC = () => {
     const withExtras: ExtendedLevel[] = await Promise.all(
       rows.map(async (level) => {
         try {
-          const quizzes = await QuizzesApi.getPublishedQuizzes(undefined, tid as unknown as UUID, level.levelId as unknown as UUID);
+          const quizzes = await QuizzesApi.getPublishedQuizzes(
+            undefined,
+            tid as unknown as UUID,
+            level.levelId as unknown as UUID
+          );
           const study = await topicApi.getLevelStudy(tid, level.levelId);
-          return { ...level, quizzes, studyText: study?.studyText || '' };
+          return { ...level, quizzes, studyText: study?.studyText || "" };
         } catch (e) {
-          console.error('[Page] level extras failed', e);
-          return { ...level, quizzes: [], studyText: '' };
+          console.error("[Page] level extras failed", e);
+          return { ...level, quizzes: [], studyText: "" };
         }
       })
     );
@@ -179,7 +205,7 @@ const ManageSubjectTopicsPage: React.FC = () => {
 
   /* ========= UI helpers ========= */
   const toggleLevelExpansion = (levelId: string) => {
-    setExpandedLevels(prev => {
+    setExpandedLevels((prev) => {
       const next = new Set(prev);
       next.has(levelId) ? next.delete(levelId) : next.add(levelId);
       return next;
@@ -191,8 +217,12 @@ const ManageSubjectTopicsPage: React.FC = () => {
     setEditingTopic(topic ?? null);
     setTopicForm(
       topic
-        ? { name: topic.name, description: topic.description || '', sortOrder: topic.sortOrder }
-        : { name: '', description: '', sortOrder: topics.length }
+        ? {
+            name: topic.name,
+            description: topic.description || "",
+            sortOrder: topic.sortOrder,
+          }
+        : { name: "", description: "", sortOrder: topics.length }
     );
     setShowTopicModal(true);
   };
@@ -200,7 +230,7 @@ const ManageSubjectTopicsPage: React.FC = () => {
   const handleTopicSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!subjectId) {
-      alert('Saknar subjectId i URL: ?subjectId=...');
+      alert("Saknar subjectId i URL: ?subjectId=...");
       return;
     }
 
@@ -213,7 +243,11 @@ const ManageSubjectTopicsPage: React.FC = () => {
           sortOrder: topicForm.sortOrder,
         });
       } else {
-        console.log("[Page] Creating topic for subjectId:", subjectId, topicForm);
+        console.log(
+          "[Page] Creating topic for subjectId:",
+          subjectId,
+          topicForm
+        );
         const created = await topicApi.create({
           subjectId,
           name: topicForm.name,
@@ -228,8 +262,8 @@ const ManageSubjectTopicsPage: React.FC = () => {
       const list = await topicApi.listBySubject(subjectId);
       setTopics(list);
     } catch (err) {
-      console.error('[Page] Save topic error', err);
-      alert('Kunde inte spara topic. Försök igen.');
+      console.error("[Page] Save topic error", err);
+      alert("Kunde inte spara topic. Försök igen.");
     }
   };
 
@@ -239,8 +273,18 @@ const ManageSubjectTopicsPage: React.FC = () => {
     setEditingLevel(lv);
     setLevelForm(
       lv
-        ? { levelNumber: lv.levelNumber, title: lv.title || '', minXpUnlock: lv.minXpUnlock, studyText: lv.studyText || '' }
-        : { levelNumber: levels.length + 1, title: '', minXpUnlock: levels.length * 100, studyText: '' }
+        ? {
+            levelNumber: lv.levelNumber,
+            title: lv.title || "",
+            minXpUnlock: lv.minXpUnlock,
+            studyText: lv.studyText || "",
+          }
+        : {
+            levelNumber: levels.length + 1,
+            title: "",
+            minXpUnlock: levels.length * 100,
+            studyText: "",
+          }
     );
     setShowLevelModal(true);
   };
@@ -257,37 +301,50 @@ const ManageSubjectTopicsPage: React.FC = () => {
           title: levelForm.title,
           minXpUnlock: levelForm.minXpUnlock,
         });
-        await topicApi.updateLevelStudy(selectedTopicId, editingLevel.levelId, { studyText: levelForm.studyText });
+        await topicApi.updateLevelStudy(selectedTopicId, editingLevel.levelId, {
+          studyText: levelForm.studyText,
+        });
       } else {
-        console.log("[Page] Creating level for topic:", selectedTopicId, levelForm);
+        console.log(
+          "[Page] Creating level for topic:",
+          selectedTopicId,
+          levelForm
+        );
         const created = await topicApi.createLevel(selectedTopicId, {
           levelNumber: levelForm.levelNumber,
           title: levelForm.title,
           minXpUnlock: levelForm.minXpUnlock,
         });
         if (levelForm.studyText) {
-          await topicApi.updateLevelStudy(selectedTopicId, created.levelId, { studyText: levelForm.studyText });
+          await topicApi.updateLevelStudy(selectedTopicId, created.levelId, {
+            studyText: levelForm.studyText,
+          });
         }
       }
       setShowLevelModal(false);
       await loadLevels(selectedTopicId);
     } catch (err) {
-      console.error('[Page] Save level error', err);
-      alert('Kunde inte spara nivån. Försök igen.');
+      console.error("[Page] Save level error", err);
+      alert("Kunde inte spara nivån. Försök igen.");
     }
   };
 
   const handleDeleteLevel = async (level: ExtendedLevel) => {
     if (!selectedTopicId) return;
-    if (!confirm(`Är du säker på att du vill ta bort nivå ${level.levelNumber}? Detta tar bort alla quiz.`)) return;
+    if (
+      !confirm(
+        `Är du säker på att du vill ta bort nivå ${level.levelNumber}? Detta tar bort alla quiz.`
+      )
+    )
+      return;
 
     try {
       console.log("[Page] Deleting level:", level.levelId);
       await topicApi.deleteLevel(level.levelId);
       await loadLevels(selectedTopicId);
     } catch (err) {
-      console.error('[Page] Delete level error', err);
-      alert('Kunde inte ta bort nivå. Försök igen.');
+      console.error("[Page] Delete level error", err);
+      alert("Kunde inte ta bort nivå. Försök igen.");
     }
   };
 
@@ -296,19 +353,19 @@ const ManageSubjectTopicsPage: React.FC = () => {
     setSelectedLevelForQuiz(level);
     console.log("[Page] Open quiz modal for level:", level);
     setQuizForm({
-      title: '',
-      description: '',
+      title: "",
+      description: "",
       isPublished: false,
       questions: [
         {
-          stem: '',
-          explanation: '',
+          stem: "",
+          explanation: "",
           options: [
-            { text: '', isCorrect: false },
-            { text: '', isCorrect: false }
-          ]
-        }
-      ]
+            { text: "", isCorrect: false },
+            { text: "", isCorrect: false },
+          ],
+        },
+      ],
     });
     setShowQuizModal(true);
   };
@@ -332,9 +389,9 @@ const ManageSubjectTopicsPage: React.FC = () => {
 
       // Validate each question has exactly one correct option
       for (const q of quizForm.questions) {
-        const correct = q.options.filter(o => o.isCorrect).length;
+        const correct = q.options.filter((o) => o.isCorrect).length;
         if (correct !== 1) {
-          alert('Varje fråga måste ha exakt ett korrekt alternativ.');
+          alert("Varje fråga måste ha exakt ett korrekt alternativ.");
           return;
         }
       }
@@ -347,10 +404,13 @@ const ManageSubjectTopicsPage: React.FC = () => {
         title: quizForm.title,
         description: quizForm.description,
         isPublished: quizForm.isPublished,
-        questions: quizForm.questions.map(q => ({
+        questions: quizForm.questions.map((q) => ({
           stem: q.stem,
           explanation: q.explanation || null,
-          options: q.options.map(o => ({ text: o.text, isCorrect: o.isCorrect })),
+          options: q.options.map((o) => ({
+            text: o.text,
+            isCorrect: o.isCorrect,
+          })),
         })),
       });
 
@@ -358,46 +418,64 @@ const ManageSubjectTopicsPage: React.FC = () => {
       setShowQuizModal(false);
       await loadLevels(selectedTopicId);
     } catch (err: any) {
-      console.error('[Page] Create quiz error', {
+      console.error("[Page] Create quiz error", {
         status: err?.response?.status,
         data: err?.response?.data,
         url: err?.config?.url,
         method: err?.config?.method,
       });
-      alert(`Kunde inte skapa quiz. ${err?.response?.data?.message || err?.message || ''}`);
+      alert(
+        `Kunde inte skapa quiz. ${
+          err?.response?.data?.message || err?.message || ""
+        }`
+      );
     }
   };
 
   /* ========= Question form helpers ========= */
   const addQuizQuestion = () => {
-    setQuizForm(prev => ({
+    setQuizForm((prev) => ({
       ...prev,
       questions: [
         ...prev.questions,
-        { stem: '', explanation: '', options: [{ text: '', isCorrect: false }, { text: '', isCorrect: false }] }
-      ]
+        {
+          stem: "",
+          explanation: "",
+          options: [
+            { text: "", isCorrect: false },
+            { text: "", isCorrect: false },
+          ],
+        },
+      ],
     }));
   };
 
   const removeQuizQuestion = (idx: number) => {
-    setQuizForm(prev => ({ ...prev, questions: prev.questions.filter((_, i) => i !== idx) }));
+    setQuizForm((prev) => ({
+      ...prev,
+      questions: prev.questions.filter((_, i) => i !== idx),
+    }));
   };
 
   const addQuestionOption = (qIdx: number) => {
-    setQuizForm(prev => ({
+    setQuizForm((prev) => ({
       ...prev,
       questions: prev.questions.map((q, i) =>
-        i === qIdx ? { ...q, options: [...q.options, { text: '', isCorrect: false }] } : q
-      )
+        i === qIdx
+          ? { ...q, options: [...q.options, { text: "", isCorrect: false }] }
+          : q
+      ),
     }));
   };
 
   const removeQuestionOption = (qIdx: number, optIdx: number) => {
-    setQuizForm(prev => ({
+    setQuizForm((prev) => ({
       ...prev,
       questions: prev.questions.map((q, i) =>
-        i === qIdx ? { ...q, options: q.options.filter((_, oi) => oi !== optIdx) } : q
-      )
+        i === qIdx
+          ? { ...q, options: q.options.filter((_, oi) => oi !== optIdx) }
+          : q
+      ),
     }));
   };
 
@@ -407,15 +485,26 @@ const ManageSubjectTopicsPage: React.FC = () => {
     field: keyof QuestionOptionForm,
     value: any
   ) => {
-    setQuizForm(prev => ({
+    setQuizForm((prev) => ({
       ...prev,
       questions: prev.questions.map((q, i) => {
         if (i !== qIdx) return q;
-        if (field === 'isCorrect' && value) {
-          return { ...q, options: q.options.map((opt, oi) => ({ ...opt, isCorrect: oi === optIdx })) };
+        if (field === "isCorrect" && value) {
+          return {
+            ...q,
+            options: q.options.map((opt, oi) => ({
+              ...opt,
+              isCorrect: oi === optIdx,
+            })),
+          };
         }
-        return { ...q, options: q.options.map((opt, oi) => (oi === optIdx ? { ...opt, [field]: value } : opt)) };
-      })
+        return {
+          ...q,
+          options: q.options.map((opt, oi) =>
+            oi === optIdx ? { ...opt, [field]: value } : opt
+          ),
+        };
+      }),
     }));
   };
 
@@ -424,7 +513,9 @@ const ManageSubjectTopicsPage: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#0A0F1F] text-white p-6">
         <h1 className="text-2xl font-bold mb-2">Saknar subjectId</h1>
-        <p className="text-white/70">Öppna sidan med <code>?subjectId=&lt;GUID&gt;</code> i URL:en.</p>
+        <p className="text-white/70">
+          Öppna sidan med <code>?subjectId=&lt;GUID&gt;</code> i URL:en.
+        </p>
       </div>
     );
   }
@@ -444,22 +535,31 @@ const ManageSubjectTopicsPage: React.FC = () => {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">Hantera ämne</h1>
-        <p className="text-white/70">Välj eller skapa ett område (topic) och hantera nivåer & quiz.</p>
+        <p className="text-white/70">
+          Välj eller skapa ett område (topic) och hantera nivåer & quiz.
+        </p>
       </div>
 
       {/* Topic select + Create Topic */}
       <div className="mb-8 flex flex-wrap items-end gap-3">
         <div className="flex-1 min-w-[260px]">
-          <label className="block mb-2 text-sm font-medium">Välj område (topic)</label>
+          <label className="block mb-2 text-sm font-medium">
+            Välj område (topic)
+          </label>
           <select
             value={selectedTopicId}
             onChange={(e) => setSelectedTopicId(e.target.value)}
             className="w-full px-3 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:border-blue-500"
           >
-            {topics.length === 0 && <option value="">Inga topics – skapa ett nytt</option>}
-            {topics.map(t => (
+            {topics.length === 0 && (
+              <option value="">Inga topics – skapa ett nytt</option>
+            )}
+            {topics.map((t) => (
               <option key={t.topicId} value={t.topicId}>
-                {t.name} {typeof t.levelCount === 'number' ? `(${t.levelCount} nivåer)` : ''}
+                {t.name}{" "}
+                {typeof t.levelCount === "number"
+                  ? `(${t.levelCount} nivåer)`
+                  : ""}
               </option>
             ))}
           </select>
@@ -488,8 +588,12 @@ const ManageSubjectTopicsPage: React.FC = () => {
       {/* Selected topic header */}
       {selectedTopic && (
         <div className="mb-6">
-          <h2 className="text-2xl font-bold">{topicDetails?.name || selectedTopic.name}</h2>
-          {topicDetails?.description && <p className="text-white/70">{topicDetails.description}</p>}
+          <h2 className="text-2xl font-bold">
+            {topicDetails?.name || selectedTopic.name}
+          </h2>
+          {topicDetails?.description && (
+            <p className="text-white/70">{topicDetails.description}</p>
+          )}
         </div>
       )}
 
@@ -508,25 +612,52 @@ const ManageSubjectTopicsPage: React.FC = () => {
           </div>
 
           <div className="space-y-4">
-            {levels.map(level => (
-              <div key={level.levelId} className="bg-gradient-to-r from-purple-700 to-purple-900 rounded-xl overflow-hidden">
+            {levels.map((level) => (
+              <div
+                key={level.levelId}
+                className="bg-gradient-to-r from-purple-700 to-purple-900 rounded-xl overflow-hidden"
+              >
                 <div className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3 cursor-pointer flex-1" onClick={() => toggleLevelExpansion(level.levelId)}>
-                    {expandedLevels.has(level.levelId) ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                  <div
+                    className="flex items-center gap-3 cursor-pointer flex-1"
+                    onClick={() => toggleLevelExpansion(level.levelId)}
+                  >
+                    {expandedLevels.has(level.levelId) ? (
+                      <ChevronDown className="w-5 h-5" />
+                    ) : (
+                      <ChevronRight className="w-5 h-5" />
+                    )}
                     <div>
-                      <div className="text-lg font-semibold">Nivå {level.levelNumber}: {level.title || 'Utan titel'}</div>
-                      <div className="text-sm text-white/70">Min XP: {level.minXpUnlock} | {level.quizzes?.length || 0} quiz</div>
+                      <div className="text-lg font-semibold">
+                        Nivå {level.levelNumber}: {level.title || "Utan titel"}
+                      </div>
+                      <div className="text-sm text-white/70">
+                        Min XP: {level.minXpUnlock} |{" "}
+                        {level.quizzes?.length || 0} quiz
+                      </div>
                     </div>
                   </div>
 
                   <div className="flex gap-2">
-                    <button onClick={() => openLevelModal(level)} className="bg-yellow-600 hover:bg-yellow-700 p-2 rounded" aria-label="Redigera nivå">
+                    <button
+                      onClick={() => openLevelModal(level)}
+                      className="bg-yellow-600 hover:bg-yellow-700 p-2 rounded"
+                      aria-label="Redigera nivå"
+                    >
                       <Edit2 className="w-4 h-4" />
                     </button>
-                    <button onClick={() => openQuizModal(level)} className="bg-blue-600 hover:bg-blue-700 p-2 rounded" aria-label="Skapa quiz">
+                    <button
+                      onClick={() => openQuizModal(level)}
+                      className="bg-blue-600 hover:bg-blue-700 p-2 rounded"
+                      aria-label="Skapa quiz"
+                    >
                       <Plus className="w-4 h-4" />
                     </button>
-                    <button onClick={() => handleDeleteLevel(level)} className="bg-red-600 hover:bg-red-700 p-2 rounded" aria-label="Ta bort nivå">
+                    <button
+                      onClick={() => handleDeleteLevel(level)}
+                      className="bg-red-600 hover:bg-red-700 p-2 rounded"
+                      aria-label="Ta bort nivå"
+                    >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -540,7 +671,7 @@ const ManageSubjectTopicsPage: React.FC = () => {
                         <h4 className="font-medium">Studiematerial</h4>
                       </div>
                       <p className="text-white/80 text-sm whitespace-pre-wrap">
-                        {level.studyText || 'Inget studiematerial tillagt än'}
+                        {level.studyText || "Inget studiematerial tillagt än"}
                       </p>
                     </div>
 
@@ -548,9 +679,14 @@ const ManageSubjectTopicsPage: React.FC = () => {
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <FileText className="w-4 h-4" />
-                          <h4 className="font-medium">Quiz ({level.quizzes?.length || 0})</h4>
+                          <h4 className="font-medium">
+                            Quiz ({level.quizzes?.length || 0})
+                          </h4>
                         </div>
-                        <button onClick={() => openQuizModal(level)} className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm flex items-center gap-1">
+                        <button
+                          onClick={() => openQuizModal(level)}
+                          className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm flex items-center gap-1"
+                        >
                           <Plus className="w-3 h-3" />
                           Nytt Quiz
                         </button>
@@ -558,23 +694,42 @@ const ManageSubjectTopicsPage: React.FC = () => {
 
                       {level.quizzes?.length ? (
                         <div className="space-y-2">
-                          {level.quizzes.map(quiz => (
-                            <div key={quiz.id} className="bg-white/10 rounded p-3 flex items-center justify-between">
+                          {level.quizzes.map((quiz) => (
+                            <div
+                              key={quiz.id}
+                              className="bg-white/10 rounded p-3 flex items-center justify-between"
+                            >
                               <div>
                                 <div className="font-medium">{quiz.title}</div>
-                                <div className="text-sm text-white/70">{quiz.questionCount} frågor | {quiz.isPublished ? 'Publicerat' : 'Utkast'}</div>
+                                <div className="text-sm text-white/70">
+                                  {quiz.questionCount} frågor |{" "}
+                                  {quiz.isPublished ? "Publicerat" : "Utkast"}
+                                </div>
                               </div>
                               <div className="flex gap-2">
                                 <button
                                   onClick={async () => {
-                                    if (!confirm('Är du säker på att du vill ta bort detta quiz?')) return;
+                                    if (
+                                      !confirm(
+                                        "Är du säker på att du vill ta bort detta quiz?"
+                                      )
+                                    )
+                                      return;
                                     try {
-                                      console.log("[Page] Deleting quiz:", quiz.id);
+                                      console.log(
+                                        "[Page] Deleting quiz:",
+                                        quiz.id
+                                      );
                                       await QuizzesApi.deleteQuiz(quiz.id);
                                       await loadLevels(selectedTopicId);
                                     } catch (e) {
-                                      console.error('[Page] Delete quiz error', e);
-                                      alert('Kunde inte ta bort quiz. Försök igen.');
+                                      console.error(
+                                        "[Page] Delete quiz error",
+                                        e
+                                      );
+                                      alert(
+                                        "Kunde inte ta bort quiz. Försök igen."
+                                      );
                                     }
                                   }}
                                   className="bg-red-600 hover:bg-red-700 p-1 rounded"
@@ -587,7 +742,9 @@ const ManageSubjectTopicsPage: React.FC = () => {
                           ))}
                         </div>
                       ) : (
-                        <p className="text-white/60 text-sm">Inga quiz skapade ännu</p>
+                        <p className="text-white/60 text-sm">
+                          Inga quiz skapade ännu
+                        </p>
                       )}
                     </div>
                   </div>
@@ -596,7 +753,9 @@ const ManageSubjectTopicsPage: React.FC = () => {
             ))}
 
             {!levels.length && (
-              <div className="text-white/70 text-sm">Inga nivåer ännu. Skapa din första nivå.</div>
+              <div className="text-white/70 text-sm">
+                Inga nivåer ännu. Skapa din första nivå.
+              </div>
             )}
           </div>
         </div>
@@ -606,14 +765,18 @@ const ManageSubjectTopicsPage: React.FC = () => {
       {showTopicModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <div className="bg-[#1A1F36] p-6 rounded-xl shadow-xl max-w-md w-full mx-4">
-            <h3 className="text-xl font-bold mb-4">{editingTopic ? 'Redigera Topic' : 'Skapa Nytt Topic'}</h3>
+            <h3 className="text-xl font-bold mb-4">
+              {editingTopic ? "Redigera Topic" : "Skapa Nytt Topic"}
+            </h3>
             <form onSubmit={handleTopicSubmit} className="space-y-4">
               <div>
                 <label className="block mb-1 text-sm">Namn *</label>
                 <input
                   type="text"
                   value={topicForm.name}
-                  onChange={(e) => setTopicForm(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={(e) =>
+                    setTopicForm((prev) => ({ ...prev, name: e.target.value }))
+                  }
                   className="w-full px-3 py-2 rounded bg-gray-200 text-black"
                   required
                 />
@@ -622,7 +785,12 @@ const ManageSubjectTopicsPage: React.FC = () => {
                 <label className="block mb-1 text-sm">Beskrivning</label>
                 <textarea
                   value={topicForm.description}
-                  onChange={(e) => setTopicForm(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={(e) =>
+                    setTopicForm((prev) => ({
+                      ...prev,
+                      description: e.target.value,
+                    }))
+                  }
                   className="w-full px-3 py-2 rounded bg-gray-200 text-black h-20 resize-none"
                 />
               </div>
@@ -631,16 +799,28 @@ const ManageSubjectTopicsPage: React.FC = () => {
                 <input
                   type="number"
                   value={topicForm.sortOrder ?? 0}
-                  onChange={(e) => setTopicForm(prev => ({ ...prev, sortOrder: parseInt(e.target.value) || 0 }))}
+                  onChange={(e) =>
+                    setTopicForm((prev) => ({
+                      ...prev,
+                      sortOrder: parseInt(e.target.value) || 0,
+                    }))
+                  }
                   className="w-full px-3 py-2 rounded bg-gray-200 text-black"
                 />
               </div>
               <div className="flex justify-end gap-3 mt-6">
-                <button type="button" onClick={() => setShowTopicModal(false)} className="px-4 py-2 rounded bg-gray-600 hover:bg-gray-700">
+                <button
+                  type="button"
+                  onClick={() => setShowTopicModal(false)}
+                  className="px-4 py-2 rounded bg-gray-600 hover:bg-gray-700"
+                >
                   Avbryt
                 </button>
-                <button type="submit" className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700">
-                  {editingTopic ? 'Uppdatera' : 'Skapa'}
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700"
+                >
+                  {editingTopic ? "Uppdatera" : "Skapa"}
                 </button>
               </div>
             </form>
@@ -652,7 +832,9 @@ const ManageSubjectTopicsPage: React.FC = () => {
       {showLevelModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 overflow-y-auto">
           <div className="bg-[#1A1F36] p-6 rounded-xl shadow-xl max-w-2xl w-full mx-4 my-8">
-            <h3 className="text-xl font-bold mb-4">{editingLevel ? 'Redigera Nivå' : 'Skapa Ny Nivå'}</h3>
+            <h3 className="text-xl font-bold mb-4">
+              {editingLevel ? "Redigera Nivå" : "Skapa Ny Nivå"}
+            </h3>
             <form onSubmit={handleLevelSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -660,18 +842,30 @@ const ManageSubjectTopicsPage: React.FC = () => {
                   <input
                     type="number"
                     value={levelForm.levelNumber}
-                    onChange={(e) => setLevelForm(prev => ({ ...prev, levelNumber: parseInt(e.target.value) || 1 }))}
+                    onChange={(e) =>
+                      setLevelForm((prev) => ({
+                        ...prev,
+                        levelNumber: parseInt(e.target.value) || 1,
+                      }))
+                    }
                     className="w-full px-3 py-2 rounded bg-gray-200 text-black"
                     min={1}
                     required
                   />
                 </div>
                 <div>
-                  <label className="block mb-1 text-sm">Min XP för att låsa upp</label>
+                  <label className="block mb-1 text-sm">
+                    Min XP för att låsa upp
+                  </label>
                   <input
                     type="number"
                     value={levelForm.minXpUnlock}
-                    onChange={(e) => setLevelForm(prev => ({ ...prev, minXpUnlock: parseInt(e.target.value) || 0 }))}
+                    onChange={(e) =>
+                      setLevelForm((prev) => ({
+                        ...prev,
+                        minXpUnlock: parseInt(e.target.value) || 0,
+                      }))
+                    }
                     className="w-full px-3 py-2 rounded bg-gray-200 text-black"
                     min={0}
                   />
@@ -682,7 +876,9 @@ const ManageSubjectTopicsPage: React.FC = () => {
                 <input
                   type="text"
                   value={levelForm.title}
-                  onChange={(e) => setLevelForm(prev => ({ ...prev, title: e.target.value }))}
+                  onChange={(e) =>
+                    setLevelForm((prev) => ({ ...prev, title: e.target.value }))
+                  }
                   className="w-full px-3 py-2 rounded bg-gray-200 text-black"
                 />
               </div>
@@ -690,17 +886,29 @@ const ManageSubjectTopicsPage: React.FC = () => {
                 <label className="block mb-1 text-sm">Studiematerial</label>
                 <textarea
                   value={levelForm.studyText}
-                  onChange={(e) => setLevelForm(prev => ({ ...prev, studyText: e.target.value }))}
+                  onChange={(e) =>
+                    setLevelForm((prev) => ({
+                      ...prev,
+                      studyText: e.target.value,
+                    }))
+                  }
                   className="w-full px-3 py-2 rounded bg-gray-200 text-black h-32 resize-none"
                   placeholder="Skriv studiematerialet för denna nivå..."
                 />
               </div>
               <div className="flex justify-end gap-3 mt-6">
-                <button type="button" onClick={() => setShowLevelModal(false)} className="px-4 py-2 rounded bg-gray-600 hover:bg-gray-700">
+                <button
+                  type="button"
+                  onClick={() => setShowLevelModal(false)}
+                  className="px-4 py-2 rounded bg-gray-600 hover:bg-gray-700"
+                >
                   Avbryt
                 </button>
-                <button type="submit" className="px-4 py-2 rounded bg-green-600 hover:bg-green-700">
-                  {editingLevel ? 'Uppdatera' : 'Skapa'}
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded bg-green-600 hover:bg-green-700"
+                >
+                  {editingLevel ? "Uppdatera" : "Skapa"}
                 </button>
               </div>
             </form>
@@ -712,7 +920,9 @@ const ManageSubjectTopicsPage: React.FC = () => {
       {showQuizModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 overflow-y-auto">
           <div className="bg-[#1A1F36] p-6 rounded-xl shadow-xl max-w-4xl w-full mx-4 my-8 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold mb-4">Skapa Quiz för Nivå {selectedLevelForQuiz?.levelNumber}</h3>
+            <h3 className="text-xl font-bold mb-4">
+              Skapa Quiz för Nivå {selectedLevelForQuiz?.levelNumber}
+            </h3>
             <form onSubmit={handleQuizSubmit} className="space-y-6">
               <div className="grid grid-cols-1 gap-4">
                 <div>
@@ -720,7 +930,12 @@ const ManageSubjectTopicsPage: React.FC = () => {
                   <input
                     type="text"
                     value={quizForm.title}
-                    onChange={(e) => setQuizForm(prev => ({ ...prev, title: e.target.value }))}
+                    onChange={(e) =>
+                      setQuizForm((prev) => ({
+                        ...prev,
+                        title: e.target.value,
+                      }))
+                    }
                     className="w-full px-3 py-2 rounded bg-gray-200 text-black"
                     required
                   />
@@ -729,7 +944,12 @@ const ManageSubjectTopicsPage: React.FC = () => {
                   <label className="block mb-1 text-sm">Beskrivning</label>
                   <textarea
                     value={quizForm.description}
-                    onChange={(e) => setQuizForm(prev => ({ ...prev, description: e.target.value }))}
+                    onChange={(e) =>
+                      setQuizForm((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
                     className="w-full px-3 py-2 rounded bg-gray-200 text-black h-20 resize-none"
                   />
                 </div>
@@ -738,9 +958,16 @@ const ManageSubjectTopicsPage: React.FC = () => {
                     type="checkbox"
                     id="publishQuiz"
                     checked={quizForm.isPublished}
-                    onChange={(e) => setQuizForm(prev => ({ ...prev, isPublished: e.target.checked }))}
+                    onChange={(e) =>
+                      setQuizForm((prev) => ({
+                        ...prev,
+                        isPublished: e.target.checked,
+                      }))
+                    }
                   />
-                  <label htmlFor="publishQuiz" className="text-sm">Publicera direkt</label>
+                  <label htmlFor="publishQuiz" className="text-sm">
+                    Publicera direkt
+                  </label>
                 </div>
               </div>
 
@@ -748,7 +975,11 @@ const ManageSubjectTopicsPage: React.FC = () => {
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="text-lg font-semibold">Frågor</h4>
-                  <button type="button" onClick={addQuizQuestion} className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={addQuizQuestion}
+                    className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm flex items-center gap-1"
+                  >
                     <Plus className="w-3 h-3" />
                     Lägg till fråga
                   </button>
@@ -760,7 +991,12 @@ const ManageSubjectTopicsPage: React.FC = () => {
                       <div className="flex items-start justify-between mb-3">
                         <h5 className="font-medium">Fråga {qIdx + 1}</h5>
                         {quizForm.questions.length > 1 && (
-                          <button type="button" onClick={() => removeQuizQuestion(qIdx)} className="bg-red-600 hover:bg-red-700 p-1 rounded" aria-label="Ta bort fråga">
+                          <button
+                            type="button"
+                            onClick={() => removeQuizQuestion(qIdx)}
+                            className="bg-red-600 hover:bg-red-700 p-1 rounded"
+                            aria-label="Ta bort fråga"
+                          >
                             <Trash2 className="w-3 h-3" />
                           </button>
                         )}
@@ -768,13 +1004,19 @@ const ManageSubjectTopicsPage: React.FC = () => {
 
                       <div className="space-y-3">
                         <div>
-                          <label className="block mb-1 text-sm">Frågetext *</label>
+                          <label className="block mb-1 text-sm">
+                            Frågetext *
+                          </label>
                           <textarea
                             value={question.stem}
                             onChange={(e) =>
-                              setQuizForm(prev => ({
+                              setQuizForm((prev) => ({
                                 ...prev,
-                                questions: prev.questions.map((q, i) => (i === qIdx ? { ...q, stem: e.target.value } : q))
+                                questions: prev.questions.map((q, i) =>
+                                  i === qIdx
+                                    ? { ...q, stem: e.target.value }
+                                    : q
+                                ),
                               }))
                             }
                             className="w-full px-3 py-2 rounded bg-gray-200 text-black h-20 resize-none"
@@ -783,13 +1025,19 @@ const ManageSubjectTopicsPage: React.FC = () => {
                         </div>
 
                         <div>
-                          <label className="block mb-1 text-sm">Förklaring</label>
+                          <label className="block mb-1 text-sm">
+                            Förklaring
+                          </label>
                           <textarea
                             value={question.explanation}
                             onChange={(e) =>
-                              setQuizForm(prev => ({
+                              setQuizForm((prev) => ({
                                 ...prev,
-                                questions: prev.questions.map((q, i) => (i === qIdx ? { ...q, explanation: e.target.value } : q))
+                                questions: prev.questions.map((q, i) =>
+                                  i === qIdx
+                                    ? { ...q, explanation: e.target.value }
+                                    : q
+                                ),
                               }))
                             }
                             className="w-full px-3 py-2 rounded bg-gray-200 text-black h-16 resize-none"
@@ -799,7 +1047,11 @@ const ManageSubjectTopicsPage: React.FC = () => {
                         <div>
                           <div className="flex items-center justify-between mb-2">
                             <label className="text-sm">Svarsalternativ</label>
-                            <button type="button" onClick={() => addQuestionOption(qIdx)} className="bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded text-xs flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => addQuestionOption(qIdx)}
+                              className="bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded text-xs flex items-center gap-1"
+                            >
                               <Plus className="w-2 h-2" />
                               Alternativ
                             </button>
@@ -807,23 +1059,47 @@ const ManageSubjectTopicsPage: React.FC = () => {
 
                           <div className="space-y-2">
                             {question.options.map((opt, optIdx) => (
-                              <div key={optIdx} className="flex items-center gap-2">
+                              <div
+                                key={optIdx}
+                                className="flex items-center gap-2"
+                              >
                                 <input
                                   type="radio"
                                   name={`question-${qIdx}`}
                                   checked={opt.isCorrect}
-                                  onChange={() => updateQuestionOption(qIdx, optIdx, 'isCorrect', true)}
+                                  onChange={() =>
+                                    updateQuestionOption(
+                                      qIdx,
+                                      optIdx,
+                                      "isCorrect",
+                                      true
+                                    )
+                                  }
                                 />
                                 <input
                                   type="text"
                                   value={opt.text}
-                                  onChange={(e) => updateQuestionOption(qIdx, optIdx, 'text', e.target.value)}
+                                  onChange={(e) =>
+                                    updateQuestionOption(
+                                      qIdx,
+                                      optIdx,
+                                      "text",
+                                      e.target.value
+                                    )
+                                  }
                                   placeholder={`Alternativ ${optIdx + 1}`}
                                   className="flex-1 px-3 py-1 rounded bg-gray-200 text-black"
                                   required
                                 />
                                 {question.options.length > 2 && (
-                                  <button type="button" onClick={() => removeQuestionOption(qIdx, optIdx)} className="bg-red-600 hover:bg-red-700 p-1 rounded" aria-label="Ta bort alternativ">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      removeQuestionOption(qIdx, optIdx)
+                                    }
+                                    className="bg-red-600 hover:bg-red-700 p-1 rounded"
+                                    aria-label="Ta bort alternativ"
+                                  >
                                     <Trash2 className="w-3 h-3" />
                                   </button>
                                 )}
@@ -838,10 +1114,17 @@ const ManageSubjectTopicsPage: React.FC = () => {
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-white/20">
-                <button type="button" onClick={() => setShowQuizModal(false)} className="px-4 py-2 rounded bg-gray-600 hover:bg-gray-700">
+                <button
+                  type="button"
+                  onClick={() => setShowQuizModal(false)}
+                  className="px-4 py-2 rounded bg-gray-600 hover:bg-gray-700"
+                >
                   Avbryt
                 </button>
-                <button type="submit" className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700">
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700"
+                >
                   Skapa Quiz
                 </button>
               </div>

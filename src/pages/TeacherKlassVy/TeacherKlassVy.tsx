@@ -6,6 +6,7 @@ import avatar from "../../assets/images/avatar/default-avatar.png";
 // hämtar API:er
 import { AuthApi, MeResp } from "../../Api/AuthApi/auth";
 import { TeacherClasses, SubjectsApi, SubjectDto } from "../../Api";
+import { QuizzesApi } from "../../Api/QuizApi/Quizzes";
 
 // typdefinition för en användare (elev eller lärare)
 type User = {
@@ -30,7 +31,7 @@ type ClassStat = {
   students: number;
   users: User[];
   quizzes: Quiz[];
-  joinCode?: string; 
+  joinCode?: string;
 };
 
 // hårdkodade citat från förebilder inom matematik, vetenskap och litteratur
@@ -92,25 +93,25 @@ const TeacherKlassVy: React.FC = () => {
         const teacherClasses = await TeacherClasses.GetCreatedClasses(); // hämta alla klasser som läraren har skapat
         console.log("Created classes:", teacherClasses);
 
-        // för varje klass, hämta eleverna och bygg upp statistiken
+        // för varje klass, hämta eleverna
         const mappedClasses: ClassStat[] = await Promise.all(
           teacherClasses.map(async (c: any) => {
             const students = await TeacherClasses.GetClassStudents(c.id);
+
+            // Hämta quiz för klassen
+            const quizzes = await QuizzesApi.getMyQuizzes({ classId: c.id });
+
             return {
               id: c.id,
               name: c.name,
-              joinCode: c.joinCode, //  hämta joinCode från API
+              joinCode: c.joinCode,
               students: students.length,
-              avgScore: c.avgScore ?? 0,
-              readingCompliance: c.readingCompliance ?? 0,
-              quizzesThisWeek: c.quizzesThisWeek ?? 0,
-              levelAvg: c.levelAvg ?? 0,
-              weeklyActivity: c.weeklyActivity ?? [],
-              streakDays: c.streakDays ?? 0,
-              subjects: [],
-              topStudents: c.topStudents ?? [],
               users: students,
-              quizzes: c.quizzes ?? [],
+              quizzes: quizzes.map((q) => ({
+                id: q.id,
+                title: q.title,
+                questions: q.questionCount,
+              })),
             };
           })
         );
@@ -183,13 +184,16 @@ const TeacherKlassVy: React.FC = () => {
     closeModals();
   };
 
-
   //visa laddning eller felmeddelande om behövs
 
   const handleCreateQuiz = () => {
     if (!current) return;
     // Navigate to the subject selection page with the selected class
-    navigate(`/teachertopic?classId=${current.id}&className=${encodeURIComponent(current.name || current.id)}`);
+    navigate(
+      `/teachertopic?classId=${current.id}&className=${encodeURIComponent(
+        current.name || current.id
+      )}`
+    );
   };
 
   // visa laddning eller felmeddelande om behövs
@@ -258,12 +262,10 @@ const TeacherKlassVy: React.FC = () => {
             </select>
           </div>
           <button
-
             onClick={handleCreateQuiz}
             className="bg-green-500 hover:bg-green-600 px-4 py-2 rounded text-white font-semibold"
           >
             Skapa quiz för {current.name ?? current.id}
-
           </button>
         </div>
 
@@ -271,7 +273,8 @@ const TeacherKlassVy: React.FC = () => {
         <div className="bg-white/5 rounded-2xl p-4 ring-1 ring-white/10">
           <h3 className="text-lg font-bold mb-3">Dela joinkod till elever</h3>
           <p className="text-sm text-white/70 mb-2">
-            Elever använder koden på startsidan för att registrera sig till rätt klass.
+            Elever använder koden på startsidan för att registrera sig till rätt
+            klass.
           </p>
           <div className="flex items-center gap-3">
             <input
@@ -368,14 +371,6 @@ const TeacherKlassVy: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <button
-                        onClick={() =>
-                          navigate("/skapa-quiz", { state: { quiz: q } })
-                        }
-                        className="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded"
-                      >
-                        Redigera
-                      </button>
                       <button
                         onClick={() => openDeleteQuizModal(q)}
                         className="bg-red-500 hover:bg-red-600 px-3 py-1 rounded"
