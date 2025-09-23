@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate, data } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { ClassAccess } from "../../Api/ClassApi/ClassAccess";
 
@@ -8,14 +8,13 @@ const JoinClassPage: React.FC = () => {
   const joinCode = useMemo(() => (routeJoinCode ?? "").trim(), [routeJoinCode]);
   const navigate = useNavigate();
 
-  const { register, user } = useAuth();
+  const { registerStudent, user } = useAuth();
 
   const [className, setClassName] = useState<string>("");
   const [isValid, setIsValid] = useState<boolean | null>(null);
   const [checking, setChecking] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [classId, setClassId] = useState<string | undefined>(undefined);
-
 
   const [formData, setFormData] = useState({
     email: "",
@@ -25,6 +24,17 @@ const JoinClassPage: React.FC = () => {
     fullName: "",
   });
   const [isLoading, setIsLoading] = useState(false);
+
+  // Reset fälten varje gång joinCode ändras ELLER vid mount
+  useEffect(() => {
+    setFormData({
+      email: "",
+      userName: "",
+      password: "",
+      confirmPassword: "",
+      fullName: "",
+    });
+  }, [joinCode]);
 
   useEffect(() => {
     let cancelled = false;
@@ -81,9 +91,10 @@ const JoinClassPage: React.FC = () => {
     }
 
     try {
-      // If user is not logged in, register first
+      //  Registrera student
+      // registerStudent använder AuthApi.register → POST /Auth/register
       if (!user) {
-        await register(
+        await registerStudent(
           formData.email,
           formData.userName,
           formData.password,
@@ -91,12 +102,11 @@ const JoinClassPage: React.FC = () => {
         );
       }
 
-      // Then join class with the provided join code via API layer
+      // Anslut till klass via API
       await ClassAccess.join(joinCode);
 
-      // Navigate to class page or dashboard
+      //  Navigera till klassvy
       navigate(`/classes/${classId}`, { replace: true });
-
     } catch (err: any) {
       setError(err?.message || "Registrering eller anslutning misslyckades");
     } finally {
@@ -123,7 +133,7 @@ const JoinClassPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md mx-auto">
-        {/* Header bar (keeps modal look) */}
+        {/* Header */}
         <div className="bg-gradient-to-b from-purple-600 to-purple-800 rounded-t-2xl shadow-2xl">
           <div className="text-white text-center py-5 rounded-t-2xl">
             <h2 className="text-xl font-semibold">
@@ -155,7 +165,10 @@ const JoinClassPage: React.FC = () => {
                 onChange={handleInputChange}
                 placeholder="Email"
                 required
-                className="w-full px-4 py-3 rounded-lg bg-gray-200 text-gray-700 placeholder-gray-500 border-none focus:outline-none focus:ring-2 focus:ring-purple-400"
+                autoComplete="off"
+                className="w-full px-4 py-3 rounded-lg bg-gray-200 text-gray-700 
+                           placeholder-gray-500 border-none focus:outline-none 
+                           focus:ring-2 focus:ring-purple-400"
               />
 
               <input
@@ -165,7 +178,10 @@ const JoinClassPage: React.FC = () => {
                 onChange={handleInputChange}
                 placeholder="Användarnamn"
                 required
-                className="w-full px-4 py-3 rounded-lg bg-gray-200 text-gray-700 placeholder-gray-500 border-none focus:outline-none focus:ring-2 focus:ring-purple-400"
+                autoComplete="off"
+                className="w-full px-4 py-3 rounded-lg bg-gray-200 text-gray-700 
+                           placeholder-gray-500 border-none focus:outline-none 
+                           focus:ring-2 focus:ring-purple-400"
               />
 
               <input
@@ -174,7 +190,10 @@ const JoinClassPage: React.FC = () => {
                 value={formData.fullName}
                 onChange={handleInputChange}
                 placeholder="Fullständigt namn"
-                className="w-full px-4 py-3 rounded-lg bg-gray-200 text-gray-700 placeholder-gray-500 border-none focus:outline-none focus:ring-2 focus:ring-purple-400"
+                autoComplete="off"
+                className="w-full px-4 py-3 rounded-lg bg-gray-200 text-gray-700 
+                           placeholder-gray-500 border-none focus:outline-none 
+                           focus:ring-2 focus:ring-purple-400"
               />
 
               <input
@@ -184,7 +203,10 @@ const JoinClassPage: React.FC = () => {
                 onChange={handleInputChange}
                 placeholder="Lösenord"
                 required
-                className="w-full px-4 py-3 rounded-lg bg-gray-200 text-gray-700 placeholder-gray-500 border-none focus:outline-none focus:ring-2 focus:ring-purple-400"
+                autoComplete="new-password"
+                className="w-full px-4 py-3 rounded-lg bg-gray-200 text-gray-700 
+                           placeholder-gray-500 border-none focus:outline-none 
+                           focus:ring-2 focus:ring-purple-400"
               />
 
               <input
@@ -194,13 +216,17 @@ const JoinClassPage: React.FC = () => {
                 onChange={handleInputChange}
                 placeholder="Upprepa lösenord"
                 required
-                className="w-full px-4 py-3 rounded-lg bg-gray-200 text-gray-700 placeholder-gray-500 border-none focus:outline-none focus:ring-2 focus:ring-purple-400"
+                autoComplete="new-password"
+                className="w-full px-4 py-3 rounded-lg bg-gray-200 text-gray-700 
+                           placeholder-gray-500 border-none focus:outline-none 
+                           focus:ring-2 focus:ring-purple-400"
               />
 
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-medium py-3 rounded-lg transition-colors"
+                className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-400 
+                           text-white font-medium py-3 rounded-lg transition-colors"
               >
                 {isLoading ? "Går med..." : "Registrera & gå med"}
               </button>

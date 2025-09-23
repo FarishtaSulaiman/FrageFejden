@@ -191,6 +191,7 @@ export default function App() {
       <Route element={<AppLayout />}>
         <Route element={<PublicOnlyOutlet />}>
           <Route index element={<HomePage />} />
+          <Route path="class/join/:joinCode" element={<JoinClassPage />} />
         </Route>
 
         <Route element={<RoleRoute allowedRoles={["admin"]} />}>
@@ -219,7 +220,6 @@ export default function App() {
           <Route path="Api-test" element={<ApiPlayground />} />
           <Route path="leaderboard" element={<Leaderboard />} />
           <Route path="duel/:duelId" element={<DuelRoom />} />
-          <Route path="class/join/:joinCode" element={<JoinClassPage />} />
         </Route>
 
         <Route path="quizzes/:quizId/questions" element={<QuizPage />} />
