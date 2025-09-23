@@ -36,7 +36,7 @@ export type QuizFilter = {
 
 export type CreateQuizDto = {
   topicId: UUID;
-  subjectId?: UUID;  // Optional (server derives from topicId) — ignored by client payload
+  subjectId?: UUID; // Optional (server derives from topicId) — ignored by client payload
   levelId?: UUID | null;
   classId?: UUID | null;
   title: string;
@@ -212,14 +212,21 @@ export const QuizzesApi = {
     return res.data;
   },
 
-
-  async getPublishedQuizzes(subjectId?: UUID, topicId?: UUID, levelId?: UUID): Promise<QuizSummaryDto[]> {
+  async getPublishedQuizzes(
+    subjectId?: UUID,
+    topicId?: UUID,
+    levelId?: UUID
+  ): Promise<QuizSummaryDto[]> {
     const params: Record<string, unknown> = {};
     if (subjectId) params.subjectId = subjectId;
     if (topicId) params.topicId = topicId;
     if (levelId) params.levelId = levelId;
 
-    const res = await http.get<QuizSummaryDto[]>("/quizzes/published", { params });
+    const res = await http.get<QuizSummaryDto[]>("/quizzes/published", {
+      params,
+    });
+    return res.data;
+  },
 
   // Mina quiz (skapade av inloggad lärare/admin)
   async getMyQuizzes(params?: {
@@ -230,23 +237,10 @@ export const QuizzesApi = {
     searchTerm?: string;
   }): Promise<QuizSummaryDto[]> {
     const res = await http.get("/Quizzes/my-quizzes", { params });
-    const data = res.data;
+    const data = res.data as any;
     if (Array.isArray(data)) return data;
-    if (Array.isArray((data as any)?.items)) return (data as any).items;
+    if (Array.isArray(data?.items)) return data.items;
     return [];
-  },
-
-  async getPublishedQuizzes(
-    subjectId?: UUID,
-    topicId?: UUID,
-    levelId?: UUID
-  ): Promise<QuizSummaryDto[]> {
-    const params = { subjectId, topicId, levelId };
-    const res = await http.get<QuizSummaryDto[]>("/quizzes/published", {
-      params,
-    });
-
-    return res.data;
   },
 
   async getQuiz(id: UUID): Promise<Quiz> {
@@ -274,11 +268,13 @@ export const QuizzesApi = {
       title: createDto.title,
       isPublished: createDto.isPublished,
     };
-    if (createDto.description !== undefined) payload.description = createDto.description;
+    if (createDto.description !== undefined)
+      payload.description = createDto.description;
     // if (createDto.subjectId) payload.subjectId = createDto.subjectId; // ❌ omit for safety
     if (createDto.levelId !== undefined) payload.levelId = createDto.levelId;
     if (createDto.classId !== undefined) payload.classId = createDto.classId;
-    if (createDto.questionIds?.length) payload.questionIds = createDto.questionIds;
+    if (createDto.questionIds?.length)
+      payload.questionIds = createDto.questionIds;
 
     const res = await http.post<Quiz>("/quizzes", payload);
     return res.data;
@@ -289,7 +285,8 @@ export const QuizzesApi = {
       title: updateDto.title,
       isPublished: updateDto.isPublished,
     };
-    if (updateDto.description !== undefined) payload.description = updateDto.description;
+    if (updateDto.description !== undefined)
+      payload.description = updateDto.description;
     if (updateDto.levelId !== undefined) payload.levelId = updateDto.levelId;
     if (updateDto.classId !== undefined) payload.classId = updateDto.classId;
 
@@ -336,13 +333,11 @@ export const QuizzesApi = {
     await http.post(`/quizzes/${id}/allow-retry`, request);
   },
 
-
   async getQuestions(
     quizId: UUID,
     includeAnswers = false
   ): Promise<Question[]> {
-
-    const dto = await this.getQuizWithQuestions(quizId, includeAnswers);
+    const dto = await QuizzesApi.getQuizWithQuestions(quizId, includeAnswers);
     return dto.questions.map((q) => ({
       id: q.questionId,
       text: q.questionStem,
@@ -353,7 +348,7 @@ export const QuizzesApi = {
 
   async exists(id: UUID): Promise<boolean> {
     try {
-      await this.getQuiz(id);
+      await QuizzesApi.getQuiz(id);
       return true;
     } catch (error: any) {
       if (error?.response?.status === 404) return false;
@@ -362,29 +357,39 @@ export const QuizzesApi = {
   },
 
   async canAccess(quizId: UUID): Promise<boolean> {
-    return this.checkQuizAccess(quizId);
+    return QuizzesApi.checkQuizAccess(quizId);
   },
 
-  async setPublishedStatus(quizId: UUID, isPublished: boolean): Promise<void> {
-    await this.publishQuiz(quizId, { isPublished });
+  async setPublishedStatus(
+    quizId: UUID,
+    isPublished: boolean
+  ): Promise<void> {
+    await QuizzesApi.publishQuiz(quizId, { isPublished });
   },
-
 
   /* ========== Questions endpoints ========== */
 
-  async createQuestion(body: CreateQuestionDto) {
-    const res = await http.post(`/topics/${body.topicId}/levels/${body.levelId}/questions`, {
-      stem: body.stem,
-      explanation: body.explanation ?? null,
-      options: body.options.map(o => ({ text: o.text, isCorrect: o.isCorrect })),
-    });
+  async createQuestion(body: CreateQuestionDto): Promise<CreatedQuestionDto> {
+    const res = await http.post(
+      `/topics/${body.topicId}/levels/${body.levelId}/questions`,
+      {
+        stem: body.stem,
+        explanation: body.explanation ?? null,
+        options: body.options.map((o) => ({
+          text: o.text,
+          isCorrect: o.isCorrect,
+        })),
+      }
+    );
     return res.data as CreatedQuestionDto;
   },
 
-  async createQuestions(items: CreateQuestionDto[]) {
+  async createQuestions(
+    items: CreateQuestionDto[]
+  ): Promise<CreatedQuestionDto[]> {
     const out: CreatedQuestionDto[] = [];
     for (const item of items) {
-      const created = await this.createQuestion(item);
+      const created = await QuizzesApi.createQuestion(item);
       out.push(created);
     }
     return out;
@@ -398,10 +403,14 @@ export const QuizzesApi = {
     isPublished: boolean;
     subjectId?: UUID; // kept in type for compatibility
     classId?: UUID;
-    questions: { stem: string; explanation?: string | null; options: { text: string; isCorrect: boolean }[]; }[];
-  }) {
-    const created = await this.createQuestions(
-      args.questions.map(q => ({
+    questions: {
+      stem: string;
+      explanation?: string | null;
+      options: { text: string; isCorrect: boolean }[];
+    }[];
+  }): Promise<Quiz> {
+    const created = await QuizzesApi.createQuestions(
+      args.questions.map((q) => ({
         topicId: args.topicId,
         levelId: args.levelId,
         stem: q.stem,
@@ -410,9 +419,9 @@ export const QuizzesApi = {
       }))
     );
 
-    const questionIds = created.map(c => c.id);
+    const questionIds = created.map((c) => c.id);
 
-    return this.createQuiz({
+    return QuizzesApi.createQuiz({
       topicId: args.topicId,
       levelId: args.levelId,
       classId: args.classId,
@@ -421,6 +430,5 @@ export const QuizzesApi = {
       isPublished: args.isPublished,
       questionIds,
     });
-  }
+  },
 };
-

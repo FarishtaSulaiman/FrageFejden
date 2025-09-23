@@ -20,7 +20,7 @@ export default function QuizVyTeacher(): React.ReactElement {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // ✅ Get class info from URL params
+
   const urlClassId = searchParams.get("classId");
   const urlClassName = searchParams.get("className") || "Okänd klass";
 
@@ -45,13 +45,13 @@ export default function QuizVyTeacher(): React.ReactElement {
       let pickedClassId: string | null = null;
       let pickedClassName: string | null = null;
 
-      // ✅ Use URL params if available, otherwise fallback to first class
+
       if (urlClassId) {
         pickedClassId = urlClassId;
         pickedClassName = decodeURIComponent(urlClassName);
         setClassInfo({ id: pickedClassId, name: pickedClassName });
       } else {
-        // Fallback: get first class from user's classes
+
         try {
           const myClasses = await Classes.GetUsersClasses();
           if (Array.isArray(myClasses) && myClasses.length > 0) {
@@ -66,8 +66,8 @@ export default function QuizVyTeacher(): React.ReactElement {
           }
         } catch { }
       }
-      
-      // ✅ Load subjects for the selected class
+
+
       try {
         if (pickedClassId) {
           const list = await SubjectsApi.getForClass(pickedClassId);
@@ -123,14 +123,14 @@ export default function QuizVyTeacher(): React.ReactElement {
     navigate(`/skapa-quiz?subjectId=${selected.id}&classId=${classInfo.id}`);
   }
 
-  // ✅ Go back to class overview
+
   function handleGoBack() {
     navigate("/klassvy");
   }
 
   return (
     <div className="min-h-screen bg-[#0A0F1F] text-white">
-      {/* ✅ Header with back button and class info */}
+
       <section className="mx-auto max-w-[1100px] px-4 pt-8">
         <div className="flex items-center gap-4 mb-4">
           <button
