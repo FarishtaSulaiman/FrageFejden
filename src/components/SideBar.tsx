@@ -1,6 +1,11 @@
-import React from "react"; 
+import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { HiOutlineTrophy, HiOutlineChartBar, HiOutlineBell, HiOutlineUser } from "react-icons/hi2";
+import {
+  HiOutlineTrophy,
+  HiOutlineChartBar,
+  HiOutlineBell,
+  HiOutlineUser,
+} from "react-icons/hi2";
 import { useAuth } from "../auth/AuthContext";
 
 interface SidebarProps {
@@ -22,7 +27,7 @@ export default function Sidebar({
   points,
   rankNum,
   loading,
-  setShowMyPage
+  setShowMyPage,
 }: SidebarProps) {
   const { logout, loadingUser } = useAuth();
   const navigate = useNavigate();
@@ -46,16 +51,20 @@ export default function Sidebar({
         {roleLabel === "student" && (
           <>
             <div className="grid grid-cols-2 gap-3 p-4">
-              <div className="flex flex-col items-center justify-center rounded-xl 
-                bg-white/10 backdrop-blur-md p-3 shadow border border-white/20">
+              <div
+                className="flex flex-col items-center justify-center rounded-xl 
+                bg-white/10 backdrop-blur-md p-3 shadow border border-white/20"
+              >
                 <HiOutlineTrophy className="h-6 w-6" />
                 <span className="text-xs text-white/70 mt-1">Ranking</span>
                 <span className="font-semibold">
                   {loading ? "…" : rankNum ?? "—"}
                 </span>
               </div>
-              <div className="flex flex-col items-center justify-center rounded-xl 
-                bg-white/10 backdrop-blur-md p-3 shadow border border-white/20">
+              <div
+                className="flex flex-col items-center justify-center rounded-xl 
+                bg-white/10 backdrop-blur-md p-3 shadow border border-white/20"
+              >
                 <HiOutlineChartBar className="h-6 w-6" />
                 <span className="text-xs text-white/70 mt-1">Poäng</span>
                 <span className="font-semibold">{loading ? "…" : points}</span>
@@ -101,7 +110,7 @@ export default function Sidebar({
               disabled={loadingUser}
               className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/10 w-full text-left disabled:opacity-50"
             >
-              <HiOutlineTrophy className="h-5 w-5" /> Klass vy
+              <HiOutlineTrophy className="h-5 w-5" /> Klass vy / Skapa Quiz
             </button>
             <button
               onClick={() => {
@@ -112,16 +121,6 @@ export default function Sidebar({
               className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/10 w-full text-left disabled:opacity-50"
             >
               <HiOutlineChartBar className="h-5 w-5" /> Quiz Statistik
-            </button>
-            <button
-              onClick={() => {
-                onClose();
-                navigate("/skapa-quiz");
-              }}
-              disabled={loadingUser}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/10 w-full text-left disabled:opacity-50"
-            >
-              <HiOutlineUser className="h-5 w-5" /> Skapa Quiz
             </button>
             <button
               onClick={() => {
