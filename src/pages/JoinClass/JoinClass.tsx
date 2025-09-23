@@ -91,7 +91,6 @@ const JoinClassPage: React.FC = () => {
     }
 
     try {
-      //  Registrera student
       // registerStudent använder AuthApi.register → POST /Auth/register
       if (!user) {
         await registerStudent(
