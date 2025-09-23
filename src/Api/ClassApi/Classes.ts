@@ -1,6 +1,12 @@
 // src/Api/ClassApi/Classes.ts
 import { http } from "../../lib/http";
 
+export type VisibleMemberDto = {
+  id: string;
+  fullName: string;
+  avatarUrl?: string | null;
+};
+
 // Funktion för ranking: 1,1,3,4... (lika poäng => samma plats)
 function addCompetitionRank(rows: any[]) {
   const sorted = [...rows].sort((a, b) => b.score - a.score);

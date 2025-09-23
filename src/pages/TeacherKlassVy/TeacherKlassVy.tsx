@@ -183,7 +183,17 @@ const TeacherKlassVy: React.FC = () => {
     closeModals();
   };
 
+
   //visa laddning eller felmeddelande om behövs
+
+  const handleCreateQuiz = () => {
+    if (!current) return;
+    // Navigate to the subject selection page with the selected class
+    navigate(`/teachertopic?classId=${current.id}&className=${encodeURIComponent(current.name || current.id)}`);
+  };
+
+  // visa laddning eller felmeddelande om behövs
+
   if (loading) return <div>Laddar...</div>;
   if (error) return <div>{error}</div>;
 
@@ -248,12 +258,12 @@ const TeacherKlassVy: React.FC = () => {
             </select>
           </div>
           <button
-            onClick={() =>
-              navigate("/teachertopic", { state: { classId: className } })
-            }
+
+            onClick={handleCreateQuiz}
             className="bg-green-500 hover:bg-green-600 px-4 py-2 rounded text-white font-semibold"
           >
-            Skapa quiz till klass {current.name ?? current.id}
+            Skapa quiz för {current.name ?? current.id}
+
           </button>
         </div>
 
