@@ -1,14 +1,17 @@
+//importerar React och funktioner för state, effekter och navigation
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+// hämtar en standard-avatar-bild
 import avatar from "../../assets/images/avatar/default-avatar.png";
+// hämtar API:er
 import { AuthApi, MeResp } from "../../Api/AuthApi/auth";
 import { TeacherClasses, SubjectsApi, SubjectDto } from "../../Api";
 
-// typdefinition för användare
+// typdefinition för en användare (elev eller lärare)
 type User = {
   id: string;
   fullName: string;
-  userName: string;
+  userName?: string;
   level?: number;
   avgScore?: number;
 };
@@ -20,60 +23,72 @@ type Quiz = {
   questions: number;
 };
 
-// typdefinition för en klass med statistik
+// typdefinition för en klass
 type ClassStat = {
   id: string;
   name?: string;
   students: number;
-  avgScore: number;
-  readingCompliance: number;
-  quizzesThisWeek: number;
-  levelAvg: number;
-  weeklyActivity: number[];
-  streakDays: number;
-  subjects: SubjectDto[];
-  topStudents: User[];
   users: User[];
   quizzes: Quiz[];
 };
 
-// typdefinition för en aktivitet
-type Activity = {
-  time: string;
-  klass: string;
-  message: string;
-  badge?: string;
-};
+// hårdkodade citat från förebilder inom matematik, vetenskap och litteratur
+const quotes = [
+  "Matematik är språkets poesi. – Galileo Galilei",
+  "Vetenskap är organiserad kunskap. – Herbert Spencer",
+  "Allt som är värdefullt kräver arbete. – Isaac Newton",
+  "Fantasin är viktigare än kunskap. – Albert Einstein",
+];
 
 const TeacherKlassVy: React.FC = () => {
   const navigate = useNavigate();
 
-  const [currentUser, setCurrentUser] = useState<MeResp | null>(null);
-  const [classes, setClasses] = useState<ClassStat[]>([]);
-  const [className, setClassName] = useState<string>("");
-  const [subjects, setSubjects] = useState<SubjectDto[]>([]);
-  const [recentActivity, setRecentActivity] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<MeResp | null>(null); // den inloggade läraren
+  const [classes, setClasses] = useState<ClassStat[]>([]); // alla klasser
+  const [className, setClassName] = useState<string>(""); // vilken klass som är vald
+  const [subjects, setSubjects] = useState<SubjectDto[]>([]); // ämnen i klassen
+  const [loading, setLoading] = useState<boolean>(false); // laddar eller ej
+  const [error, setError] = useState<string | null>(null); // felmeddelande
+  const [fade, setFade] = useState(true); // true = synligt, false = fade out
 
-  const [deleteUser, setDeleteUser] = useState<User | null>(null);
-  const [deleteQuiz, setDeleteQuiz] = useState<Quiz | null>(null);
+  const [deleteUser, setDeleteUser] = useState<User | null>(null); // vilken elev ska raderas
+  const [deleteQuiz, setDeleteQuiz] = useState<Quiz | null>(null); // vilket quiz ska raderas
 
+  // state för att hålla index på nuvarande citat
+  const [quoteIndex, setQuoteIndex] = useState(0);
+
+  // hitta den aktuella klassen (utifrån valt namn/id)
   const current = useMemo(
     () => classes.find((c) => c.id === className) ?? null,
     [className, classes]
   );
 
+  // loopar citat var 5:e sekund
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFade(false); // börja fade out
+
+      // byt citat efter fade-out är klar
+      setTimeout(() => {
+        setQuoteIndex((prev) => (prev + 1) % quotes.length);
+        setFade(true); // fade in
+      }, 500); // fade-duration = 500ms
+    }, 5000); // byt citat var 5:e sekund
+    return () => clearInterval(interval);
+  }, []);
+
+  // körs en gång när sidan laddas
   useEffect(() => {
     async function loadData() {
       try {
         setLoading(true);
-        const user = await AuthApi.getMe();
+        const user = await AuthApi.getMe(); // hämta inloggad användare (läraren)
         setCurrentUser(user);
 
-        const teacherClasses = await TeacherClasses.GetCreatedClasses();
+        const teacherClasses = await TeacherClasses.GetCreatedClasses(); // hämta alla klasser som läraren har skapat
         console.log("Created classes:", teacherClasses);
 
+        // för varje klass, hämta eleverna och bygg upp statistiken
         const mappedClasses: ClassStat[] = await Promise.all(
           teacherClasses.map(async (c: any) => {
             const students = await TeacherClasses.GetClassStudents(c.id);
@@ -97,7 +112,7 @@ const TeacherKlassVy: React.FC = () => {
 
         setClasses(mappedClasses);
 
-        // ✅ sätt bara className om det finns klasser
+        // välj första klassen automatiskt om det finns någon
         if (mappedClasses.length > 0) {
           setClassName(mappedClasses[0].id);
         }
@@ -112,9 +127,9 @@ const TeacherKlassVy: React.FC = () => {
     loadData();
   }, []);
 
-  // ✅ FIX: guard i loadSubjects för att förhindra loop
+  // FIX: guard i loadSubjects för att förhindra loop
   useEffect(() => {
-    if (!className) return;
+    if (!className) return; // om ingen klass vald, gör inget
     let cancelled = false;
 
     async function loadSubjects() {
@@ -174,7 +189,7 @@ const TeacherKlassVy: React.FC = () => {
   if (loading) return <div>Laddar...</div>;
   if (error) return <div>{error}</div>;
 
-  // ✅ fallback-vy om inga klasser finns
+  // fallback-vy om inga klasser finns
   if (!current) {
     return (
       <div className="h-screen bg-[#0A0F1F] text-white flex items-center justify-center">
@@ -208,7 +223,7 @@ const TeacherKlassVy: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           <img
-            src={currentUser?.avatarUrl ?? avatar}
+            src={currentUser?.avatarUrl || avatar} // avatar är en default-avatar
             className="w-9 h-9 rounded-full ring-1 ring-white/20"
             alt="Avatar"
           />
@@ -235,107 +250,33 @@ const TeacherKlassVy: React.FC = () => {
             </select>
           </div>
           <button
+
             onClick={handleCreateQuiz}
             className="bg-green-500 hover:bg-green-600 px-4 py-2 rounded text-white font-semibold"
           >
             Skapa quiz för {current.name ?? current.id}
+
           </button>
         </div>
 
-        {/* statistikkort */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* statistikkort, elever + citat */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* antal elever */}
           <StatCard
             label="Elever"
             value={current.students.toString()}
             sub="i klassen"
           />
+          {/* inspirationscitat */}
           <StatCard
-            label="Snittresultat"
-            value={`${current.avgScore}%`}
-            tone="blue"
-            sub="senaste 30 dagar"
-          />
-          <StatCard
-            label="Läsning klar"
-            value={`${current.readingCompliance}%`}
-            tone="green"
-            sub="före quiz"
-          />
-          <StatCard
-            label="Quiz denna vecka"
-            value={`${current.quizzesThisWeek}`}
-            tone="yellow"
-            sub="planerade/genomförda"
+            label="Inspirationscitat"
+            value={quotes[quoteIndex]}
+            fade={fade}
           />
         </div>
 
         {/* huvudsektion */}
         <div className="flex flex-col md:flex-row gap-6 flex-1 overflow-hidden">
-          {/* topp-elever och senaste händelser */}
-          <div className="flex-1 flex flex-col gap-6 overflow-auto">
-            {/* topp-elever */}
-            <div className="bg-white/5 rounded-2xl p-6 ring-1 ring-white/10 overflow-auto max-h-80">
-              <h3 className="text-lg font-bold mb-4">Topp-elever</h3>
-              <ul className="space-y-3">
-                {current.topStudents.map((s, i) => (
-                  <li
-                    key={s.id}
-                    className="flex items-center justify-between bg-white/5 rounded-xl p-3 ring-1 ring-white/10"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-sm">
-                        {i + 1}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="font-semibold truncate">
-                          {s.fullName}
-                        </div>
-                        <div className="text-xs text-white/60 truncate">
-                          @{s.userName}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-xs text-white/60">Level</div>
-                      <div className="font-semibold">{s.level ?? "-"}</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-xs text-white/60">Snitt</div>
-                      <div className="font-semibold">
-                        {s.avgScore ?? "-"}%
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* senaste händelser */}
-            <div className="bg-white/5 rounded-2xl p-6 ring-1 ring-white/10 overflow-auto max-h-80">
-              <h3 className="text-lg font-bold mb-4">Senaste händelser</h3>
-              <ul className="space-y-3">
-                {recentActivity.map((a, idx) => (
-                  <li
-                    key={idx}
-                    className="flex items-center justify-between bg-white/5 rounded-xl p-3 ring-1 ring-white/10"
-                  >
-                    <div className="min-w-0">
-                      <div className="font-medium truncate">{a.message}</div>
-                      <div className="text-xs text-white/60">
-                        {a.time} • {a.klass}
-                      </div>
-                    </div>
-                    {a.badge && (
-                      <span className="text-xs bg-white/10 px-2 py-1 rounded shrink-0">
-                        {a.badge}
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
           {/* elevlista och quizlista */}
           <div className="flex-1 flex flex-col gap-6 overflow-auto">
             {/* elevlista */}
@@ -359,9 +300,7 @@ const TeacherKlassVy: React.FC = () => {
                       </div>
                       <div>
                         <div className="font-semibold">{u.fullName}</div>
-                        <div className="text-xs text-white/60">
-                          @{u.userName}
-                        </div>
+                        <div className="text-xs text-white/60"></div>
                       </div>
                     </div>
                     <button
@@ -456,20 +395,22 @@ function StatCard({
   value,
   sub,
   tone,
+  fade = true,
 }: {
   label: string;
   value: string;
   sub?: string;
   tone?: "green" | "blue" | "yellow";
+  fade?: boolean;
 }) {
   const toneClass =
     tone === "green"
       ? "from-emerald-500/20 to-emerald-500/0"
       : tone === "blue"
-        ? "from-sky-500/20 to-sky-500/0"
-        : tone === "yellow"
-          ? "from-yellow-500/20 to-yellow-500/0"
-          : "from-white/15 to-white/0";
+      ? "from-sky-500/20 to-sky-500/0"
+      : tone === "yellow"
+      ? "from-yellow-500/20 to-yellow-500/0"
+      : "from-white/15 to-white/0";
 
   return (
     <div className="relative overflow-hidden rounded-2xl p-4 ring-1 ring-white/10 bg-white/5">
@@ -479,7 +420,13 @@ function StatCard({
       <div className="text-xs uppercase tracking-wide text-white/60">
         {label}
       </div>
-      <div className="text-2xl font-extrabold mt-1">{value}</div>
+      <div
+        className={`text-2xl font-extrabold mt-1 transition-opacity duration-500 ${
+          fade ? "opacity-100" : "opacity-0"
+        }`}
+      >
+        {value}
+      </div>
       {sub && <div className="text-xs text-white/60 mt-1">{sub}</div>}
     </div>
   );

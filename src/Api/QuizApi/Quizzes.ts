@@ -206,9 +206,12 @@ export type CreatedQuestionDto = { id: UUID };
  * ========================= */
 export const QuizzesApi = {
   async getQuizzes(filter?: QuizFilter): Promise<QuizSummaryDto[]> {
-    const res = await http.get<QuizSummaryDto[]>("/quizzes", { params: filter });
+    const res = await http.get<QuizSummaryDto[]>("/quizzes", {
+      params: filter,
+    });
     return res.data;
   },
+
 
   async getPublishedQuizzes(subjectId?: UUID, topicId?: UUID, levelId?: UUID): Promise<QuizSummaryDto[]> {
     const params: Record<string, unknown> = {};
@@ -217,6 +220,32 @@ export const QuizzesApi = {
     if (levelId) params.levelId = levelId;
 
     const res = await http.get<QuizSummaryDto[]>("/quizzes/published", { params });
+
+  // Mina quiz (skapade av inloggad lärare/admin)
+  async getMyQuizzes(params?: {
+    page?: number;
+    pageSize?: number;
+    isPublished?: boolean;
+    classId?: UUID;
+    searchTerm?: string;
+  }): Promise<QuizSummaryDto[]> {
+    const res = await http.get("/Quizzes/my-quizzes", { params });
+    const data = res.data;
+    if (Array.isArray(data)) return data;
+    if (Array.isArray((data as any)?.items)) return (data as any).items;
+    return [];
+  },
+
+  async getPublishedQuizzes(
+    subjectId?: UUID,
+    topicId?: UUID,
+    levelId?: UUID
+  ): Promise<QuizSummaryDto[]> {
+    const params = { subjectId, topicId, levelId };
+    const res = await http.get<QuizSummaryDto[]>("/quizzes/published", {
+      params,
+    });
+
     return res.data;
   },
 
@@ -225,10 +254,16 @@ export const QuizzesApi = {
     return res.data;
   },
 
-  async getQuizWithQuestions(id: UUID, includeAnswers = false): Promise<QuizWithQuestionsDto> {
-    const res = await http.get<QuizWithQuestionsDto>(`/quizzes/${id}/questions`, {
-      params: { includeAnswers }
-    });
+  async getQuizWithQuestions(
+    id: UUID,
+    includeAnswers = false
+  ): Promise<QuizWithQuestionsDto> {
+    const res = await http.get<QuizWithQuestionsDto>(
+      `/quizzes/${id}/questions`,
+      {
+        params: { includeAnswers },
+      }
+    );
     return res.data;
   },
 
@@ -270,7 +305,10 @@ export const QuizzesApi = {
     await http.patch(`/quizzes/${id}/publish`, publishDto);
   },
 
-  async updateQuizQuestions(id: UUID, updateDto: UpdateQuizQuestionsDto): Promise<void> {
+  async updateQuizQuestions(
+    id: UUID,
+    updateDto: UpdateQuizQuestionsDto
+  ): Promise<void> {
     await http.put(`/quizzes/${id}/questions`, updateDto);
   },
 
@@ -298,13 +336,18 @@ export const QuizzesApi = {
     await http.post(`/quizzes/${id}/allow-retry`, request);
   },
 
-  async getQuestions(quizId: UUID, includeAnswers = false): Promise<Question[]> {
+
+  async getQuestions(
+    quizId: UUID,
+    includeAnswers = false
+  ): Promise<Question[]> {
+
     const dto = await this.getQuizWithQuestions(quizId, includeAnswers);
-    return dto.questions.map(q => ({
+    return dto.questions.map((q) => ({
       id: q.questionId,
       text: q.questionStem,
-      answers: q.options.map(o => ({ id: o.id, text: o.optionText })),
-      correctAnswerId: q.correctOptionId || undefined
+      answers: q.options.map((o) => ({ id: o.id, text: o.optionText })),
+      correctAnswerId: q.correctOptionId || undefined,
     }));
   },
 
@@ -325,6 +368,7 @@ export const QuizzesApi = {
   async setPublishedStatus(quizId: UUID, isPublished: boolean): Promise<void> {
     await this.publishQuiz(quizId, { isPublished });
   },
+
 
   /* ========== Questions endpoints ========== */
 
@@ -379,3 +423,4 @@ export const QuizzesApi = {
     });
   }
 };
+

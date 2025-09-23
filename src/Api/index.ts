@@ -11,5 +11,8 @@ export { getFunFact, type FunFact } from "./FunFacts/FunFacts";
 export { DailyApi } from "./DailyApi/Daily";
 
 export { TeacherClasses } from "./ClassApi/teacherClasses";
+export { StatisticsApi } from "./StatisticsApi/StatisticsApi";
+export type { ClassAverageScoreDto } from "./StatisticsApi/StatisticsApi";
+export type { StudentResponseDto } from "./StatisticsApi/StatisticsApi";
 
 export { DuelApi } from "./DuelApi/Duel";

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+// importerar API:er för autentisering och användarhantering
 import { AuthApi as AuthApiAuth } from "../Api/AuthApi/auth";
 import { AuthApi as AuthApiUser, EditUserDto } from "../Api/AuthApi/user";
 
@@ -32,31 +33,30 @@ const avatars = [
   avatar12,
 ];
 
+// typdefinition för props till modalen
 interface MyPageModalProps {
-  isOpen: boolean; // om modalen ska visas eller inte
-  onClose: () => void; // funktion för att stänga modalen
+  isOpen: boolean; // om modalen ska visas
+  onClose: () => void; // callback för att stänga modalen
 }
 
 const MyPageModal: React.FC<MyPageModalProps> = ({ isOpen, onClose }) => {
-  // användarens info
+  // state för användarens info
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState("");
-  const [avatar, setAvatar] = useState<number | null>(null);
-
-  // lösenordsfält
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null); // <- ändrat till string
+  // state för lösenordsändring
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // felmeddelande + laddning
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // körs när modalen öppnas
+  // hämtar användarinfo när modalen öppnas
   useEffect(() => {
-    if (!isOpen) return; // om stängd → gör inget
+    if (!isOpen) return;
 
     const fetchUser = async () => {
       try {
@@ -65,19 +65,14 @@ const MyPageModal: React.FC<MyPageModalProps> = ({ isOpen, onClose }) => {
 
         setEmail(me.email ?? "");
         setUsername(me.userName ?? "");
-
-        // dela upp fullName till förnamn + efternamn
+        // dela fullName till förnamn och efternamn
         if (me.fullName) {
           const [first, ...last] = me.fullName.split(" ");
           setFirstName(first ?? "");
           setLastName(last.join(" ") ?? "");
         }
 
-        // försök hitta vilken avatar användaren har
-        if ((me as any).avatarUrl) {
-          const match = (me as any).avatarUrl.match(/avatar(\d+)\.png$/);
-          if (match) setAvatar(Number(match[1]));
-        }
+        setAvatarUrl((me as any).avatarUrl ?? null); // spara avatar-url
       } catch {
         setError("Kunde inte hämta användarinfo");
       } finally {
@@ -88,19 +83,18 @@ const MyPageModal: React.FC<MyPageModalProps> = ({ isOpen, onClose }) => {
     fetchUser();
   }, [isOpen]);
 
-  if (!isOpen) return null; // visa inget om modalen är stängd
+  if (!isOpen) return null;
 
-  // spara ändringar
+  // funktion som körs när användaren klickar på "Spara"
   const handleSave = async () => {
     try {
-      setError(""); // nollställ tidigare fel
-
-      if (!avatar) {
+      setError("");
+      // kolla att avatar är vald
+      if (!avatarUrl) {
         setError("Du måste välja en avatar");
         return;
       }
-
-      // lösenordsvalidering
+      // hantera lösenordsändring
       if (newPassword || confirmPassword) {
         if (!currentPassword) {
           setError(
@@ -115,31 +109,28 @@ const MyPageModal: React.FC<MyPageModalProps> = ({ isOpen, onClose }) => {
       }
 
       setLoading(true);
-
-      // skapa DTO som skickas till backend
+      // bygg DTO för API-anrop
       const dto: EditUserDto = {
         UserName: username,
         Email: email,
-        AvatarUrl: `src/assets/images/avatar/avatar${avatar}.png`,
+        AvatarUrl: avatarUrl,
         CurrentPassword: currentPassword || "",
         NewPassword: newPassword || "",
       };
 
-      await AuthApiUser.editUser(dto); // skicka ändringar till backend
-      window.location.reload(); // så sidan uppdateras efter man sparat
-
-      onClose(); // stäng modalen efter sparat
+      await AuthApiUser.editUser(dto); // skicka ändringar till API
+      window.location.reload(); // uppdatera sidan efter ändring
+      onClose(); // stäng modalen
     } catch {
-      setError("Kunde inte spara ändringar");
+      setError("Kunde inte spara ändringar"); // fel vid sparande
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    // bakgrund
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      {/* själva rutan */}
+      {/* modalruta */}
       <div className="bg-[#1a1f3c]/80 backdrop-blur-md border border-white/30 rounded-lg shadow-2xl w-full max-w-xl overflow-auto max-h-[90vh] relative text-white">
         {/* stäng-knapp */}
         <button
@@ -156,10 +147,12 @@ const MyPageModal: React.FC<MyPageModalProps> = ({ isOpen, onClose }) => {
 
         {/* innehåll */}
         <div className="px-8 pb-8 space-y-4">
+          {/* felmeddelande */}
           {error && <div className="bg-red-500 p-3 rounded">{error}</div>}
+          {/* laddning */}
           {loading && <div className="text-center">Laddar...</div>}
 
-          {/* fullständigt namn (låst) */}
+          {/* namn med read-only */}
           <div>
             <label className="block text-sm font-semibold mb-1">Namn</label>
             <input
@@ -198,17 +191,17 @@ const MyPageModal: React.FC<MyPageModalProps> = ({ isOpen, onClose }) => {
           <div>
             <p className="mb-2">Välj avatar:</p>
             <div className="grid grid-cols-6 gap-2">
-              {avatars.map((img, index) => (
+              {avatars.map((img) => (
                 <div
-                  key={index}
-                  onClick={() => setAvatar(index + 1)}
+                  key={img}
+                  onClick={() => setAvatarUrl(img)}
                   className={`w-12 h-12 rounded-full cursor-pointer border-4 ${
-                    avatar === index + 1
+                    avatarUrl === img
                       ? "border-green-500"
                       : "border-transparent"
                   }`}
                 >
-                  <img src={img} alt={`Avatar ${index + 1}`} />
+                  <img src={img} alt="Avatar" />
                 </div>
               ))}
             </div>
