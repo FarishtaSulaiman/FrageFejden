@@ -94,7 +94,7 @@ export default function Sidebar({
                 onClick={onClose}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/10"
               >
-                <HiOutlineBell className="h-5 w-5" /> Notiser
+                <HiOutlineBell className="h-5 w-5" /> Dashboard
               </NavLink>
             </nav>
           </>
